@@ -10,7 +10,7 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         ResizeMode="NoResize"
-        Width="900" Height="160"
+        Width="1200" Height="160"
         FontFamily="{StaticResource Manrope}"
         Foreground="{StaticResource TextBrush}"
         UseLayoutRounding="True">
@@ -48,7 +48,8 @@
                 </ContextMenu>
             </Border.ContextMenu>
 
-            <Grid>
+            <!-- ClipToBounds: genişlemiş satır sabit genişlikte durur, hap küçükken taşan kısmı kırpılır -->
+            <Grid ClipToBounds="True">
                 <!-- Duvar kağıdı camında bulanık görüntünün üstüne binen ton -->
                 <Border x:Name="TintLayer" CornerRadius="{Binding CornerRadius, ElementName=PillBorder}" IsHitTestVisible="False" />
 
@@ -64,13 +65,10 @@
                                FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
                 </Grid>
 
-                <!-- Genişlemiş hâl (Plan 1: tarih ve saat; ortadaki alanı Plan 2 kısayollarla dolduracak) -->
-                <Grid x:Name="ExpandedContent" Margin="18,0" Opacity="0" IsHitTestVisible="False">
-                    <TextBlock x:Name="ExpandedDate" HorizontalAlignment="Left" VerticalAlignment="Center"
-                               FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
-                    <TextBlock x:Name="ExpandedTime" HorizontalAlignment="Right" VerticalAlignment="Center"
-                               FontSize="13.5" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
-                </Grid>
+                <!-- Genişlemiş hâl: Başlat, Ara | uygulamalar | ^ | saat (spec §7.2) -->
+                <!-- Genişliği koddan genişlemiş hapa sabitlenir (kenarlık hariç): hap büyürken düğmeler yeniden dizilmez,
+                     satır her animasyon karesinde yeniden ölçülmez; küçük hâlde taşan kısım kırpılır. -->
+                <local:IslandBar x:Name="ExpandedContent" HorizontalAlignment="Center" Opacity="0" IsHitTestVisible="False" />
             </Grid>
         </Border>
     </Grid>

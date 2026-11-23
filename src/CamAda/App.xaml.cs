@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using CamAda.Core.Apps;
 using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
@@ -26,6 +27,7 @@ public partial class App : Application
     private StripAppBar? _strip;
     private IslandWindow? _island;
     private Process? _watchdog;
+    private DockViewModel? _dock;
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
@@ -74,6 +76,7 @@ public partial class App : Application
 
         _settingsStore = new SettingsStore(RoamingDir);
         _settings = _settingsStore.Load();
+        EnsurePinnedApps();
 
         _shell = new ShellHost();
         _guard = new TaskbarGuard(_shell.Manager.ExplorerHelper, _safety);
@@ -91,6 +94,7 @@ public partial class App : Application
         _strip = new StripAppBar(_shell, _settings.StripHeight);
         _strip.Show();
 
+        _dock = new DockViewModel(_shell.Manager, () => _settings.PinnedApps ?? [], Dispatcher);
         _island = new IslandWindow(_strip, _settings, new IslandCommands(
             IsTaskbarHidden: () => _guard.IsHidden,
             SetTaskbarHidden: SetTaskbarHidden,
@@ -100,8 +104,30 @@ public partial class App : Application
             {
                 _settings = _settings with { GlassMode = mode };
                 _settingsStore.Save(_settings);
-            }));
+            }), _dock);
         _island.Show();
+    }
+
+    /// <summary>İlk açılışta (ayarda sabitlenmiş uygulama yoksa) Chrome, Dosya Gezgini, Steam ve Discord'u arar ve kaydeder.</summary>
+    private void EnsurePinnedApps()
+    {
+        if (_settings.PinnedApps is not null)
+        {
+            return;
+        }
+
+        string? steamExe = null;
+        using (var steamKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam"))
+        {
+            if (steamKey?.GetValue("SteamExe") is string path && !string.IsNullOrWhiteSpace(path))
+            {
+                steamExe = path.Replace('/', '\\');
+            }
+        }
+
+        var pinned = PinnedAppDefaults.Resolve(Environment.ExpandEnvironmentVariables, File.Exists, steamExe);
+        _settings = _settings with { PinnedApps = pinned };
+        _settingsStore.Save(_settings);
     }
 
     private void SetTaskbarHidden(bool hidden)
@@ -166,6 +192,7 @@ public partial class App : Application
         _exiting = true;
         TryShowTaskbar();
         _island?.Close();
+        _dock?.Dispose();
         _shell?.Manager.AppBarManager.SignalGracefulShutdown(); // AppBar'ın kapanmasına izin ver
         _strip?.Close();
         _shell?.Shutdown();

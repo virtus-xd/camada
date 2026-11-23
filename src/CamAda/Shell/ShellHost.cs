@@ -13,6 +13,7 @@ public sealed class ShellHost : IDisposable
         config.EnableTrayService = false;
         config.AutoStartTrayService = false;
         config.EnableTasksService = true; // FullScreenHelper tam ekranı algılamak için TasksService ister.
+        config.TaskIconSize = ManagedShell.Common.Enums.IconSize.Large; // adadaki 26 DIP simgeler %125'te keskin kalsın
         Manager = new ShellManager(config);
     }
 

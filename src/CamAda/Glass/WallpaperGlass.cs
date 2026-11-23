@@ -62,7 +62,13 @@ public sealed class WallpaperGlass : IGlassBackdrop
 
     private void OnSourceChanged(object? sender, EventArgs e) => Regenerate();
 
-    private void OnHostDpiChanged(object sender, DpiChangedEventArgs e) => Regenerate();
+    private void OnHostDpiChanged(object sender, DpiChangedEventArgs e)
+    {
+        if (_host is not null && WindowDpi.IsRealChange(_host, e))
+        {
+            Regenerate();
+        }
+    }
 
     private void Regenerate()
     {

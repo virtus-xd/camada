@@ -26,6 +26,7 @@ public partial class IslandWindow : Window
     private readonly StripAppBar _strip;
     private readonly AppSettings _settings;
     private readonly IslandCommands _commands;
+    private readonly DockViewModel _dock;
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Normal);
     private readonly HoverIntent _hover;
     private readonly SmartHide _smartHide;
@@ -36,17 +37,26 @@ public partial class IslandWindow : Window
     private bool _fullScreen;
     private bool _closed;
 
-    public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands)
+    public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands, DockViewModel dock)
     {
         InitializeComponent();
         _strip = strip;
         _settings = settings;
         _commands = commands;
+        _dock = dock;
+        ExpandedContent.AppsSource = _dock.Items;
+        ExpandedContent.Width = ExpandedTargetWidth - 2;
 
         _strip.FullScreenChanged += OnFullScreenChanged;
         _clockTimer.Tick += (_, _) => RefreshClock();
         SourceInitialized += OnSourceInitialized;
-        DpiChanged += (_, _) => PlaceOnPrimaryScreen();
+        DpiChanged += (_, e) =>
+        {
+            if (WindowDpi.IsRealChange(this, e))
+            {
+                PlaceOnPrimaryScreen();
+            }
+        };
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
@@ -57,6 +67,17 @@ public partial class IslandWindow : Window
             TimeSpan.FromMilliseconds(_settings.HoverLeaveDelayMs));
         _smartHide = new SmartHide(this, _hover, () => _pinnedPosition, () => PillBorder);
         _smartHide.StateChanged += (_, _) => ApplyPresence();
+
+        _dock.Changed += (_, _) =>
+        {
+            ExpandedContent.Width = ExpandedTargetWidth - 2;
+
+            // Satır değişince açık ada yeni genişliğe kısa bir geçişle uyar.
+            if (_hover.IsExpanded && !_closed)
+            {
+                AnimateWidth(ExpandedTargetWidth, TimeSpan.FromSeconds(0.2), new CubicEase { EasingMode = EasingMode.EaseOut });
+            }
+        };
 
         PillBorder.ContextMenuOpening += (_, _) =>
         {
@@ -94,6 +115,9 @@ public partial class IslandWindow : Window
 
     /// <summary>Genişleme niyeti; paneller açıkken <see cref="HoverIntent.SetPanelOpen"/> ile adayı büyük tutar.</summary>
     public HoverIntent Hover => _hover;
+
+    /// <summary>Genişlemiş satır (Başlat, Ara, uygulamalar, ^ olayları için).</summary>
+    public IslandBar Bar => ExpandedContent;
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
@@ -206,21 +230,35 @@ public partial class IslandWindow : Window
         return IntPtr.Zero;
     }
 
+    /// <summary>Genişlemiş hapın, satırdaki uygulama düğmesi sayısına göre genişliği.</summary>
+    private double ExpandedTargetWidth => IslandLayout.ExpandedWidthFor(_dock.Items.Count);
+
+    private void AnimateWidth(double width, TimeSpan duration, IEasingFunction easing)
+    {
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            duration = TimeSpan.Zero;
+        }
+
+        PillBorder.BeginAnimation(WidthProperty, new DoubleAnimation(width, duration) { EasingFunction = easing });
+    }
+
     /// <summary>Hapı küçük ya da geniş ölçüye esneyerek götürür ve iki içerik katmanı arasında geçiş yapar.</summary>
     private void AnimateTo(bool expanded)
     {
-        var target = expanded ? IslandLayout.Expanded : IslandLayout.Compact;
+        var height = expanded ? IslandLayout.Expanded.Height : IslandLayout.Compact.Height;
+        var width = expanded ? ExpandedTargetWidth : IslandLayout.Compact.Width;
         var animate = SystemParameters.ClientAreaAnimation; // "Animasyon efektleri" kapalıysa anında
         var sizeDuration = animate ? TimeSpan.FromSeconds(expanded ? 0.4 : 0.3) : TimeSpan.Zero;
         IEasingFunction easing = expanded
             ? new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.15 }
             : new CubicEase { EasingMode = EasingMode.EaseOut };
 
-        PillBorder.BeginAnimation(WidthProperty, new DoubleAnimation(target.Width, sizeDuration) { EasingFunction = easing });
-        PillBorder.BeginAnimation(HeightProperty, new DoubleAnimation(target.Height, sizeDuration) { EasingFunction = easing });
+        AnimateWidth(width, sizeDuration, easing);
+        PillBorder.BeginAnimation(HeightProperty, new DoubleAnimation(height, sizeDuration) { EasingFunction = easing });
 
-        var outgoing = expanded ? CompactContent : ExpandedContent;
-        var incoming = expanded ? ExpandedContent : CompactContent;
+        UIElement outgoing = expanded ? CompactContent : ExpandedContent;
+        UIElement incoming = expanded ? ExpandedContent : CompactContent;
         outgoing.IsHitTestVisible = false;
         incoming.IsHitTestVisible = true;
         outgoing.BeginAnimation(OpacityProperty,
@@ -235,8 +273,9 @@ public partial class IslandWindow : Window
     private void RefreshClock()
     {
         var now = DateTime.Now;
-        CompactDate.Text = ExpandedDate.Text = ClockFormatter.Date(now);
-        CompactTime.Text = ExpandedTime.Text = ClockFormatter.Time(now);
+        CompactDate.Text = ClockFormatter.Date(now);
+        CompactTime.Text = ClockFormatter.Time(now);
+        ExpandedContent.SetTime(CompactTime.Text);
 
         _clockTimer.Stop();
         _clockTimer.Interval = MinuteTicker.DelayToNextMinute(now) + TimeSpan.FromMilliseconds(30);
