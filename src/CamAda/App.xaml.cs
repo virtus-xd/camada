@@ -20,6 +20,7 @@ public partial class App : Application
     private Mutex? _singleInstance;
     private ShellHost? _shell;
     private TaskbarGuard? _guard;
+    private StripAppBar? _strip;
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
     private AppSettings _settings = null!;
@@ -79,6 +80,9 @@ public partial class App : Application
         {
             _guard.Hide();
         }
+
+        _strip = new StripAppBar(_shell, _settings.StripHeight);
+        _strip.Show();
     }
 
     private static void StartWatchdog()

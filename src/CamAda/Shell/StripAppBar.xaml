@@ -1,0 +1,10 @@
+<appbar:AppBarWindow x:Class="CamAda.Shell.StripAppBar"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:appbar="clr-namespace:ManagedShell.AppBar;assembly=ManagedShell.AppBar"
+                     Title="CamAda şerit"
+                     AllowsTransparency="True"
+                     Background="Transparent">
+    <!-- Görünmez: yalnızca ekranın üstünde alan ayırır ve tam ekranı algılar. Ada ayrı bir penceredir. -->
+    <Grid />
+</appbar:AppBarWindow>

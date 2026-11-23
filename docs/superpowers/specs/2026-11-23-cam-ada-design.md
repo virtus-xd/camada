@@ -160,6 +160,8 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 
 1. **Hap şeklinde gerçek cam bulanıklığı**: Windows'un Acrylic/Mica efektleri dikdörtgen pencere için tasarlanmış. Kenarları yumuşak, köşelerde taşmayan bulanıklık ve genişleme animasyonu sırasında doğru davranış ilk denemede kanıtlanmalı. Olmazsa yedek: daha koyu, bulanıksız yarı saydam cam.
 2. **Görev çubuğu gizliyken Windows tuşu ve Başlat menüsü**: Menünün nerede açıldığı, bildirim baloncuklarının nerede çıktığı.
+   - Plan 1 / Görev 4 ölçümü (23.11.2026): Görev çubuğu ManagedShell ile gizliyken Win tuşu gönderildikten 2 sn sonra görünür (cloak'suz) bir Başlat penceresi tespit edilemedi. Başlat'ın hiç açılmıyor olması mümkün; kullanıcı Görev 7 kontrol noktasında gözüyle doğrulayacak. Plan 2'deki kendi Başlat panelimiz bu yüzden önem kazanıyor.
+   - Explorer yeniden başlayınca ManagedShell AppBar kaydını yenilemiyordu; `StripAppBar` "TaskbarCreated" mesajında kaydı yeniliyor (ölçümle doğrulandı).
 3. **Tam ekran algılama**: oyunlarda adanın gizlenmesi.
 4. **Spotify API**: Şubat 2026 değişikliklerinden sonra "beğen" ve "sıra" uç noktalarının hâlâ çalıştığı doğrulanmalı.
 5. **Bildirim dinleyicisi**: seyrek paket ile izin akışının Insider sürümde çalıştığı.
