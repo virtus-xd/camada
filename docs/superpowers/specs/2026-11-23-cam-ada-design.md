@@ -166,6 +166,8 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 4. **Spotify API**: Şubat 2026 değişikliklerinden sonra "beğen" ve "sıra" uç noktalarının hâlâ çalıştığı doğrulanmalı.
 5. **Bildirim dinleyicisi**: seyrek paket ile izin akışının Insider sürümde çalıştığı.
 
+**Cam görünümü kararı (Plan 1 / Görev 7, 23.11.2026):** Varsayılan **duvar kağıdı camı**. Gerekçe: bulanık ve doygun duvar kağıdı kesiti, kusursuz yumuşak kenarlar, genişleme sırasında kayma yok, boştayken işlemci ~%0. Akrilik elendi: WPF'in katmanlı penceresinde Windows bulanıklığı bölgeye kırpılmıyor, bütün pencereyi gri bir dikdörtgen olarak kaplıyor. Duvar kağıdı yoksa (düz renk masaüstü) ada kendiliğinden düz cama geçer. Paneller ve plak kartı da aynı yöntemi kullanır; bir panel pencerelerin üstüne açıldığında arkasında duvar kağıdı olmayabileceği için panellerde ton daha koyu (düz cam) tutulur.
+
 İlk iş, 1 ve 2'yi kanıtlayan küçük bir deneme: ana ekranda AppBar ile ayrılmış üst şerit, içinde hap şeklinde cam ada, fareyle genişleyip küçülme ve görev çubuğunu gizleyip geri getirme.
 
 ## 10. Oluşturucuya bırakılanlar

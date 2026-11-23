@@ -32,11 +32,19 @@
                 <ContextMenu>
                     <MenuItem x:Name="HideTaskbarItem" Header="Görev çubuğunu gizle" IsCheckable="True"
                               Click="HideTaskbarItem_Click" />
+                    <MenuItem Header="Cam görünümü">
+                        <MenuItem x:Name="GlassWallpaperItem" Header="Duvar kağıdı" Click="GlassItem_Click" Tag="Wallpaper" />
+                        <MenuItem x:Name="GlassAcrylicItem" Header="Akrilik" Click="GlassItem_Click" Tag="Acrylic" />
+                        <MenuItem x:Name="GlassSolidItem" Header="Düz" Click="GlassItem_Click" Tag="Solid" />
+                    </MenuItem>
                     <MenuItem Header="Çıkış" Click="ExitItem_Click" />
                 </ContextMenu>
             </Border.ContextMenu>
 
             <Grid>
+                <!-- Duvar kağıdı camında bulanık görüntünün üstüne binen ton -->
+                <Border x:Name="TintLayer" CornerRadius="{Binding CornerRadius, ElementName=PillBorder}" IsHitTestVisible="False" />
+
                 <!-- Üst kenardaki ince parıltı -->
                 <Border BorderBrush="{StaticResource GlassHighlightBrush}" BorderThickness="0,1,0,0"
                         CornerRadius="{Binding CornerRadius, ElementName=PillBorder}" IsHitTestVisible="False" />

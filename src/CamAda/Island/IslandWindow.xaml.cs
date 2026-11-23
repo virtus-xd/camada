@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using CamAda.Core.Island;
 using CamAda.Core.Settings;
 using CamAda.Core.Time;
+using CamAda.Glass;
 using CamAda.Interop;
 using CamAda.Shell;
 using ManagedShell.AppBar;
@@ -26,6 +27,9 @@ public partial class IslandWindow : Window
     private readonly IslandCommands _commands;
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Normal);
     private readonly HoverIntent _hover;
+    private readonly WallpaperSource _wallpaper;
+    private IGlassBackdrop? _backdrop;
+    private GlassMode _glassMode;
     private (int X, int Y)? _pinnedPosition;
 
     public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands)
@@ -42,6 +46,7 @@ public partial class IslandWindow : Window
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
+        _wallpaper = new WallpaperSource(Dispatcher);
         _hover = new HoverIntent(
             TimeProvider.System,
             TimeSpan.FromMilliseconds(_settings.HoverEnterDelayMs),
@@ -50,6 +55,9 @@ public partial class IslandWindow : Window
         PillBorder.ContextMenuOpening += (_, _) =>
         {
             HideTaskbarItem.IsChecked = _commands.IsTaskbarHidden();
+            GlassWallpaperItem.IsChecked = _glassMode == GlassMode.Wallpaper;
+            GlassAcrylicItem.IsChecked = _glassMode == GlassMode.Acrylic;
+            GlassSolidItem.IsChecked = _glassMode == GlassMode.Solid;
             _hover.SetPanelOpen(true); // menü açıkken ada küçülmesin
         };
         PillBorder.ContextMenuClosing += (_, _) => _hover.SetPanelOpen(false);
@@ -72,6 +80,32 @@ public partial class IslandWindow : Window
         Native.AddExtendedStyle(handle, Native.WS_EX_NOACTIVATE);
         HwndSource.FromHwnd(handle)?.AddHook(WndProc);
         PlaceOnPrimaryScreen();
+        ApplyGlass(_commands.GetGlassMode());
+    }
+
+    /// <summary>Cam görünümünü değiştirir: önceki yöntemi geri alır, yenisini uygular.</summary>
+    public void ApplyGlass(GlassMode mode)
+    {
+        _backdrop?.Dispose();
+        _backdrop = null;
+        PillBorder.Background = (Brush)FindResource("IslandTintBrush");
+        TintLayer.Background = Brushes.Transparent;
+
+        switch (mode)
+        {
+            case GlassMode.Wallpaper:
+                _backdrop = new WallpaperGlass(_wallpaper, TintLayer);
+                break;
+            case GlassMode.Acrylic:
+                _backdrop = new AcrylicGlass();
+                break;
+            default:
+                PillBorder.Background = (Brush)FindResource("SolidTintBrush");
+                break;
+        }
+
+        _backdrop?.Attach(this, PillBorder);
+        _glassMode = mode;
     }
 
     /// <summary>Pencereyi ana ekranın üst kenarında yatayda ortalar ve o konuma sabitler.</summary>
@@ -176,10 +210,21 @@ public partial class IslandWindow : Window
 
     private void ExitItem_Click(object sender, RoutedEventArgs e) => _commands.Exit();
 
+    private void GlassItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string tag } && Enum.TryParse<GlassMode>(tag, out var mode))
+        {
+            ApplyGlass(mode);
+            _commands.SetGlassMode(mode);
+        }
+    }
+
     private void OnClosed(object? sender, EventArgs e)
     {
         _clockTimer.Stop();
         _hover.Dispose();
+        _backdrop?.Dispose();
+        _wallpaper.Dispose();
         _strip.FullScreenChanged -= OnFullScreenChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;

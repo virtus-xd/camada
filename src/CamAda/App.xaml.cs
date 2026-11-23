@@ -89,7 +89,13 @@ public partial class App : Application
         _island = new IslandWindow(_strip, _settings, new IslandCommands(
             IsTaskbarHidden: () => _guard.IsHidden,
             SetTaskbarHidden: SetTaskbarHidden,
-            Exit: ExitGracefully));
+            Exit: ExitGracefully,
+            GetGlassMode: () => _settings.GlassMode,
+            SetGlassMode: mode =>
+            {
+                _settings = _settings with { GlassMode = mode };
+                _settingsStore.Save(_settings);
+            }));
         _island.Show();
     }
 
