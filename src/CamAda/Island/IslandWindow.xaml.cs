@@ -203,6 +203,10 @@ public partial class IslandWindow : Window
         var duration = animate ? TimeSpan.FromSeconds(0.18) : TimeSpan.Zero;
         var tucked = presence == IslandPresence.Tucked;
         PillBorder.IsHitTestVisible = !tucked;
+
+        // Katmanlı pencerede Windows tıklamayı piksel piksel yönlendirir; çizginin pikselleri tıklamayı yutmasın diye
+        // çizgi hâlinde pencerenin tamamı tıklama geçirir. Açılma, imleç yoklamasıyla olur.
+        Native.SetExtendedStyle(new WindowInteropHelper(this).Handle, Native.WS_EX_TRANSPARENT, on: tucked);
         PillBorder.BeginAnimation(OpacityProperty, new DoubleAnimation(tucked ? 0 : 1, duration));
         TuckLine.BeginAnimation(OpacityProperty, new DoubleAnimation(tucked ? 1 : 0, duration));
 

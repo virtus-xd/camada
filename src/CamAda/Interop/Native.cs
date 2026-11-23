@@ -133,10 +133,18 @@ internal static partial class Native
     [DllImport("dwmapi.dll")]
     private static extern int DwmGetWindowAttribute(nint hwnd, int attribute, out int value, int size);
 
-    public static void AddExtendedStyle(nint hwnd, long style)
+    public const long WS_EX_TRANSPARENT = 0x20;
+
+    public static void AddExtendedStyle(nint hwnd, long style) => SetExtendedStyle(hwnd, style, on: true);
+
+    public static void SetExtendedStyle(nint hwnd, long style, bool on)
     {
         var current = (long)GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-        SetWindowLongPtr(hwnd, GWL_EXSTYLE, (nint)(current | style));
+        var updated = on ? current | style : current & ~style;
+        if (updated != current)
+        {
+            SetWindowLongPtr(hwnd, GWL_EXSTYLE, (nint)updated);
+        }
     }
 
     [LibraryImport("user32.dll", EntryPoint = "RegisterWindowMessageW", StringMarshalling = StringMarshalling.Utf16)]
