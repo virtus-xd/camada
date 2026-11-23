@@ -57,6 +57,82 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     private static partial int SetWindowRgn(nint hwnd, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
 
+    /// <summary>Üst düzey pencereleri z-sırasında yukarıdan aşağı örnekler (koordinatlar fiziksel piksel).</summary>
+    public static List<Core.Island.WindowSample> SampleTopLevelWindows(int ownProcessId)
+    {
+        const long WS_EX_TOOLWINDOW = 0x80, WS_EX_TRANSPARENT = 0x20;
+        var samples = new List<Core.Island.WindowSample>(128);
+        var className = new char[64];
+
+        EnumWindows((hwnd, _) =>
+        {
+            GetWindowRect(hwnd, out var rect);
+            DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, out var cloaked, sizeof(int));
+            var exStyle = (long)GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+            GetWindowThreadProcessId(hwnd, out var pid);
+            var classLength = GetClassName(hwnd, className, className.Length);
+            var cls = new string(className, 0, Math.Max(classLength, 0));
+
+            samples.Add(new Core.Island.WindowSample(
+                new Core.Glass.RectD(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top),
+                Visible: IsWindowVisible(hwnd),
+                Cloaked: cloaked != 0,
+                Ignorable: (exStyle & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT)) != 0,
+                HasTitle: GetWindowTextLength(hwnd) > 0,
+                IsDesktop: cls is "Progman" or "WorkerW",
+                IsOwn: pid == ownProcessId));
+            return true;
+        }, 0);
+
+        return samples;
+    }
+
+    public static (int X, int Y) GetCursorPosition()
+    {
+        GetCursorPos(out var point);
+        return (point.X, point.Y);
+    }
+
+    private const int DWMWA_CLOAKED = 14;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X, Y;
+    }
+
+    private delegate bool EnumWindowsProc(nint hwnd, nint lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc callback, nint lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(nint hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(nint hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowTextLength(nint hwnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(nint hwnd, char[] buffer, int maxCount);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(nint hwnd, out int processId);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT point);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(nint hwnd, int attribute, out int value, int size);
+
     public static void AddExtendedStyle(nint hwnd, long style)
     {
         var current = (long)GetWindowLongPtr(hwnd, GWL_EXSTYLE);

@@ -32,6 +32,15 @@ public partial class IslandWindow : Window
     private GlassMode _glassMode;
     private (int X, int Y)? _pinnedPosition;
 
+    // Akıllı gizlenme (spec §7.6)
+    private readonly DispatcherTimer _occlusionTimer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly DispatcherTimer _cursorTimer = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(50) };
+    private readonly int _ownProcessId = Environment.ProcessId;
+    private bool _fullScreen;
+    private bool _occluded;
+    private bool _cursorInside;
+    private IslandPresence _presence = IslandPresence.Shown;
+
     public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands)
     {
         InitializeComponent();
@@ -62,9 +71,18 @@ public partial class IslandWindow : Window
         };
         PillBorder.ContextMenuClosing += (_, _) => _hover.SetPanelOpen(false);
 
-        _hover.ExpandedChanged += (_, expanded) => Dispatcher.BeginInvoke(() => AnimateTo(expanded));
-        PillBorder.MouseEnter += (_, _) => _hover.PointerEntered();
-        PillBorder.MouseLeave += (_, _) => _hover.PointerExited();
+        _hover.ExpandedChanged += (_, expanded) => Dispatcher.BeginInvoke(() =>
+        {
+            AnimateTo(expanded);
+            ApplyPresence();
+        });
+
+        // Örtülü değilken hapın fare olayları, örtülüyken imleç yoklaması HoverIntent'i besler.
+        PillBorder.MouseEnter += (_, _) => { if (!_occluded) _hover.PointerEntered(); };
+        PillBorder.MouseLeave += (_, _) => { if (!_occluded) _hover.PointerExited(); };
+
+        _occlusionTimer.Tick += (_, _) => CheckOcclusion();
+        _cursorTimer.Tick += (_, _) => PollCursor();
 
         Closed += OnClosed;
 
@@ -81,7 +99,122 @@ public partial class IslandWindow : Window
         HwndSource.FromHwnd(handle)?.AddHook(WndProc);
         PlaceOnPrimaryScreen();
         ApplyGlass(_commands.GetGlassMode());
+        _occlusionTimer.Start();
+        CheckOcclusion();
     }
+
+    /// <summary>Adanın yerini (üst orta) bir pencerenin kaplayıp kaplamadığını yoklar.</summary>
+    private void CheckOcclusion()
+    {
+        if (_pinnedPosition is not { } pinned)
+        {
+            return;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var screenTop = AppBarScreen.FromPrimaryScreen().Bounds.Top;
+        var probeX = pinned.X + IslandLayout.WindowWidth * dpi.DpiScaleX / 2;
+        var probeY = screenTop + 20 * dpi.DpiScaleY;
+        var occluded = OcclusionRule.IsOccluded(Native.SampleTopLevelWindows(_ownProcessId), probeX, probeY);
+
+        if (occluded == _occluded)
+        {
+            return;
+        }
+
+        _occluded = occluded;
+        if (_occluded)
+        {
+            _cursorInside = false;
+            _cursorTimer.Start();
+        }
+        else
+        {
+            _cursorTimer.Stop();
+            if (_cursorInside && !PillBorder.IsMouseOver)
+            {
+                _hover.PointerExited();
+            }
+
+            _cursorInside = false;
+        }
+
+        ApplyPresence();
+    }
+
+    /// <summary>Örtülüyken imleci yoklar: üst kenarda (ada genişliğinde) ya da hapın içindeyse "içeride".</summary>
+    private void PollCursor()
+    {
+        if (_pinnedPosition is not { } pinned)
+        {
+            return;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var screenTop = AppBarScreen.FromPrimaryScreen().Bounds.Top;
+        var (x, y) = Native.GetCursorPosition();
+        var windowRight = pinned.X + IslandLayout.WindowWidth * dpi.DpiScaleX;
+        var atTopEdge = y <= screenTop + 1 && x >= pinned.X && x <= windowRight;
+
+        var overPill = false;
+        if (_presence == IslandPresence.Shown && PillBorder.ActualWidth > 0)
+        {
+            var topLeft = PillBorder.PointToScreen(new Point(0, 0));
+            const double margin = 4;
+            overPill = x >= topLeft.X - margin && x <= topLeft.X + PillBorder.ActualWidth * dpi.DpiScaleX + margin
+                    && y >= topLeft.Y - margin && y <= topLeft.Y + PillBorder.ActualHeight * dpi.DpiScaleY + margin;
+        }
+
+        var inside = atTopEdge || overPill;
+        if (inside == _cursorInside)
+        {
+            return;
+        }
+
+        _cursorInside = inside;
+        if (inside)
+        {
+            _hover.PointerEntered();
+        }
+        else
+        {
+            _hover.PointerExited();
+        }
+    }
+
+    /// <summary>Tam ekran, örtülme ve genişleme durumuna göre adayı gizler, çizgiye indirir ya da gösterir.</summary>
+    private void ApplyPresence()
+    {
+        var presence = IslandPresenceRule.Decide(_fullScreen, _occluded, _hover.IsExpanded);
+
+        if (presence == IslandPresence.Hidden)
+        {
+            Hide();
+            _presence = presence;
+            return;
+        }
+
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        var animate = SystemParameters.ClientAreaAnimation;
+        var duration = animate ? TimeSpan.FromSeconds(0.18) : TimeSpan.Zero;
+        var tucked = presence == IslandPresence.Tucked;
+        PillBorder.IsHitTestVisible = !tucked;
+        PillBorder.BeginAnimation(OpacityProperty, new DoubleAnimation(tucked ? 0 : 1, duration));
+        TuckLine.BeginAnimation(OpacityProperty, new DoubleAnimation(tucked ? 1 : 0, duration));
+
+        UpdateTint();
+        _presence = presence;
+    }
+
+    /// <summary>Bir pencerenin üstünde açıldığında arkada duvar kağıdı yok: tonu koyulaştır (düz cam).</summary>
+    private void UpdateTint() =>
+        TintLayer.Background = _occluded
+            ? (Brush)FindResource("SolidTintBrush")
+            : _glassMode == GlassMode.Wallpaper ? (Brush)FindResource("IslandTintBrush") : Brushes.Transparent;
 
     /// <summary>Cam görünümünü değiştirir: önceki yöntemi geri alır, yenisini uygular.</summary>
     public void ApplyGlass(GlassMode mode)
@@ -106,6 +239,7 @@ public partial class IslandWindow : Window
 
         _backdrop?.Attach(this, PillBorder);
         _glassMode = mode;
+        UpdateTint();
     }
 
     /// <summary>Pencereyi ana ekranın üst kenarında yatayda ortalar ve o konuma sabitler.</summary>
@@ -182,14 +316,8 @@ public partial class IslandWindow : Window
 
     private void OnFullScreenChanged(object? sender, bool isFullScreen)
     {
-        if (isFullScreen)
-        {
-            Hide();
-        }
-        else
-        {
-            Show();
-        }
+        _fullScreen = isFullScreen;
+        ApplyPresence();
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
@@ -222,6 +350,8 @@ public partial class IslandWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _clockTimer.Stop();
+        _occlusionTimer.Stop();
+        _cursorTimer.Stop();
         _hover.Dispose();
         _backdrop?.Dispose();
         _wallpaper.Dispose();

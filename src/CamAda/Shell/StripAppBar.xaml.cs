@@ -15,7 +15,7 @@ public partial class StripAppBar : AppBarWindow
             host.Manager.FullScreenHelper,
             AppBarScreen.FromPrimaryScreen(),
             AppBarEdge.Top,
-            AppBarMode.Normal,
+            AppBarMode.None, // Akıllı gizlenme: alan ayrılmaz (spec §7.6); yalnızca tam ekranı algılar.
             height)
     {
         InitializeComponent();
