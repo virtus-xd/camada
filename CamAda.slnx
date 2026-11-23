@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CamAda.Core/CamAda.Core.csproj" />
+    <Project Path="src/CamAda/CamAda.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CamAda.Core.Tests/CamAda.Core.Tests.csproj" />
+  </Folder>
+</Solution>
