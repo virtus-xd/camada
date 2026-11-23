@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using CamAda.Core.Island;
 using CamAda.Core.Settings;
@@ -24,6 +25,7 @@ public partial class IslandWindow : Window
     private readonly AppSettings _settings;
     private readonly IslandCommands _commands;
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Normal);
+    private readonly HoverIntent _hover;
     private (int X, int Y)? _pinnedPosition;
 
     public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands)
@@ -40,7 +42,22 @@ public partial class IslandWindow : Window
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         SystemEvents.TimeChanged += OnTimeChanged;
-        PillBorder.ContextMenuOpening += (_, _) => HideTaskbarItem.IsChecked = _commands.IsTaskbarHidden();
+        _hover = new HoverIntent(
+            TimeProvider.System,
+            TimeSpan.FromMilliseconds(_settings.HoverEnterDelayMs),
+            TimeSpan.FromMilliseconds(_settings.HoverLeaveDelayMs));
+
+        PillBorder.ContextMenuOpening += (_, _) =>
+        {
+            HideTaskbarItem.IsChecked = _commands.IsTaskbarHidden();
+            _hover.SetPanelOpen(true); // menü açıkken ada küçülmesin
+        };
+        PillBorder.ContextMenuClosing += (_, _) => _hover.SetPanelOpen(false);
+
+        _hover.ExpandedChanged += (_, expanded) => Dispatcher.BeginInvoke(() => AnimateTo(expanded));
+        PillBorder.MouseEnter += (_, _) => _hover.PointerEntered();
+        PillBorder.MouseLeave += (_, _) => _hover.PointerExited();
+
         Closed += OnClosed;
 
         RefreshClock();
@@ -92,11 +109,37 @@ public partial class IslandWindow : Window
         return IntPtr.Zero;
     }
 
+    /// <summary>Hapı küçük ya da geniş ölçüye esneyerek götürür ve iki içerik katmanı arasında geçiş yapar.</summary>
+    private void AnimateTo(bool expanded)
+    {
+        var target = expanded ? IslandLayout.Expanded : IslandLayout.Compact;
+        var animate = SystemParameters.ClientAreaAnimation; // "Animasyon efektleri" kapalıysa anında
+        var sizeDuration = animate ? TimeSpan.FromSeconds(expanded ? 0.4 : 0.3) : TimeSpan.Zero;
+        IEasingFunction easing = expanded
+            ? new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.15 }
+            : new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        PillBorder.BeginAnimation(WidthProperty, new DoubleAnimation(target.Width, sizeDuration) { EasingFunction = easing });
+        PillBorder.BeginAnimation(HeightProperty, new DoubleAnimation(target.Height, sizeDuration) { EasingFunction = easing });
+
+        var outgoing = expanded ? CompactContent : ExpandedContent;
+        var incoming = expanded ? ExpandedContent : CompactContent;
+        outgoing.IsHitTestVisible = false;
+        incoming.IsHitTestVisible = true;
+        outgoing.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(0, animate ? TimeSpan.FromSeconds(0.16) : TimeSpan.Zero));
+        incoming.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(1, animate ? TimeSpan.FromSeconds(0.22) : TimeSpan.Zero)
+            {
+                BeginTime = animate ? TimeSpan.FromSeconds(0.06) : TimeSpan.Zero,
+            });
+    }
+
     private void RefreshClock()
     {
         var now = DateTime.Now;
-        CompactDate.Text = ClockFormatter.Date(now);
-        CompactTime.Text = ClockFormatter.Time(now);
+        CompactDate.Text = ExpandedDate.Text = ClockFormatter.Date(now);
+        CompactTime.Text = ExpandedTime.Text = ClockFormatter.Time(now);
 
         _clockTimer.Stop();
         _clockTimer.Interval = MinuteTicker.DelayToNextMinute(now) + TimeSpan.FromMilliseconds(30);
@@ -136,6 +179,7 @@ public partial class IslandWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _clockTimer.Stop();
+        _hover.Dispose();
         _strip.FullScreenChanged -= OnFullScreenChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;

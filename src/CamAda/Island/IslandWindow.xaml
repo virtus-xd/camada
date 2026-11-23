@@ -48,6 +48,14 @@
                     <TextBlock x:Name="CompactTime" HorizontalAlignment="Right" VerticalAlignment="Center"
                                FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
                 </Grid>
+
+                <!-- Genişlemiş hâl (Plan 1: tarih ve saat; ortadaki alanı Plan 2 kısayollarla dolduracak) -->
+                <Grid x:Name="ExpandedContent" Margin="18,0" Opacity="0" IsHitTestVisible="False">
+                    <TextBlock x:Name="ExpandedDate" HorizontalAlignment="Left" VerticalAlignment="Center"
+                               FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock x:Name="ExpandedTime" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               FontSize="13.5" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
+                </Grid>
             </Grid>
         </Border>
     </Grid>
