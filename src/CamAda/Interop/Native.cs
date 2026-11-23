@@ -35,6 +35,11 @@ internal static partial class Native
         SendNotifyMessage(HWND_BROADCAST, (uint)TaskbarCreatedMessage, 0, 0);
     }
 
+    /// <summary>Ekranı kilitler (Win+L ile aynı).</summary>
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool LockWorkStation();
+
     [LibraryImport("user32.dll", EntryPoint = "SendNotifyMessageW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool SendNotifyMessage(nint hwnd, uint message, nint wParam, nint lParam);

@@ -28,6 +28,7 @@ public partial class App : Application
     private IslandWindow? _island;
     private Process? _watchdog;
     private DockViewModel? _dock;
+    private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
@@ -106,7 +107,29 @@ public partial class App : Application
                 _settingsStore.Save(_settings);
             }), _dock);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
+        _island.Bar.StartClicked += (_, _) => OpenStartPanel();
+        _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
         _island.Show();
+
+        _ = _appIndex.GetItemsAsync(); // ilk aramada beklememek için arka planda hazırla
+    }
+
+    /// <summary>Başlat ve Ara aynı paneli açar (yazmaya hazır arama kutusuyla).</summary>
+    private void OpenStartPanel()
+    {
+        if (_island is null || _dock is null)
+        {
+            return;
+        }
+
+        var tiles = (_settings.PinnedApps ?? [])
+            .Where(p => File.Exists(p.LaunchPath))
+            .Select(p => new Panels.StartTile(
+                p.Name,
+                _dock.IconFor(new DockEntry("pin:" + p.Id, p, [])),
+                () => ManagedShell.Common.Helpers.ShellHelper.StartProcess(p.LaunchPath, p.Arguments)))
+            .ToList();
+        _island.Panels.Toggle("start", () => new Panels.StartPanel(_appIndex, tiles), Panels.StartPanel.PanelWidth);
     }
 
     /// <summary>
