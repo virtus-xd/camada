@@ -138,7 +138,21 @@ public sealed class DockViewModel : IDisposable
         }
     }
 
-    private ImageSource? IconFor(DockEntry entry)
+    /// <summary>
+    /// Girişin pencere durumlarını ManagedShell'den yeniden okur. Satır 150 ms gecikmeyle kurulduğu için tıklama anındaki
+    /// karar (öne getir mi, küçült mü) bayat "etkin" bilgisine göre verilmesin.
+    /// </summary>
+    public DockEntry Fresh(DockEntry entry) => entry with
+    {
+        Windows = entry.Windows
+            .Select(w => Find(w.Handle) is { } live
+                ? w with { IsActive = live.State == ApplicationWindow.WindowState.Active, IsMinimized = live.IsMinimized }
+                : w)
+            .ToList(),
+    };
+
+    /// <summary>Girişin simgesi: sabitlenmişte uygulamanın, açıkta penceresinin (yoksa exe'nin) simgesi.</summary>
+    public ImageSource? IconFor(DockEntry entry)
     {
         if (entry.Pinned is { } pinned)
         {

@@ -10,6 +10,7 @@ using CamAda.Core.Settings;
 using CamAda.Core.Time;
 using CamAda.Glass;
 using CamAda.Interop;
+using CamAda.Panels;
 using CamAda.Shell;
 using ManagedShell.AppBar;
 using Microsoft.Win32;
@@ -31,6 +32,7 @@ public partial class IslandWindow : Window
     private readonly HoverIntent _hover;
     private readonly SmartHide _smartHide;
     private readonly WallpaperSource _wallpaper;
+    private readonly PanelHost _panels;
     private IGlassBackdrop? _backdrop;
     private GlassMode _glassMode;
     private (int X, int Y)? _pinnedPosition;
@@ -67,6 +69,11 @@ public partial class IslandWindow : Window
             TimeSpan.FromMilliseconds(_settings.HoverLeaveDelayMs));
         _smartHide = new SmartHide(this, _hover, () => _pinnedPosition, () => PillBorder);
         _smartHide.StateChanged += (_, _) => ApplyPresence();
+
+        _panels = new PanelHost(this, _hover);
+        var actions = new DockActions(_dock, _panels);
+        ExpandedContent.AppClicked += (_, e) => actions.Click(e.Item, e.Button);
+        ExpandedContent.AppMiddleClicked += (_, e) => actions.MiddleClick(e.Item, e.Button);
 
         _dock.Changed += (_, _) =>
         {
@@ -118,6 +125,9 @@ public partial class IslandWindow : Window
 
     /// <summary>Genişlemiş satır (Başlat, Ara, uygulamalar, ^ olayları için).</summary>
     public IslandBar Bar => ExpandedContent;
+
+    /// <summary>Adanın altındaki paneller (tek panel kuralı; açıkken ada büyük kalır).</summary>
+    public PanelHost Panels => _panels;
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
@@ -318,6 +328,7 @@ public partial class IslandWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _closed = true;
+        _panels.Close();
         _clockTimer.Stop();
         _smartHide.Dispose();
         _hover.Dispose();
