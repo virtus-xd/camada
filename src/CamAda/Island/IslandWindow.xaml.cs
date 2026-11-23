@@ -5,7 +5,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using CamAda.Core.Glass;
 using CamAda.Core.Island;
 using CamAda.Core.Settings;
 using CamAda.Core.Time;
@@ -20,6 +19,7 @@ namespace CamAda.Island;
 /// <summary>
 /// Ana ekranın üst ortasında duran, saydam ve her zaman üstte cam ada penceresi.
 /// Odağı başka pencerelerden çalmaz; saydam alanlara yapılan tıklamalar alttaki pencereye geçer.
+/// Yerleşim, saat, genişleme animasyonu, cam ve menü burada; akıllı gizlenme <see cref="SmartHide"/>'da.
 /// </summary>
 public partial class IslandWindow : Window
 {
@@ -28,19 +28,13 @@ public partial class IslandWindow : Window
     private readonly IslandCommands _commands;
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Normal);
     private readonly HoverIntent _hover;
+    private readonly SmartHide _smartHide;
     private readonly WallpaperSource _wallpaper;
     private IGlassBackdrop? _backdrop;
     private GlassMode _glassMode;
     private (int X, int Y)? _pinnedPosition;
-
-    // Akıllı gizlenme (spec §7.6)
-    private readonly DispatcherTimer _occlusionTimer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
-    private readonly DispatcherTimer _cursorTimer = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(50) };
-    private readonly int _ownProcessId = Environment.ProcessId;
     private bool _fullScreen;
-    private bool _occluded;
-    private bool _cursorInside;
-    private IslandPresence _presence = IslandPresence.Shown;
+    private bool _closed;
 
     public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands)
     {
@@ -61,6 +55,8 @@ public partial class IslandWindow : Window
             TimeProvider.System,
             TimeSpan.FromMilliseconds(_settings.HoverEnterDelayMs),
             TimeSpan.FromMilliseconds(_settings.HoverLeaveDelayMs));
+        _smartHide = new SmartHide(this, _hover, () => _pinnedPosition, () => PillBorder);
+        _smartHide.StateChanged += (_, _) => ApplyPresence();
 
         PillBorder.ContextMenuOpening += (_, _) =>
         {
@@ -72,18 +68,21 @@ public partial class IslandWindow : Window
         };
         PillBorder.ContextMenuClosing += (_, _) => _hover.SetPanelOpen(false);
 
-        _hover.ExpandedChanged += (_, expanded) => Dispatcher.BeginInvoke(() =>
+        // Olay zamanlayıcı iş parçacığından gelir; sıra karışabileceği için gönderim anındaki gerçek durum kullanılır.
+        _hover.ExpandedChanged += (_, _) => Dispatcher.BeginInvoke(() =>
         {
-            AnimateTo(expanded);
+            if (_closed)
+            {
+                return;
+            }
+
+            AnimateTo(_hover.IsExpanded);
             ApplyPresence();
         });
 
-        // Örtülü değilken hapın fare olayları, örtülüyken imleç yoklaması HoverIntent'i besler.
-        PillBorder.MouseEnter += (_, _) => { if (!_occluded) _hover.PointerEntered(); };
-        PillBorder.MouseLeave += (_, _) => { if (!_occluded) _hover.PointerExited(); };
-
-        _occlusionTimer.Tick += (_, _) => CheckOcclusion();
-        _cursorTimer.Tick += (_, _) => PollCursor();
+        // Örtülü değilken hapın fare olayları, örtülüyken SmartHide'ın imleç yoklaması HoverIntent'i besler.
+        PillBorder.MouseEnter += (_, _) => { if (!_smartHide.IsOccluded) _hover.PointerEntered(); };
+        PillBorder.MouseLeave += (_, _) => { if (!_smartHide.IsOccluded) _hover.PointerExited(); };
 
         Closed += OnClosed;
 
@@ -93,6 +92,9 @@ public partial class IslandWindow : Window
     /// <summary>Adanın hap şeklindeki gövdesi (genişleme ve cam görünümü bunu kullanır).</summary>
     public Border Pill => PillBorder;
 
+    /// <summary>Genişleme niyeti; paneller açıkken <see cref="HoverIntent.SetPanelOpen"/> ile adayı büyük tutar.</summary>
+    public HoverIntent Hover => _hover;
+
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
         var handle = new WindowInteropHelper(this).Handle;
@@ -100,103 +102,22 @@ public partial class IslandWindow : Window
         HwndSource.FromHwnd(handle)?.AddHook(WndProc);
         PlaceOnPrimaryScreen();
         ApplyGlass(_commands.GetGlassMode());
-        _occlusionTimer.Start();
-        CheckOcclusion();
-    }
-
-    /// <summary>Adanın yerini (üst orta) bir pencerenin kaplayıp kaplamadığını yoklar.</summary>
-    private void CheckOcclusion()
-    {
-        if (_pinnedPosition is not { } pinned)
-        {
-            return;
-        }
-
-        // Adanın ekranda kapladığı alan: küçük hap + gölge payı (yanlarda 30, altta 38 DIP).
-        const double shadowSide = 30, shadowBelow = 38;
-        var dpi = VisualTreeHelper.GetDpi(this);
-        var pillLeft = (IslandLayout.WindowWidth - IslandLayout.Compact.Width) / 2;
-        var footprint = new RectD(
-            pinned.X + (pillLeft - shadowSide) * dpi.DpiScaleX,
-            pinned.Y,
-            (IslandLayout.Compact.Width + 2 * shadowSide) * dpi.DpiScaleX,
-            (IslandLayout.TopMargin + IslandLayout.Compact.Height + shadowBelow) * dpi.DpiScaleY);
-        var occluded = OcclusionRule.IsOccluded(Native.SampleTopLevelWindows(_ownProcessId), footprint);
-
-        if (occluded == _occluded)
-        {
-            return;
-        }
-
-        _occluded = occluded;
-        if (_occluded)
-        {
-            _cursorInside = false;
-            _cursorTimer.Start();
-        }
-        else
-        {
-            _cursorTimer.Stop();
-            if (_cursorInside && !PillBorder.IsMouseOver)
-            {
-                _hover.PointerExited();
-            }
-
-            _cursorInside = false;
-        }
-
-        ApplyPresence();
-    }
-
-    /// <summary>Örtülüyken imleci yoklar: üst kenarda (ada genişliğinde) ya da hapın içindeyse "içeride".</summary>
-    private void PollCursor()
-    {
-        if (_pinnedPosition is not { } pinned)
-        {
-            return;
-        }
-
-        var dpi = VisualTreeHelper.GetDpi(this);
-        var screenTop = AppBarScreen.FromPrimaryScreen().Bounds.Top;
-        var (x, y) = Native.GetCursorPosition();
-        var windowRight = pinned.X + IslandLayout.WindowWidth * dpi.DpiScaleX;
-        var atTopEdge = RevealZone.IsAtTopEdge(x, y, pinned.X, windowRight, screenTop);
-
-        var overPill = false;
-        if (_presence == IslandPresence.Shown && PillBorder.ActualWidth > 0)
-        {
-            var topLeft = PillBorder.PointToScreen(new Point(0, 0));
-            const double margin = 4;
-            overPill = x >= topLeft.X - margin && x <= topLeft.X + PillBorder.ActualWidth * dpi.DpiScaleX + margin
-                    && y >= topLeft.Y - margin && y <= topLeft.Y + PillBorder.ActualHeight * dpi.DpiScaleY + margin;
-        }
-
-        var inside = atTopEdge || overPill;
-        if (inside == _cursorInside)
-        {
-            return;
-        }
-
-        _cursorInside = inside;
-        if (inside)
-        {
-            _hover.PointerEntered();
-        }
-        else
-        {
-            _hover.PointerExited();
-        }
+        _smartHide.Start();
     }
 
     /// <summary>Tam ekran, örtülme ve genişleme durumuna göre adayı gizler, çizgiye indirir ya da gösterir.</summary>
     private void ApplyPresence()
     {
-        var presence = IslandPresenceRule.Decide(_fullScreen, _occluded, _hover.IsExpanded);
+        if (_closed)
+        {
+            return;
+        }
+
+        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded);
 
         if (presence == IslandPresence.Hidden)
         {
             Hide();
-            _presence = presence;
             return;
         }
 
@@ -217,12 +138,11 @@ public partial class IslandWindow : Window
         TuckLine.BeginAnimation(OpacityProperty, new DoubleAnimation(tucked ? 1 : 0, duration));
 
         UpdateTint();
-        _presence = presence;
     }
 
     /// <summary>Bir pencerenin üstünde açıldığında arkada duvar kağıdı yok: tonu koyulaştır (düz cam).</summary>
     private void UpdateTint() =>
-        TintLayer.Background = _occluded
+        TintLayer.Background = _smartHide.IsOccluded
             ? (Brush)FindResource("SolidTintBrush")
             : _glassMode == GlassMode.Wallpaper ? (Brush)FindResource("IslandTintBrush") : Brushes.Transparent;
 
@@ -267,9 +187,8 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>
-    /// Görev çubuğu gizlenince ya da çalışma alanı değişince Windows, çalışma alanı dışında kalan pencereleri
-    /// içeri iter. Ada bilerek çalışma alanının dışında (ayrılmış üst şeritte) durduğu için her taşıma isteğini
-    /// sabit konuma çeviririz.
+    /// Görev çubuğu gizlenince ya da çalışma alanı değişince Windows, ekranın en üst kenarındaki pencereleri
+    /// aşağı itebilir. Ada bilerek ekranın en üstünde durduğu için her taşıma isteğini sabit konuma çeviririz.
     /// </summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
@@ -359,9 +278,9 @@ public partial class IslandWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        _closed = true;
         _clockTimer.Stop();
-        _occlusionTimer.Stop();
-        _cursorTimer.Stop();
+        _smartHide.Dispose();
         _hover.Dispose();
         _backdrop?.Dispose();
         _wallpaper.Dispose();

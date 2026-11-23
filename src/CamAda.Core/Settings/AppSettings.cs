@@ -21,7 +21,9 @@ public sealed record AppSettings
 
     public GlassMode GlassMode { get; init; } = GlassMode.Wallpaper;
 
-    /// <summary>Ana ekranın üstünde adaya ayrılan şeridin yüksekliği (DIP).</summary>
+    /// <summary>
+    /// Tam ekranı algılayan görünmez şerit penceresinin yüksekliği (DIP). Akıllı gizlenmeden beri alan ayırmaz (spec §7.6).
+    /// </summary>
     public double StripHeight { get; init; } = 56;
 
     public int HoverEnterDelayMs { get; init; } = 120;

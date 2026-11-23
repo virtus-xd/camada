@@ -5,6 +5,6 @@
                      Title="CamAda şerit"
                      AllowsTransparency="True"
                      Background="Transparent">
-    <!-- Görünmez: yalnızca ekranın üstünde alan ayırır ve tam ekranı algılar. Ada ayrı bir penceredir. -->
+    <!-- Görünmez ve alan ayırmaz (AppBarMode.None, spec §7.6): yalnızca tam ekran uygulamayı algılar. Ada ayrı bir penceredir. -->
     <Grid />
 </appbar:AppBarWindow>

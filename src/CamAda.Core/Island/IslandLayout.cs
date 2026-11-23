@@ -16,4 +16,7 @@ public static class IslandLayout
     public const double WindowWidth = 900;
 
     public const double WindowHeight = 160;
+
+    /// <summary>Akıllı gizlenmede adayı açan üst kenar bölgesinin genişliği (ortada).</summary>
+    public const double RevealZoneWidth = 900;
 }

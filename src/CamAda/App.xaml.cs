@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
 using CamAda.Core.Startup;
@@ -77,8 +78,9 @@ public partial class App : Application
         _shell = new ShellHost();
         _guard = new TaskbarGuard(_shell.Manager.ExplorerHelper, _safety);
 
-        DispatcherUnhandledException += (_, _) => TryShowTaskbar();
-        AppDomain.CurrentDomain.UnhandledException += (_, _) => TryShowTaskbar();
+        DispatcherUnhandledException += (_, e) => OnCrash(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => OnCrash(e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, e) => LogCrash(e.Exception);
         SessionEnding += (_, _) => ExitGracefully();
 
         if (_settings.HideWindowsTaskbar)
@@ -168,6 +170,29 @@ public partial class App : Application
         _strip?.Close();
         _shell?.Shutdown();
         Shutdown();
+    }
+
+    /// <summary>Beklenmeyen hata: önce günlüğe yaz, sonra görev çubuğunu geri getir (bekçi zaten yedek).</summary>
+    private void OnCrash(Exception? exception)
+    {
+        if (exception is not null)
+        {
+            LogCrash(exception);
+        }
+
+        TryShowTaskbar();
+    }
+
+    private static void LogCrash(Exception exception)
+    {
+        try
+        {
+            CrashLog.Append(LocalDir, exception, DateTimeOffset.Now);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Günlük yazılamıyorsa yapacak bir şey yok; uygulamayı daha fazla bozmayalım.
+        }
     }
 
     private void TryShowTaskbar()

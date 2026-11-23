@@ -3,8 +3,8 @@ using ManagedShell.AppBar;
 namespace CamAda.Shell;
 
 /// <summary>
-/// Ana ekranın üst kenarında görünmez bir AppBar: ekranı kaplayan pencerelerin altından başlamasını sağlar
-/// ve tam ekran bir uygulama açılınca <see cref="FullScreenChanged"/> olayını tetikler.
+/// Ana ekranın üst kenarında görünmez bir AppBar. Akıllı gizlenmeden beri alan ayırmaz (<see cref="AppBarMode.None"/>);
+/// tam ekran bir uygulama açılınca <see cref="FullScreenChanged"/> olayını tetikler.
 /// </summary>
 public partial class StripAppBar : AppBarWindow
 {
@@ -24,8 +24,9 @@ public partial class StripAppBar : AppBarWindow
     public bool IsFullScreenActive { get; private set; }
 
     /// <summary>
-    /// Explorer yeniden başlayınca ("TaskbarCreated") eski AppBar kaydı kaybolur ve ayrılan alan sıfırlanır.
-    /// ManagedShell bunu Explorer'la birlikte çalışırken ele almadığı için kaydı burada yeniliyoruz.
+    /// Explorer yeniden başlayınca ("TaskbarCreated") eski AppBar kaydı kaybolur. ManagedShell bunu Explorer'la birlikte
+    /// çalışırken ele almadığı için kaydı burada yeniliyoruz. AppBarMode.None'da kayıt işlemleri etkisizdir; ileride
+    /// yeniden alan ayırma kipine dönülürse diye korunur.
     /// </summary>
     protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {

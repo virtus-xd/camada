@@ -9,7 +9,8 @@ namespace CamAda.Glass;
 
 /// <summary>
 /// Duvar kağıdı camı: ada penceresinin arkasındaki duvar kağıdı kesitini bulanıklaştırıp hapın arka planı yapar.
-/// Ada ayrılmış üst şeritte durduğu için arkasında her zaman duvar kağıdı vardır; kenarlar kusursuz yumuşak kalır.
+/// Akıllı gizlenme sayesinde ada tam görünürken altında pencere olmaz, arkasında duvar kağıdı vardır; bir pencerenin
+/// üstünde açıldığında IslandWindow tonu koyulaştırır. Kenarlar kusursuz yumuşak kalır.
 /// </summary>
 public sealed class WallpaperGlass : IGlassBackdrop
 {
