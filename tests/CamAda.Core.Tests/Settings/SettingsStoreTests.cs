@@ -12,12 +12,35 @@ public class SettingsStoreTests : IDisposable
     {
         var store = new SettingsStore(_dir);
         var s = store.Load();
-        Assert.False(s.HideWindowsTaskbar);
+        Assert.True(s.HideWindowsTaskbar);
+        Assert.True(s.StartWithWindows);
         Assert.Equal(GlassMode.Wallpaper, s.GlassMode);
         Assert.Equal(56, s.StripHeight);
         Assert.Equal(120, s.HoverEnterDelayMs);
         Assert.Equal(350, s.HoverLeaveDelayMs);
         Assert.True(File.Exists(Path.Combine(_dir, "settings.json")));
+    }
+
+    [Fact]
+    public void Old_file_without_version_turns_on_taskbar_hiding_once()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "HideWindowsTaskbar": false }""");
+        var store = new SettingsStore(_dir);
+
+        var s = store.Load();
+
+        Assert.True(s.HideWindowsTaskbar);
+        Assert.Equal(2, s.SettingsVersion);
+        Assert.Contains("\"SettingsVersion\": 2", File.ReadAllText(store.FilePath));
+    }
+
+    [Fact]
+    public void Versioned_file_keeps_users_choice()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "HideWindowsTaskbar": false, "SettingsVersion": 2 }""");
+        var store = new SettingsStore(_dir);
+
+        Assert.False(store.Load().HideWindowsTaskbar);
     }
 
     [Fact]

@@ -16,8 +16,16 @@ public enum GlassMode
 /// <summary>%APPDATA%\CamAda\settings.json içinde saklanan kullanıcı ayarları.</summary>
 public sealed record AppSettings
 {
-    /// <summary>Windows görev çubuğu gizlensin mi. Plan 2 bitene kadar varsayılan kapalı.</summary>
-    public bool HideWindowsTaskbar { get; init; } = false;
+    /// <summary>Ayar dosyasının biçim sürümü; eski dosyalar yüklenirken bir kereye mahsus güncellenir.</summary>
+    public const int CurrentVersion = 2;
+
+    public int SettingsVersion { get; init; } = CurrentVersion;
+
+    /// <summary>Windows görev çubuğu gizlensin mi (ada onun yerini alır).</summary>
+    public bool HideWindowsTaskbar { get; init; } = true;
+
+    /// <summary>Oturum açılınca otomatik başlasın mı (HKCU\...\Run).</summary>
+    public bool StartWithWindows { get; init; } = true;
 
     public GlassMode GlassMode { get; init; } = GlassMode.Wallpaper;
 

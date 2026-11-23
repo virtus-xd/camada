@@ -38,7 +38,14 @@ public sealed class SettingsStore
         try
         {
             var json = File.ReadAllText(FilePath);
-            return Sanitize(JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings());
+            var settings = Sanitize(JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings());
+            if (FileVersion(json) < AppSettings.CurrentVersion)
+            {
+                settings = Migrate(settings);
+                Save(settings);
+            }
+
+            return settings;
         }
         catch (JsonException)
         {
@@ -48,6 +55,37 @@ public sealed class SettingsStore
             return defaults;
         }
     }
+
+    /// <summary>
+    /// Dosyadaki sürüm. Kayıt türünün varsayılanı 2 olduğundan özelliğin dosyada olup olmadığına JSON'dan bakılır;
+    /// yoksa dosya Plan 2 öncesidir (sürüm 1).
+    /// </summary>
+    private static int FileVersion(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            return 1;
+        }
+
+        foreach (var property in document.RootElement.EnumerateObject())
+        {
+            if (string.Equals(property.Name, nameof(AppSettings.SettingsVersion), StringComparison.OrdinalIgnoreCase)
+                && property.Value.TryGetInt32(out var version))
+            {
+                return version;
+            }
+        }
+
+        return 1;
+    }
+
+    /// <summary>
+    /// Sürüm 1 → 2: Plan 1'de görev çubuğu deneme için varsayılan görünürdü; ada artık onun yerini aldığından bir kereye
+    /// mahsus gizlenir. Kullanıcı sonra menüden geri açarsa sürüm 2 dosyada kalır ve seçimi korunur.
+    /// </summary>
+    private static AppSettings Migrate(AppSettings settings) =>
+        settings with { HideWindowsTaskbar = true, SettingsVersion = AppSettings.CurrentVersion };
 
     /// <summary>Elle düzenlenmiş, aralık dışı değerleri varsayılana çeker (ör. negatif gecikme zamanlayıcıyı çökertir).</summary>
     private static AppSettings Sanitize(AppSettings s)

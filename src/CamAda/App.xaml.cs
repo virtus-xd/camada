@@ -78,6 +78,7 @@ public partial class App : Application
         _settingsStore = new SettingsStore(RoamingDir);
         _settings = _settingsStore.Load();
         EnsurePinnedApps();
+        ApplyAutostart(_settings.StartWithWindows);
 
         _shell = new ShellHost();
         _guard = new TaskbarGuard(_shell.Manager.ExplorerHelper, _safety);
@@ -105,7 +106,9 @@ public partial class App : Application
             {
                 _settings = _settings with { GlassMode = mode };
                 _settingsStore.Save(_settings);
-            }), _dock);
+            },
+            IsStartWithWindows: () => _settings.StartWithWindows,
+            SetStartWithWindows: SetStartWithWindows), _dock);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
@@ -183,6 +186,37 @@ public partial class App : Application
         var pinned = PinnedAppDefaults.Resolve(Environment.ExpandEnvironmentVariables, File.Exists, steamExe);
         _settings = _settings with { PinnedApps = pinned };
         _settingsStore.Save(_settings);
+    }
+
+    private void SetStartWithWindows(bool enabled)
+    {
+        _settings = _settings with { StartWithWindows = enabled };
+        _settingsStore.Save(_settings);
+        ApplyAutostart(enabled);
+    }
+
+    /// <summary>
+    /// HKCU\...\Run altına çalışan exe'yi yazar ya da değeri siler. Her açılışta yeniden yazılır; uygulama taşınırsa
+    /// (ör. kurulum betiğiyle) Run değeri yeni yeri gösterir.
+    /// </summary>
+    private static void ApplyAutostart(bool enabled)
+    {
+        try
+        {
+            using var run = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
+            if (enabled && Environment.ProcessPath is { } exe)
+            {
+                run.SetValue(AutostartCommand.RunValueName, AutostartCommand.Build(exe));
+            }
+            else
+            {
+                run.DeleteValue(AutostartCommand.RunValueName, throwOnMissingValue: false);
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+        {
+            Debug.WriteLine($"Açılışta başlatma ayarlanamadı: {ex.Message}");
+        }
     }
 
     private void SetTaskbarHidden(bool hidden)
