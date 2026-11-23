@@ -15,30 +15,39 @@ public readonly record struct WindowSample(
     bool IsDesktop,
     bool IsOwn);
 
-/// <summary>Adanın yerini bir pencerenin kaplayıp kaplamadığına karar verir.</summary>
+/// <summary>Adanın bir pencerenin üstünü kapatıp kapatmadığına karar verir.</summary>
 public static class OcclusionRule
 {
     /// <summary>
-    /// Z-sırasında yukarıdan aşağı, uygun ve yoklama noktasını içeren ilk pencereye bakar:
-    /// masaüstüyse ada açıkta, başka bir pencereyse ada örtülü.
+    /// Ada her zaman en üstte olduğu için, adanın kapladığı alanla (hap + gölge) kesişen her uygun pencere
+    /// adanın altında kalır: başlık çubuğu ya da sekmeleri örtülür. Masaüstü sayılmaz.
     /// </summary>
-    public static bool IsOccluded(IEnumerable<WindowSample> topToBottom, double probeX, double probeY)
+    public static bool IsOccluded(IEnumerable<WindowSample> windows, RectD islandFootprint)
     {
-        foreach (var window in topToBottom)
+        foreach (var window in windows)
         {
             var eligible = window.Visible && !window.Cloaked && !window.Ignorable && !window.IsOwn
-                           && (window.HasTitle || window.IsDesktop);
-            if (!eligible || !Contains(window.Bounds, probeX, probeY))
+                           && window.HasTitle && !window.IsDesktop;
+            if (eligible && Intersects(window.Bounds, islandFootprint))
             {
-                continue;
+                return true;
             }
-
-            return !window.IsDesktop;
         }
 
         return false;
     }
 
-    private static bool Contains(RectD r, double x, double y) =>
-        x >= r.X && x < r.X + r.Width && y >= r.Y && y < r.Y + r.Height;
+    private static bool Intersects(RectD a, RectD b) =>
+        a.X < b.X + b.Width && b.X < a.X + a.Width && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height;
+}
+
+/// <summary>Akıllı gizlenmede adayı açan üst kenar bölgesi.</summary>
+public static class RevealZone
+{
+    /// <summary>
+    /// İmleç ana ekranın en üst iki piksel satırında ve ada penceresinin genişliği içindeyse true.
+    /// Ana ekranın üstündeki bir monitörde (y &lt; ekran üstü) tetiklenmez.
+    /// </summary>
+    public static bool IsAtTopEdge(int x, int y, double windowLeft, double windowRight, int screenTop) =>
+        y >= screenTop && y <= screenTop + 1 && x >= windowLeft && x <= windowRight;
 }

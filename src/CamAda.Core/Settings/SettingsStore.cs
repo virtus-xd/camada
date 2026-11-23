@@ -38,7 +38,7 @@ public sealed class SettingsStore
         try
         {
             var json = File.ReadAllText(FilePath);
-            return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            return Sanitize(JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings());
         }
         catch (JsonException)
         {
@@ -47,6 +47,19 @@ public sealed class SettingsStore
             Save(defaults);
             return defaults;
         }
+    }
+
+    /// <summary>Elle düzenlenmiş, aralık dışı değerleri varsayılana çeker (ör. negatif gecikme zamanlayıcıyı çökertir).</summary>
+    private static AppSettings Sanitize(AppSettings s)
+    {
+        var defaults = new AppSettings();
+        return s with
+        {
+            HoverEnterDelayMs = s.HoverEnterDelayMs is >= 0 and <= 5000 ? s.HoverEnterDelayMs : defaults.HoverEnterDelayMs,
+            HoverLeaveDelayMs = s.HoverLeaveDelayMs is >= 0 and <= 5000 ? s.HoverLeaveDelayMs : defaults.HoverLeaveDelayMs,
+            StripHeight = s.StripHeight is > 0 and <= 200 ? s.StripHeight : defaults.StripHeight,
+            GlassMode = Enum.IsDefined(s.GlassMode) ? s.GlassMode : defaults.GlassMode,
+        };
     }
 
     public void Save(AppSettings settings)

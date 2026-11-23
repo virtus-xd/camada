@@ -40,6 +40,26 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Out_of_range_hand_edited_values_fall_back_to_defaults()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            """{ "HoverEnterDelayMs": -5, "HoverLeaveDelayMs": 999999, "StripHeight": -10, "GlassMode": "Solid" }""");
+        var s = new SettingsStore(_dir).Load();
+        Assert.Equal(120, s.HoverEnterDelayMs);
+        Assert.Equal(350, s.HoverLeaveDelayMs);
+        Assert.Equal(56, s.StripHeight);
+        Assert.Equal(GlassMode.Solid, s.GlassMode); // geçerli değerler korunur
+    }
+
+    [Fact]
+    public void Unknown_enum_value_falls_back_to_defaults_without_crashing()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "GlassMode": "Gökkuşağı" }""");
+        var s = new SettingsStore(_dir).Load();
+        Assert.Equal(GlassMode.Wallpaper, s.GlassMode);
+    }
+
+    [Fact]
     public void Unknown_properties_ignored_and_missing_ones_default()
     {
         File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "GlassMode": "Solid", "Gelecek": 1 }""");

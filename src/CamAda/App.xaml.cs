@@ -4,6 +4,7 @@ using System.Windows;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
 using CamAda.Core.Startup;
+using CamAda.Interop;
 using CamAda.Island;
 using CamAda.Safety;
 using CamAda.Shell;
@@ -23,6 +24,8 @@ public partial class App : Application
     private TaskbarGuard? _guard;
     private StripAppBar? _strip;
     private IslandWindow? _island;
+    private Process? _watchdog;
+    private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
     private AppSettings _settings = null!;
@@ -114,16 +117,40 @@ public partial class App : Application
         }
     }
 
-    private static void StartWatchdog()
+    /// <summary>
+    /// Bekçiyi ana sürecin ağacı ve iş nesnesi dışında başlatır; bekçi tek başına ölürse yeniden başlatır.
+    /// </summary>
+    private void StartWatchdog()
     {
         var exe = Environment.ProcessPath;
-        if (exe is null)
+        if (exe is null || _exiting)
         {
             return;
         }
 
-        Process.Start(new ProcessStartInfo(exe, $"--watchdog {Environment.ProcessId}") { UseShellExecute = false })
-            ?.Dispose();
+        // Bekçi sürekli hemen çöküyorsa sonsuz döngüye girme: dakikada en fazla 5 başlatma.
+        var now = DateTime.UtcNow;
+        _watchdogStarts.RemoveAll(t => now - t > TimeSpan.FromMinutes(1));
+        if (_watchdogStarts.Count >= 5)
+        {
+            Debug.WriteLine("Bekçi bir dakikada 5 kez kapandı; yeniden başlatma durduruldu.");
+            return;
+        }
+
+        _watchdogStarts.Add(now);
+
+        try
+        {
+            var pid = DetachedProcess.Start(exe, $"--watchdog {Environment.ProcessId}");
+            _watchdog?.Dispose();
+            _watchdog = Process.GetProcessById(pid);
+            _watchdog.EnableRaisingEvents = true;
+            _watchdog.Exited += (_, _) => Dispatcher.BeginInvoke(StartWatchdog);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            Debug.WriteLine($"Bekçi başlatılamadı: {ex}");
+        }
     }
 
     /// <summary>Görev çubuğunu geri getirir, servisleri kapatır ve uygulamadan çıkar.</summary>

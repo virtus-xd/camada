@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using CamAda.Core.Glass;
 using CamAda.Core.Island;
 using CamAda.Core.Settings;
 using CamAda.Core.Time;
@@ -111,11 +112,16 @@ public partial class IslandWindow : Window
             return;
         }
 
+        // Adanın ekranda kapladığı alan: küçük hap + gölge payı (yanlarda 30, altta 38 DIP).
+        const double shadowSide = 30, shadowBelow = 38;
         var dpi = VisualTreeHelper.GetDpi(this);
-        var screenTop = AppBarScreen.FromPrimaryScreen().Bounds.Top;
-        var probeX = pinned.X + IslandLayout.WindowWidth * dpi.DpiScaleX / 2;
-        var probeY = screenTop + 20 * dpi.DpiScaleY;
-        var occluded = OcclusionRule.IsOccluded(Native.SampleTopLevelWindows(_ownProcessId), probeX, probeY);
+        var pillLeft = (IslandLayout.WindowWidth - IslandLayout.Compact.Width) / 2;
+        var footprint = new RectD(
+            pinned.X + (pillLeft - shadowSide) * dpi.DpiScaleX,
+            pinned.Y,
+            (IslandLayout.Compact.Width + 2 * shadowSide) * dpi.DpiScaleX,
+            (IslandLayout.TopMargin + IslandLayout.Compact.Height + shadowBelow) * dpi.DpiScaleY);
+        var occluded = OcclusionRule.IsOccluded(Native.SampleTopLevelWindows(_ownProcessId), footprint);
 
         if (occluded == _occluded)
         {
@@ -154,7 +160,7 @@ public partial class IslandWindow : Window
         var screenTop = AppBarScreen.FromPrimaryScreen().Bounds.Top;
         var (x, y) = Native.GetCursorPosition();
         var windowRight = pinned.X + IslandLayout.WindowWidth * dpi.DpiScaleX;
-        var atTopEdge = y <= screenTop + 1 && x >= pinned.X && x <= windowRight;
+        var atTopEdge = RevealZone.IsAtTopEdge(x, y, pinned.X, windowRight, screenTop);
 
         var overPill = false;
         if (_presence == IslandPresence.Shown && PillBorder.ActualWidth > 0)
