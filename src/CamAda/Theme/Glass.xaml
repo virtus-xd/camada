@@ -1,0 +1,92 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Yazı tipi: Manrope (OFL), uygulamayla birlikte gelir -->
+    <FontFamily x:Key="Manrope">pack://application:,,,/Assets/Fonts/#Manrope</FontFamily>
+
+    <!-- Renkler (spec §7.9) -->
+    <Color x:Key="IslandTintColor">#7514182A</Color>
+    <Color x:Key="SolidTintColor">#C714182A</Color>
+    <SolidColorBrush x:Key="IslandTintBrush" Color="{StaticResource IslandTintColor}" />
+    <SolidColorBrush x:Key="SolidTintBrush" Color="{StaticResource SolidTintColor}" />
+    <SolidColorBrush x:Key="GlassEdgeBrush" Color="#2BFFFFFF" />
+    <SolidColorBrush x:Key="GlassHighlightBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#FFC27A" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#2A1A08" />
+    <SolidColorBrush x:Key="TextBrush" Color="#F4F6FB" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#D1E8ECF7" />
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#EB14182A" />
+    <SolidColorBrush x:Key="MenuHoverBrush" Color="#24FFFFFF" />
+
+    <!-- Cam menü -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="FontFamily" Value="{StaticResource Manrope}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{StaticResource MenuBackgroundBrush}"
+                            BorderBrush="{StaticResource GlassEdgeBrush}"
+                            BorderThickness="1" CornerRadius="12" Padding="4">
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Grid>
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="8,7,12,7" MinWidth="190">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="22" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path x:Name="Check" Grid.Column="0" Data="M1,5 L4.5,8.5 L11,1.5"
+                                      Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      VerticalAlignment="Center" Visibility="Collapsed" />
+                                <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center" />
+                                <Path x:Name="Arrow" Grid.Column="2" Data="M0,0 L4,4 L0,8" Margin="14,0,0,0"
+                                      Stroke="{StaticResource TextBrush}" StrokeThickness="1.6"
+                                      VerticalAlignment="Center" Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="6" VerticalOffset="-5"
+                               AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
+                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border Background="{StaticResource MenuBackgroundBrush}"
+                                    BorderBrush="{StaticResource GlassEdgeBrush}"
+                                    BorderThickness="1" CornerRadius="12" Padding="4">
+                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource MenuHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

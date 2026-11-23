@@ -4,6 +4,7 @@ using System.Windows;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
 using CamAda.Core.Startup;
+using CamAda.Island;
 using CamAda.Safety;
 using CamAda.Shell;
 
@@ -21,6 +22,7 @@ public partial class App : Application
     private ShellHost? _shell;
     private TaskbarGuard? _guard;
     private StripAppBar? _strip;
+    private IslandWindow? _island;
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
     private AppSettings _settings = null!;
@@ -83,6 +85,27 @@ public partial class App : Application
 
         _strip = new StripAppBar(_shell, _settings.StripHeight);
         _strip.Show();
+
+        _island = new IslandWindow(_strip, _settings, new IslandCommands(
+            IsTaskbarHidden: () => _guard.IsHidden,
+            SetTaskbarHidden: SetTaskbarHidden,
+            Exit: ExitGracefully));
+        _island.Show();
+    }
+
+    private void SetTaskbarHidden(bool hidden)
+    {
+        _settings = _settings with { HideWindowsTaskbar = hidden };
+        _settingsStore.Save(_settings);
+
+        if (hidden)
+        {
+            _guard!.Hide();
+        }
+        else
+        {
+            _guard!.ShowAndMarkClean();
+        }
     }
 
     private static void StartWatchdog()
@@ -107,6 +130,9 @@ public partial class App : Application
 
         _exiting = true;
         TryShowTaskbar();
+        _island?.Close();
+        _shell?.Manager.AppBarManager.SignalGracefulShutdown(); // AppBar'ın kapanmasına izin ver
+        _strip?.Close();
         _shell?.Shutdown();
         Shutdown();
     }
