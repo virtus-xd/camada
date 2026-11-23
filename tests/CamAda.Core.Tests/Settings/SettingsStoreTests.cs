@@ -60,6 +60,24 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Missing_pinned_apps_stay_null()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "GlassMode": "Solid" }""");
+        Assert.Null(new SettingsStore(_dir).Load().PinnedApps);
+    }
+
+    [Fact]
+    public void Pinned_apps_round_trip()
+    {
+        var store = new SettingsStore(_dir);
+        var pins = new[] { new CamAda.Core.Apps.PinnedApp("discord", "Discord", @"C:\D\Update.exe", "--processStart Discord.exe", "discord.exe") };
+        store.Save(new AppSettings { PinnedApps = pins });
+        var loaded = store.Load().PinnedApps;
+        Assert.NotNull(loaded);
+        Assert.Equal(pins[0], Assert.Single(loaded));
+    }
+
+    [Fact]
     public void Unknown_properties_ignored_and_missing_ones_default()
     {
         File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "GlassMode": "Solid", "Gelecek": 1 }""");

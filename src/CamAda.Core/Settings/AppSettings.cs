@@ -29,4 +29,7 @@ public sealed record AppSettings
     public int HoverEnterDelayMs { get; init; } = 120;
 
     public int HoverLeaveDelayMs { get; init; } = 350;
+
+    /// <summary>Adada sabitlenmiş uygulamalar. null: henüz belirlenmedi, ilk açılışta bilgisayarda aranır.</summary>
+    public IReadOnlyList<Apps.PinnedApp>? PinnedApps { get; init; }
 }
