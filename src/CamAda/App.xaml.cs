@@ -105,7 +105,39 @@ public partial class App : Application
                 _settings = _settings with { GlassMode = mode };
                 _settingsStore.Save(_settings);
             }), _dock);
+        _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Show();
+    }
+
+    /// <summary>
+    /// "Arka planda çalışanlar" panelini açar/kapatır. Önce ManagedShell'e tepsinin üst kenarda, adanın yerinde olduğunu
+    /// bildirir; uygulamaların açılır pencereleri böylece üstte belirir.
+    /// </summary>
+    private void OpenTrayPanel()
+    {
+        if (_island is null || _shell?.Manager.NotificationArea is not { IsFailed: false } area)
+        {
+            return;
+        }
+
+        var pill = _island.Pill;
+        var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(pill);
+        var topLeft = pill.PointToScreen(new Point(0, 0));
+        area.SetTrayHostSizeData(new ManagedShell.WindowsTray.TrayHostSizeData
+        {
+            edge = ManagedShell.Interop.NativeMethods.ABEdge.ABE_TOP,
+            rc = new ManagedShell.Interop.NativeMethods.Rect
+            {
+                Left = (int)topLeft.X,
+                Top = (int)topLeft.Y,
+                Right = (int)(topLeft.X + pill.ActualWidth * dpi.DpiScaleX),
+                Bottom = (int)(topLeft.Y + pill.ActualHeight * dpi.DpiScaleY),
+            },
+        });
+
+        // Sağ tık menüsü odağı alınca panel kapanmasın (imleç paneldeyken).
+        _island.Panels.Toggle("tray", () => new Panels.TrayPanel(area), Panels.TrayPanel.PanelWidth,
+            keepOpenWhilePointerInside: true);
     }
 
     /// <summary>İlk açılışta (ayarda sabitlenmiş uygulama yoksa) Chrome, Dosya Gezgini, Steam ve Discord'u arar ve kaydeder.</summary>

@@ -33,6 +33,7 @@ public static class RestoreRunner
         }
 
         RestoreTaskbar(store);
+        Interop.Native.BroadcastTaskbarCreated(); // öldürülen ada tepsiyi barındırıyordu: simgeler Explorer'a dönsün
     }
 
     /// <summary>Görev çubuğunu kaydedilmiş özgün otomatik gizleme durumuyla görünür yapar. UI iş parçacığında çağrılmalı.</summary>

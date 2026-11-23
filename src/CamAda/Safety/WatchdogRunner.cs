@@ -22,5 +22,9 @@ public static class WatchdogRunner
         {
             RestoreRunner.RestoreTaskbar(store);
         }
+
+        // Ana süreç tepsiyi barındırıyordu: onun penceresi gidince uygulamalar simgelerini Explorer'a yeniden eklesin.
+        // Temiz çıkışta da zararsızdır (uygulamalar zaten kayıtlı simgeyi günceller).
+        Interop.Native.BroadcastTaskbarCreated();
     }
 }

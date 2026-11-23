@@ -25,6 +25,20 @@ internal static partial class Native
     /// <summary>Explorer her başladığında tüm üst düzey pencerelere yayınlanan mesajın kimliği.</summary>
     public static readonly int TaskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
 
+    /// <summary>
+    /// Tüm uygulamalara "görev çubuğu yeniden oluştu" der; tepsi simgelerini yeniden kaydederler. Ada tepsiyi barındırırken
+    /// eklenen simgeler, ada beklenmedik kapanırsa Explorer'ın tepsisinde yoktur; bu yayın onları geri getirir.
+    /// </summary>
+    public static void BroadcastTaskbarCreated()
+    {
+        const nint HWND_BROADCAST = 0xFFFF;
+        SendNotifyMessage(HWND_BROADCAST, (uint)TaskbarCreatedMessage, 0, 0);
+    }
+
+    [LibraryImport("user32.dll", EntryPoint = "SendNotifyMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SendNotifyMessage(nint hwnd, uint message, nint wParam, nint lParam);
+
     /// <summary>Geçerli masaüstü duvar kağıdının dosya yolu; düz renk arka planda boş döner.</summary>
     public static unsafe string GetWallpaperPath()
     {

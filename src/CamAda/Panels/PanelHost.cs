@@ -22,7 +22,7 @@ public sealed class PanelHost
     public bool IsOpen => _current is not null;
 
     /// <summary><paramref name="key"/> ile açık bir panel varsa kapatır, yoksa yenisini açar.</summary>
-    public void Toggle(object key, Func<FrameworkElement> content, double width)
+    public void Toggle(object key, Func<FrameworkElement> content, double width, bool keepOpenWhilePointerInside = false)
     {
         if (_current is not null && Equals(_currentKey, key))
         {
@@ -30,13 +30,13 @@ public sealed class PanelHost
             return;
         }
 
-        Show(key, content(), width);
+        Show(key, content(), width, keepOpenWhilePointerInside);
     }
 
-    public void Show(object key, FrameworkElement content, double width)
+    public void Show(object key, FrameworkElement content, double width, bool keepOpenWhilePointerInside = false)
     {
         var previous = _current;
-        var panel = new PanelWindow(content, width);
+        var panel = new PanelWindow(content, width) { KeepOpenWhilePointerInside = keepOpenWhilePointerInside };
         _current = panel;
         _currentKey = key;
 

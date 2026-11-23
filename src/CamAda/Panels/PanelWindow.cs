@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using CamAda.Interop;
 
 namespace CamAda.Panels;
 
@@ -24,6 +25,7 @@ public class PanelWindow : Window
     private readonly Border _frame;
     private readonly TranslateTransform _slide = new();
     private bool _closing;
+    private OutsideClickHook? _outsideClick;
 
     public PanelWindow(FrameworkElement content, double width)
     {
@@ -69,9 +71,20 @@ public class PanelWindow : Window
                 Dismiss();
             }
         };
-        Deactivated += (_, _) => Dismiss();
-        Closed += (_, _) => PanelClosed?.Invoke(this, EventArgs.Empty);
+        Activated += (_, _) => StopWatchingOutsideClicks(); // panele geri dönüldü: normal odak kuralı geçerli
+        Deactivated += (_, _) => OnDeactivated();
+        Closed += (_, _) =>
+        {
+            StopWatchingOutsideClicks();
+            PanelClosed?.Invoke(this, EventArgs.Empty);
+        };
     }
+
+    /// <summary>
+    /// Odak, imleç paneldeyken başka bir pencereye geçerse (ör. tepsi uygulamasının sağ tık menüsü) panel açık kalır;
+    /// o durumda panel dışına yapılan ilk tıklamada kapanır.
+    /// </summary>
+    public bool KeepOpenWhilePointerInside { get; init; }
 
     public event EventHandler? PanelOpened;
 
@@ -94,6 +107,45 @@ public class PanelWindow : Window
         Show();
         Activate();
         PanelOpened?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnDeactivated()
+    {
+        if (KeepOpenWhilePointerInside && IsPointerInside())
+        {
+            // Odak panelden çıktı ama imleç hâlâ panelde (ör. uygulamanın menüsü): açık kal, dış tıklamayı kancayla bekle.
+            _outsideClick ??= new OutsideClickHook(IsInside, () => Dispatcher.BeginInvoke(Dismiss));
+            return;
+        }
+
+        Dismiss();
+    }
+
+    private void StopWatchingOutsideClicks()
+    {
+        _outsideClick?.Dispose();
+        _outsideClick = null;
+    }
+
+    private bool IsPointerInside()
+    {
+        var (x, y) = Native.GetCursorPosition();
+        return IsInside(x, y);
+    }
+
+    /// <summary>Ekran noktası (fiziksel piksel) panelin görünen çerçevesinin içinde mi.</summary>
+    private bool IsInside(int x, int y)
+    {
+        if (PresentationSource.FromVisual(_frame) is null)
+        {
+            return false;
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(_frame);
+        var topLeft = _frame.PointToScreen(new Point(0, 0));
+        return x >= topLeft.X && y >= topLeft.Y
+            && x < topLeft.X + _frame.ActualWidth * dpi.DpiScaleX
+            && y < topLeft.Y + _frame.ActualHeight * dpi.DpiScaleY;
     }
 
     /// <summary>Paneli bir kez kapatır (Esc, odak kaybı ve dışarıdan istekler aynı anda gelebilir).</summary>
