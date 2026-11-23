@@ -861,6 +861,43 @@ git commit -m "feat: cam görünümü modları ve seçilen varsayılan" -m "Co-A
 
 ---
 
+### Task 8: Akıllı gizlenme (Görev 7 kontrol noktasında kullanıcı kararı; üst şerit iptal)
+
+**Files:**
+- Create: `src/CamAda.Core/Island/OcclusionRule.cs`, `src/CamAda.Core/Island/IslandPresence.cs`
+- Modify: `src/CamAda/Shell/StripAppBar.xaml.cs` (`AppBarMode.None`: alan ayırmaz, tam ekranı algılamaya devam eder), `src/CamAda/Interop/Native.cs` (pencere örnekleme), `src/CamAda/Island/IslandWindow.xaml(.cs)` (çizgi, örtülme ve imleç yoklaması)
+- Test: `tests/CamAda.Core.Tests/Island/SmartHideTests.cs`
+
+**Interfaces:**
+- Produces:
+  ```csharp
+  namespace CamAda.Core.Island;
+  // Bounds fiziksel piksel. Ignorable: WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT.
+  public readonly record struct WindowSample(RectD Bounds, bool Visible, bool Cloaked, bool Ignorable,
+                                             bool HasTitle, bool IsDesktop, bool IsOwn);
+  public static class OcclusionRule
+  {
+      // Z-sırası yukarıdan aşağı. Uygun (görünür, cloak'suz, yok sayılmayan, bizim olmayan, başlıklı ya da masaüstü)
+      // ve noktayı içeren ilk pencere masaüstü değilse true.
+      public static bool IsOccluded(IEnumerable<WindowSample> topToBottom, double probeX, double probeY);
+  }
+  public enum IslandPresence { Hidden, Tucked, Shown }
+  public static class IslandPresenceRule
+  {
+      // Tam ekran → Hidden; örtülü ve genişlememiş → Tucked; diğer → Shown.
+      public static IslandPresence Decide(bool fullScreen, bool occluded, bool expanded);
+  }
+  ```
+
+- [ ] **Step 1:** `SmartHideTests` yaz: masaüstü → örtülü değil; ekranı kaplayan pencere → örtülü; noktayı içermeyen küçük pencere sonra masaüstü → değil; noktayı içeren araç penceresi sonra masaüstü → değil; cloak'lu pencere → değil; başlıksız pencere → değil; bizim pencere → değil; hiç pencere yok → değil; `Decide` için dört durum (tam ekran her şeyi gizler; örtülü+küçük → Tucked; örtülü+genişlemiş → Shown; örtülü değil → Shown).
+- [ ] **Step 2:** Testlerin derleme hatasıyla başarısız olduğunu gör.
+- [ ] **Step 3:** `OcclusionRule` ve `IslandPresenceRule`'u uygula, testler geçsin.
+- [ ] **Step 4:** Uygulama: `StripAppBar` `AppBarMode.None`. `Native.SampleTopLevelWindows()` z-sırasıyla `WindowSample` üretir (`EnumWindows`, `IsWindowVisible`, `DWMWA_CLOAKED`, genişletilmiş stil, başlık, sınıf adı `Progman`/`WorkerW`, süreç kimliği). `IslandWindow` 250 ms'de bir yoklama noktası (ada penceresinin yatay ortası, ekranın üstünden 20 DIP) için örtülmeyi hesaplar. Örtülüyken imleç 50 ms'de bir yoklanır: üst kenarda (y ≤ ekran üstü + 1 px) ve ada penceresi genişliğinde ya da hapın içindeyse "içeride" sayılır ve `HoverIntent`'e iletilir; örtülü değilken hapın fare olayları kullanılır. `IslandPresenceRule.Decide` sonucuna göre: Hidden → pencere gizli; Tucked → hap saydam ve tıklanamaz, çizgi görünür; Shown → hap görünür. Örtülüyken ton katmanı düz cam (`SolidTintBrush`).
+- [ ] **Step 5: Elle doğrula:** ekranı kaplayan pencere öndeyken ada çizgiye iner; en üst orta kenarda imleçle açılır, çekince çizgiye döner; çizgi varken en üst kenara tıklama alttaki pencereye gider; masaüstüne dönünce ada normal; çalışma alanı artık (0,0)'dan başlar; tam ekranda gizlenir.
+- [ ] **Step 6: Commit.**
+
+---
+
 ## Plan 1 bittiğinde
 
 - `dotnet test` tüm testleri geçer.

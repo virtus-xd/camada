@@ -103,10 +103,15 @@ Hepsi adanın altında, ortalı açılır; dışarı tıklayınca kapanır. Tek 
 - Ses ya da parlaklık değişti: ada içinde yatay gösterge (Windows'un kendi ses penceresinin yerine).
 - Dosya rafı fikri v1 kapsamı dışında.
 
-### 7.6 Üst şerit ve tam ekran
+### 7.6 Akıllı gizlenme ve tam ekran (kullanıcı kararı, 23.11.2026)
 
-- Ana ekranın en üstündeki ~56 px adaya ayrılır (AppBar); ekranı kaplayan pencereler bunun altından başlar. Alttaki görev çubuğu alanı boşaldığı için kullanılabilir alan neredeyse değişmez.
-- Tam ekran uygulama ya da oyun açıkken ada tamamen gizlenir ve kısa genişlemeler bastırılır.
+Önceki "56 px üst şerit" kararı kullanıcı canlı görünce değiştirildi: üstte alan **ayrılmaz**, pencereler ekranın en üstünden başlar.
+
+- Adanın yerini (ana ekranın üst ortası) bir pencere kaplıyorsa (ekranı kaplayan bir pencere ya da başlık çubuğu oraya denk gelen herhangi bir normal pencere), ada ince bir çizgiye iner: 96×5 DIP, üstten 3 DIP, ortalı.
+- İmleç ekranın en üst kenarına, ada penceresinin genişliği içinde gelince (0,12 sn gecikmeyle) ada geniş hâliyle açılır. İmleç adadan ve üst kenardan ayrılınca (0,35 sn) yeniden çizgiye iner.
+- Çizgi tıklamaları engellemez; en üst kenardaki tıklamalar alttaki pencereye (ör. Chrome sekmeleri) gider.
+- Ada bir pencerenin üstünde açıldığında arkasında duvar kağıdı olmadığı için ton koyulaşır (düz cam).
+- Tam ekran uygulama ya da oyun açıkken ada, çizgi dahil, tamamen gizlenir ve kısa genişlemeler bastırılır.
 
 ### 7.7 Görev çubuğunu kapatma ve güvenlik ağı
 
@@ -194,7 +199,7 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 - Ekran görüntüleri galerisi: Ada v2'de ayrı bir sekmesi kalmadığı için son ekran görüntüleri Pano panelinde bir şerit olarak gösterilecek; yeni ekran görüntüsünde kısa önizleme açılacak.
 - Kısayollar: Ctrl+Shift+M (mikrofon), Ctrl+Shift+V (pano). Win+V'ye dokunulmuyor.
 - Açılma/kapanma gecikmeleri: 0,12 sn / 0,35 sn.
-- Üst şerit ~56 px, yalnızca ana ekranda.
+- ~~Üst şerit ~56 px~~ → kullanıcı "akıllı gizlenme"yi seçti (§7.6). Bir pencerenin adanın yerini kaplayıp kaplamadığı, z-sırasında o noktayı içeren ilk normal pencereye bakılarak 250 ms'de bir kontrol edilir; araç pencereleri, tıklama geçiren katmanlar, başlıksız ve gizli (cloaked) pencereler sayılmaz.
 - Ayarlar v1'de JSON dosyasından.
 
 ## 12. Açık sorular (kullanıcıya)
