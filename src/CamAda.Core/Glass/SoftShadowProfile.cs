@@ -37,6 +37,17 @@ public static class SoftShadowProfile
         return layers;
     }
 
+    /// <summary>
+    /// Katmanın öğeye göre dikdörtgeni: her yönde <see cref="ShadowLayer.Outset"/> kadar büyür, <paramref name="depth"/> kadar
+    /// aşağı kayar. İçe taşan katman öğeden büyükse (boyut ≤ 0) null: çizilmez.
+    /// </summary>
+    public static RectD? LayerBounds(double width, double height, ShadowLayer layer, double depth)
+    {
+        var w = width + 2 * layer.Outset;
+        var h = height + 2 * layer.Outset;
+        return w > 0 && h > 0 ? new RectD(-layer.Outset, -layer.Outset + depth, w, h) : null;
+    }
+
     /// <summary>Standart normal dağılımın birikimli fonksiyonu (Abramowitz–Stegun 7.1.26, hata &lt; 1,5e-7).</summary>
     private static double NormalCdf(double x)
     {

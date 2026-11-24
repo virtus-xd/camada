@@ -29,7 +29,7 @@ public sealed class SoftShadow : FrameworkElement
         nameof(ShadowOpacity), typeof(double), typeof(SoftShadow),
         new FrameworkPropertyMetadata(0.45, FrameworkPropertyMetadataOptions.AffectsRender, OnStyleChanged));
 
-    private (double Outset, Brush Brush)[]? _layers;
+    private (ShadowLayer Layer, Brush Brush)[]? _layers;
 
     public SoftShadow()
     {
@@ -72,17 +72,17 @@ public sealed class SoftShadow : FrameworkElement
         }
 
         _layers ??= SoftShadowProfile.Layers(BlurRadius, ShadowOpacity, LayerCount)
-            .Select(l => (l.Outset, Brush: Frozen(new SolidColorBrush(Color) { Opacity = l.Alpha })))
+            .Select(l => (Layer: l, Brush: Frozen(new SolidColorBrush(Color) { Opacity = l.Alpha })))
             .ToArray();
 
-        foreach (var (outset, brush) in _layers)
+        foreach (var (layer, brush) in _layers)
         {
-            var rect = new Rect(-outset, -outset + Depth, size.Width + 2 * outset, size.Height + 2 * outset);
-            if (rect.Width <= 0 || rect.Height <= 0)
+            if (SoftShadowProfile.LayerBounds(size.Width, size.Height, layer, Depth) is not { } bounds)
             {
-                continue;
+                continue; // içe taşan katman öğeden büyük: çizilecek bir şey yok
             }
 
+            var rect = new Rect(bounds.X, bounds.Y, bounds.Width, bounds.Height);
             var radius = Math.Min(rect.Width, rect.Height) / 2;
             dc.DrawRoundedRectangle(brush, null, rect, radius, radius);
         }

@@ -44,6 +44,15 @@ public class SoftShadowProfileTests
         }
     }
 
+    // İçe taşan katman, öğeden büyükse (ör. düzen sırasında henüz küçük bir öğe) çizilmez; negatif boyut WPF'i çökertiyordu.
+    [Fact]
+    public void Inward_layer_larger_than_the_element_is_skipped() =>
+        Assert.Null(SoftShadowProfile.LayerBounds(10, 10, new ShadowLayer(-15, 0.2), depth: 8));
+
+    [Fact]
+    public void Layer_bounds_grow_by_outset_and_move_down_by_depth() =>
+        Assert.Equal(new RectD(-5, 3, 110, 60), SoftShadowProfile.LayerBounds(100, 50, new ShadowLayer(5, 0.1), depth: 8));
+
     [Fact]
     public void Every_layer_alpha_is_valid() =>
         Assert.All(Layers, l => Assert.InRange(l.Alpha, 0, 1));

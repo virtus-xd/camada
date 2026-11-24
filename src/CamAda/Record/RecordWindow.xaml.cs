@@ -32,8 +32,6 @@ public sealed partial class RecordWindow : Window
     private readonly DispatcherTimer _visibilityTimer;
     private readonly int _ownProcessId = Environment.ProcessId;
     private RecordGeometry _geometry;
-    private ImageSource? _cover;
-    private bool _coverShown;
     private bool _covered;
     private bool _rendering;
     private bool _closed;
@@ -114,7 +112,7 @@ public sealed partial class RecordWindow : Window
         Canvas.SetLeft(Disc, _geometry.Disc.X);
         Canvas.SetTop(Disc, _geometry.Disc.Y);
         Disc.Width = Disc.Height = _geometry.Disc.Width;
-        Label.Width = Label.Height = settings.EffectiveLabelDiameter;
+        Visual.Configure(_geometry.Disc.Width, settings.EffectiveLabelDiameter, dpi.DpiScaleX);
     }
 
     /// <summary>Pencere her zaman z-sırasının en altında kalır: tıklanınca ya da etkinleşince bile pencerelerin önüne geçmez.</summary>
@@ -140,14 +138,7 @@ public sealed partial class RecordWindow : Window
 
     private void UpdateMedia()
     {
-        if (!_coverShown || !ReferenceEquals(_cover, _media.Cover))
-        {
-            _cover = _media.Cover;
-            _coverShown = true;
-            Label.Fill = _cover is null
-                ? new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x22))
-                : new ImageBrush(_cover) { Stretch = Stretch.UniformToFill };
-        }
+        Visual.ShowCover(_media.Cover, _media.CoverColor);
 
         UpdateAnimation();
     }
@@ -181,7 +172,7 @@ public sealed partial class RecordWindow : Window
     private void OnFrame(TimeSpan elapsed)
     {
         _spin.Advance(elapsed, Playing, reduceMotion: !SystemParameters.ClientAreaAnimation);
-        Spin.Angle = _spin.Angle;
+        Visual.Angle = _spin.Angle;
         if (!Playing && !_spin.IsMoving)
         {
             UpdateAnimation();
