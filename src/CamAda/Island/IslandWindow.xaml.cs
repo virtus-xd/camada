@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -47,6 +48,12 @@ public partial class IslandWindow : Window
     private bool _fullScreen;
     private bool _closed;
 
+    /// <summary>Kısa gösterge: son <see cref="Flash"/> çağrısından bu kadar sonra kaybolur.</summary>
+    private static readonly TimeSpan FlashHold = TimeSpan.FromSeconds(1.5);
+
+    private readonly DispatcherTimer _flashTimer = new(DispatcherPriority.Normal);
+    private bool _flashing;
+
     /// <summary>Hapın genişlik animasyonunun en son hedefi (DIP).</summary>
     private double _widthTarget;
 
@@ -67,6 +74,8 @@ public partial class IslandWindow : Window
         _fullScreen = _strip.IsFullScreenActive;
         _strip.FullScreenChanged += OnFullScreenChanged;
         _clockTimer.Tick += (_, _) => RefreshClock();
+        _flashTimer.Interval = FlashHold;
+        _flashTimer.Tick += (_, _) => EndFlash(immediate: false);
         SourceInitialized += OnSourceInitialized;
         DpiChanged += (_, e) =>
         {
@@ -127,6 +136,11 @@ public partial class IslandWindow : Window
                 return;
             }
 
+            if (_hover.IsExpanded)
+            {
+                EndFlash(immediate: true); // genişleyen ada göstergeyi taşımaz
+            }
+
             AnimateTo(_hover.IsExpanded);
             ApplyPresence();
             UpdateMediaAnimation();
@@ -153,6 +167,54 @@ public partial class IslandWindow : Window
 
     /// <summary>Küçük adada mikrofon kapalı işaretini gösterir ya da gizler.</summary>
     public void ShowMicOff(bool off) => CompactMicOff.Visibility = off ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>
+    /// Kısa gösterge (spec §7.5): küçük hapın içinde içerik yerine glif + çubuk + metin; son çağrıdan 1,5 sn sonra kaybolur.
+    /// Çizgiye inmiş ada gösterge boyunca görünür, tam ekranda görünmez. Ada genişlemişken ya da panel açıkken bir şey
+    /// yapmaz (panel ve satır zaten gösteriyor).
+    /// </summary>
+    public void Flash(FlashContent content)
+    {
+        if (_closed || _hover.IsExpanded || _panels.IsOpen)
+        {
+            return;
+        }
+
+        FlashGlyph.Text = content.Glyph;
+        FlashTrack.Visibility = content.Level is null ? Visibility.Collapsed : Visibility.Visible;
+        FlashFill.Width = FlashTrack.Width * Math.Clamp(content.Level ?? 0, 0, 1);
+        FlashText.Text = content.Text;
+        AutomationProperties.SetName(FlashRow, content.Text);
+
+        _flashTimer.Stop();
+        _flashTimer.Start();
+        if (!_flashing)
+        {
+            _flashing = true;
+            FadeFlash(show: true, immediate: false);
+            ApplyPresence();
+        }
+    }
+
+    private void EndFlash(bool immediate)
+    {
+        _flashTimer.Stop();
+        if (!_flashing)
+        {
+            return;
+        }
+
+        _flashing = false;
+        FadeFlash(show: false, immediate);
+        ApplyPresence();
+    }
+
+    private void FadeFlash(bool show, bool immediate)
+    {
+        var duration = immediate || !SystemParameters.ClientAreaAnimation ? TimeSpan.Zero : TimeSpan.FromSeconds(0.15);
+        FlashRow.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 1 : 0, duration));
+        CompactLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 0 : 1, duration));
+    }
 
     /// <summary>Müzik panelindeki beğen ve "Sıradaki" kaynağı (Spotify'a bağlanınca).</summary>
     public ISpotifyExtras? MusicExtras { get; set; }
@@ -181,7 +243,7 @@ public partial class IslandWindow : Window
             return;
         }
 
-        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded);
+        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded, _flashing);
 
         if (presence == IslandPresence.Hidden)
         {
@@ -477,6 +539,7 @@ public partial class IslandWindow : Window
         _panels.Close();
         _clockTimer.Stop();
         _graceTimer.Stop();
+        _flashTimer.Stop();
         _media.Changed -= OnMediaChanged;
         _smartHide.Dispose();
         _hover.Dispose();

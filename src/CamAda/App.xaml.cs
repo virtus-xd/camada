@@ -175,7 +175,17 @@ public partial class App : Application
         }
 
         _audio = audio;
-        audio.MasterChanged += (_, _) => UpdateSoundButton();
+        audio.MasterChanged += (_, change) =>
+        {
+            UpdateSoundButton();
+            if (!change.FromCamAda) // CamAda'nın kaydırıcısıyla değişince panel zaten gösteriyor (Review Focus 3)
+            {
+                _island?.Flash(new FlashContent(
+                    SpeakerGlyph.For(SpeakerLevels.For(change.Volume, change.Muted)),
+                    change.Volume,
+                    change.Muted ? "Sessiz" : $"%{SpeakerLevels.Percent(change.Volume)}"));
+            }
+        };
         audio.DevicesChanged += (_, _) => UpdateSoundButton();
         audio.MicChanged += (_, _) => UpdateSoundButton();
         _island!.Bar.SoundClicked += (_, _) =>

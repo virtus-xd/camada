@@ -72,7 +72,16 @@ public class SmartHideTests
     [InlineData(false, true, true, IslandPresence.Shown)]
     [InlineData(false, false, false, IslandPresence.Shown)]
     public void Presence_rule(bool fullScreen, bool occluded, bool expanded, IslandPresence expected) =>
-        Assert.Equal(expected, IslandPresenceRule.Decide(fullScreen, occluded, expanded));
+        Assert.Equal(expected, IslandPresenceRule.Decide(fullScreen, occluded, expanded, flashing: false));
+
+    // Plan 4.1: ses değişince kısa gösterim (spec §7.5) çizgiye inmiş adayı gösterir, tam ekranda asla (spec §4).
+    [Fact]
+    public void Flash_shows_a_tucked_island() =>
+        Assert.Equal(IslandPresence.Shown, IslandPresenceRule.Decide(false, true, false, flashing: true));
+
+    [Fact]
+    public void Flash_never_shows_over_full_screen() =>
+        Assert.Equal(IslandPresence.Hidden, IslandPresenceRule.Decide(true, false, false, flashing: true));
 
     // Üst kenar tetikleyicisi: ekran üstü 0, ada penceresi x 397..1522.
     [Theory]

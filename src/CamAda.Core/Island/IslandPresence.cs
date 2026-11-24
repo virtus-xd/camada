@@ -15,8 +15,9 @@ public enum IslandPresence
 
 public static class IslandPresenceRule
 {
-    public static IslandPresence Decide(bool fullScreen, bool occluded, bool expanded) =>
+    /// <param name="flashing">Ada kısa bir gösterge gösteriyor (ör. ses değişti, spec §7.5): çizgiye inmişse de görünür.</param>
+    public static IslandPresence Decide(bool fullScreen, bool occluded, bool expanded, bool flashing) =>
         fullScreen ? IslandPresence.Hidden
-        : occluded && !expanded ? IslandPresence.Tucked
+        : occluded && !expanded && !flashing ? IslandPresence.Tucked
         : IslandPresence.Shown;
 }

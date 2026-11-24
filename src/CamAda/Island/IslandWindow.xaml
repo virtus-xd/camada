@@ -66,7 +66,9 @@
                 <Border BorderBrush="{StaticResource GlassHighlightBrush}" BorderThickness="0,1,0,0"
                         CornerRadius="{Binding CornerRadius, ElementName=PillBorder}" IsHitTestVisible="False" />
 
-                <!-- Küçük hâl (spec §7.1): boşta tarih (+ hava durumu) ya da çalarken mini plak + şarkı; sağda ekolayzır ve saat -->
+                <!-- Küçük hâl (spec §7.1): boşta tarih (+ hava durumu) ya da çalarken mini plak + şarkı; sağda ekolayzır ve saat.
+                     CompactLayer'ın saydamlığı kısa gösterge içindir, CompactContent'inki genişleme geçişi içindir. -->
+                <Grid x:Name="CompactLayer">
                 <Grid x:Name="CompactContent" Margin="16,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -97,6 +99,21 @@
                                    FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
                     </StackPanel>
                 </Grid>
+                </Grid>
+
+                <!-- Kısa gösterge (spec §7.5): ses değişti, mikrofon kapandı… Son çağrıdan 1,5 sn sonra kaybolur. -->
+                <StackPanel x:Name="FlashRow" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Opacity="0" IsHitTestVisible="False">
+                    <TextBlock x:Name="FlashGlyph" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                               VerticalAlignment="Center" />
+                    <Grid x:Name="FlashTrack" Width="200" Height="4" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <Border Background="#33FFFFFF" CornerRadius="2" />
+                        <Border x:Name="FlashFill" Background="{StaticResource AccentBrush}" CornerRadius="2"
+                                HorizontalAlignment="Left" Width="0" />
+                    </Grid>
+                    <TextBlock x:Name="FlashText" Margin="12,0,0,0" MinWidth="44" VerticalAlignment="Center"
+                               FontSize="12.5" FontWeight="Bold" Typography.NumeralAlignment="Tabular" />
+                </StackPanel>
 
                 <!-- Genişlemiş hâl: Başlat, Ara | uygulamalar | ^ | saat (spec §7.2) -->
                 <!-- Genişliği koddan genişlemiş hapa sabitlenir (kenarlık hariç): hap büyürken düğmeler yeniden dizilmez,
