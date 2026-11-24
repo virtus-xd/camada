@@ -1,0 +1,42 @@
+<UserControl x:Class="CamAda.Panels.QuickSettingsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CamAda.Panels">
+    <Grid ClipToBounds="True">
+        <!-- Ana sayfa (tasarım "Panel"): başlık + pil, 2×2 kutucuk, parlaklık, düğmeler -->
+        <StackPanel x:Name="MainPage">
+            <DockPanel Margin="4,0,0,12">
+                <Button x:Name="BatteryHeader" DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Padding="10,4"
+                        FontSize="12" Click="BatteryHeader_Click" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="BatteryHeaderGlyph" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="13" VerticalAlignment="Center" />
+                        <TextBlock x:Name="BatteryHeaderText" Margin="6,0,0,0" VerticalAlignment="Center"
+                                   Typography.NumeralAlignment="Tabular" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Text="Hızlı ayarlar" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+            </DockPanel>
+
+            <UniformGrid Columns="2">
+                <local:QuickTile x:Name="WifiTile" Margin="0,0,5,10" Toggled="WifiTile_Toggled" />
+                <local:QuickTile x:Name="BluetoothTile" Margin="5,0,0,10" Toggled="BluetoothTile_Toggled" />
+                <local:QuickTile x:Name="FocusTile" Margin="0,0,5,0" Toggled="FocusTile_Toggled" />
+                <local:QuickTile x:Name="ThemeTile" Margin="5,0,0,0" Toggled="ThemeTile_Toggled" />
+            </UniformGrid>
+
+            <!-- Parlaklık satırları (Görev 4) -->
+            <StackPanel x:Name="BrightnessRows" Margin="0,14,0,0" Visibility="Collapsed" />
+
+            <UniformGrid Columns="2" Margin="0,14,0,0">
+                <Button Style="{StaticResource PanelButton}" Content="Ekran görüntüsü" Margin="0,0,5,8" Click="Screenshot_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="Kilitle" Margin="5,0,0,8" Click="Lock_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="Uyku" Margin="0,0,5,0" Click="Sleep_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="Görev Yöneticisi" Margin="5,0,0,0" Click="TaskManager_Click" />
+            </UniformGrid>
+        </StackPanel>
+
+        <!-- Wi‑Fi ya da Bluetooth listesi (Görev 5–6) aynı panelin içinde -->
+        <ContentControl x:Name="DetailPage" Visibility="Collapsed" Focusable="False" />
+    </Grid>
+</UserControl>

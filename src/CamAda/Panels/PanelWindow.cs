@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -68,7 +68,10 @@ public class PanelWindow : Window
             if (e.Key == Key.Escape)
             {
                 e.Handled = true;
-                Dismiss();
+                if (content is not IPanelEscape escape || !escape.HandleEscape())
+                {
+                    Dismiss();
+                }
             }
         };
         Activated += (_, _) => StopWatchingOutsideClicks(); // panele geri dönüldü: normal odak kuralı geçerli

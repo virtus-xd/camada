@@ -55,6 +55,8 @@ public partial class App : Application
     private RadioService? _radios;
     private NetworkStatusService? _network;
     private BatteryService? _battery;
+    private ThemeService? _theme;
+    private QuickServices? _quick;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -258,6 +260,43 @@ public partial class App : Application
         _island!.Expanding += (_, _) => _network.Refresh();
         UpdateNetworkButton();
         UpdateBatteryButton();
+
+        _theme = new ThemeService(Dispatcher);
+        _quick = new QuickServices
+        {
+            Network = _network,
+            Battery = _battery,
+            Theme = _theme,
+            Launcher = CreateQuickLauncher(),
+            Radios = IsAbsentForTest("radios") ? null : _radios,
+        };
+        _island.Bar.WifiClicked += (_, _) => OpenQuickSettings();
+        _island.Bar.BatteryClicked += (_, _) => OpenQuickSettings();
+    }
+
+    /// <summary>Wi‑Fi ve pil simgesi aynı paneli açar; ikisinden birine yeniden basmak kapatır.</summary>
+    private void OpenQuickSettings() =>
+        _island?.Panels.Toggle("quick", () => new QuickSettingsPanel(_quick!), QuickSettingsPanel.PanelWidth);
+
+    private static IQuickLauncher CreateQuickLauncher()
+    {
+#if DEBUG
+        if (Environment.GetEnvironmentVariable("CAMADA_FAKE_LAUNCHER") is { Length: > 0 } log)
+        {
+            return new RecordingQuickLauncher(log);
+        }
+#endif
+        return new SystemQuickLauncher();
+    }
+
+    /// <summary>Yalnız Debug denemesi: <c>CAMADA_QS_ABSENT=radios,brightness,wifi,bluetooth</c> servisleri yok sayar.</summary>
+    private static bool IsAbsentForTest(string service)
+    {
+#if DEBUG
+        return Environment.GetEnvironmentVariable("CAMADA_QS_ABSENT")?.Split(',').Contains(service) == true;
+#else
+        return false;
+#endif
     }
 
     private void UpdateNetworkButton()
@@ -746,6 +785,7 @@ public partial class App : Application
         _network?.Dispose();
         _battery?.Dispose();
         _radios?.Dispose();
+        _theme?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();
