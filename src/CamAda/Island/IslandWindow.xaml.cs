@@ -9,7 +9,9 @@ using CamAda.Core.Island;
 using CamAda.Core.Settings;
 using CamAda.Core.Time;
 using CamAda.Glass;
+using CamAda.Core.Media;
 using CamAda.Interop;
+using CamAda.Media;
 using CamAda.Panels;
 using CamAda.Shell;
 using ManagedShell.AppBar;
@@ -28,6 +30,9 @@ public partial class IslandWindow : Window
     private readonly AppSettings _settings;
     private readonly IslandCommands _commands;
     private readonly DockViewModel _dock;
+    private readonly NowPlayingService _media;
+    private readonly DispatcherTimer _graceTimer = new(DispatcherPriority.Normal);
+    private CompactView _compactView = CompactView.Idle;
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Normal);
     private readonly HoverIntent _hover;
     private readonly SmartHide _smartHide;
@@ -42,13 +47,17 @@ public partial class IslandWindow : Window
     /// <summary>Hapın genişlik animasyonunun en son hedefi (DIP).</summary>
     private double _widthTarget;
 
-    public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands, DockViewModel dock)
+    public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands, DockViewModel dock,
+        NowPlayingService media)
     {
         InitializeComponent();
         _strip = strip;
         _settings = settings;
         _commands = commands;
         _dock = dock;
+        _media = media;
+        _media.Changed += OnMediaChanged;
+        _graceTimer.Tick += (_, _) => UpdateCompactView();
         ExpandedContent.AppsSource = _dock.Items;
         ExpandedContent.Width = ExpandedTargetWidth - 2;
 
@@ -112,6 +121,7 @@ public partial class IslandWindow : Window
 
             AnimateTo(_hover.IsExpanded);
             ApplyPresence();
+            UpdateMediaAnimation();
         });
 
         // Örtülü değilken hapın fare olayları, örtülüyken SmartHide'ın imleç yoklaması HoverIntent'i besler.
@@ -119,6 +129,7 @@ public partial class IslandWindow : Window
         PillBorder.MouseLeave += (_, _) => { if (!_smartHide.IsOccluded) _hover.PointerExited(); };
 
         Closed += OnClosed;
+        UpdateCompactView();
 
         RefreshClock();
     }
@@ -178,6 +189,67 @@ public partial class IslandWindow : Window
         TuckLine.BeginAnimation(OpacityProperty, new DoubleAnimation(tucked ? 1 : 0, duration));
 
         UpdateTint();
+        UpdateMediaAnimation();
+    }
+
+    private void OnMediaChanged(object? sender, EventArgs e) => UpdateCompactView();
+
+    /// <summary>
+    /// Küçük hâlin içeriği (spec §7.1): çalarken mini plak + "Şarkı · Sanatçı" + ekolayzır, değilse tarih. Duraklamada
+    /// geçiş payı (<see cref="CompactViewRule.Grace"/>) dolunca bir kez yeniden değerlendirilir.
+    /// </summary>
+    private void UpdateCompactView()
+    {
+        if (_closed)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.Now;
+        var track = _media.Current;
+        var playing = track?.State == PlaybackState.Playing;
+        var view = CompactViewRule.Decide(track, _media.LastPlayingAt, now);
+
+        if (track is not null)
+        {
+            CompactTitle.Text = track.Title;
+            CompactArtist.Text = string.IsNullOrWhiteSpace(track.Artist) ? "" : " · " + track.Artist;
+        }
+
+        CompactRecord.Show(_media.Cover, playing);
+        CompactEqualizer.IsPlaying = playing;
+
+        if (view != _compactView)
+        {
+            _compactView = view;
+            var music = view == CompactView.Music;
+            var duration = SystemParameters.ClientAreaAnimation ? TimeSpan.FromSeconds(0.2) : TimeSpan.Zero;
+            CompactMusic.BeginAnimation(OpacityProperty, new DoubleAnimation(music ? 1 : 0, duration));
+            CompactEqualizer.BeginAnimation(OpacityProperty, new DoubleAnimation(music ? 1 : 0, duration));
+            CompactDate.BeginAnimation(OpacityProperty, new DoubleAnimation(music ? 0 : 1, duration));
+        }
+
+        _graceTimer.Stop();
+        if (view == CompactView.Music && !playing && _media.LastPlayingAt is { } last)
+        {
+            var remaining = last + CompactViewRule.Grace - now;
+            if (remaining > TimeSpan.Zero)
+            {
+                _graceTimer.Interval = remaining + TimeSpan.FromMilliseconds(50);
+                _graceTimer.Start();
+            }
+        }
+
+        UpdateMediaAnimation();
+    }
+
+    /// <summary>Mini plak ve ekolayzır yalnız küçük ada ekranda açıkken ve müzik görünümündeyken kıpırdar (boşta %0 işlemci).</summary>
+    private void UpdateMediaAnimation()
+    {
+        var active = IsVisible && !_fullScreen && !_smartHide.IsOccluded && !_hover.IsExpanded
+                     && _compactView == CompactView.Music;
+        CompactRecord.CanAnimate = active;
+        CompactEqualizer.CanAnimate = active;
     }
 
     /// <summary>Bir pencerenin üstünde açıldığında arkada duvar kağıdı yok: tonu koyulaştır (düz cam).</summary>
@@ -350,6 +422,8 @@ public partial class IslandWindow : Window
         _closed = true;
         _panels.Close();
         _clockTimer.Stop();
+        _graceTimer.Stop();
+        _media.Changed -= OnMediaChanged;
         _smartHide.Dispose();
         _hover.Dispose();
         _backdrop?.Dispose();

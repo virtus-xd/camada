@@ -116,7 +116,7 @@ public partial class App : Application
                 _settingsStore.Save(_settings);
             },
             IsStartWithWindows: () => _settings.StartWithWindows,
-            SetStartWithWindows: SetStartWithWindows), _dock);
+            SetStartWithWindows: SetStartWithWindows), _dock, _media);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
