@@ -2,7 +2,9 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using CamAda.Audio;
 using CamAda.Core.Apps;
+using CamAda.Core.Audio;
 using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
@@ -38,6 +40,7 @@ public partial class App : Application
     private RecordWindow? _record;
     private SpotifyClient? _spotify;
     private ISpotifyExtras? _spotifyExtras;
+    private AudioService? _audio;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -143,12 +146,50 @@ public partial class App : Application
             ShowRecord();
         }
 
+        StartAudio();
+
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
         _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
         _weather.Start();
         _ = Dispatcher.BeginInvoke(UpdateTrayHostSizeData, DispatcherPriority.Loaded);
 
         _ = _appIndex.GetItemsAsync(); // ilk aramada beklememek için arka planda hazırla
+    }
+
+    /// <summary>
+    /// Ses servisi (spec §7.4 "Ses ve mikrofon"): ses düğmesi, Ses paneli. Core Audio kurulamazsa (ör. ses hizmeti
+    /// kapalı) ada sessiz simgeyle çalışmaya devam eder, panel açılmaz.
+    /// </summary>
+    private void StartAudio()
+    {
+        AudioService audio;
+        try
+        {
+            audio = new AudioService(Dispatcher);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidCastException)
+        {
+            LogCrash(ex);
+            _island?.Bar.ShowSound(SpeakerLevel.Muted, micMuted: false);
+            return;
+        }
+
+        _audio = audio;
+        audio.MasterChanged += (_, _) => UpdateSoundButton();
+        audio.DevicesChanged += (_, _) => UpdateSoundButton();
+        _island!.Bar.SoundClicked += (_, _) =>
+            _island.Panels.Toggle("sound", () => new Panels.SoundPanel(audio), Panels.SoundPanel.PanelWidth);
+        UpdateSoundButton();
+    }
+
+    private void UpdateSoundButton()
+    {
+        if (_audio is null || _island is null)
+        {
+            return;
+        }
+
+        _island.Bar.ShowSound(SpeakerLevels.For(_audio.Volume, _audio.Muted || !_audio.HasOutput), micMuted: false);
     }
 
     /// <summary>Başlat ve Ara aynı paneli açar (yazmaya hazır arama kutusuyla).</summary>
@@ -431,6 +472,7 @@ public partial class App : Application
         TryShowTaskbar();
         _island?.Close();
         CloseRecord();
+        _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();
         _dock?.Dispose();

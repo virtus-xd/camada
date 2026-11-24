@@ -23,6 +23,12 @@ public static class IslandLayout
     /// <summary>Genişlemiş satırda uygulamalar ile ^ arasındaki müzik bölümü (mini plak + şarkı adı).</summary>
     public const double MusicSectionWidth = 150;
 
+    /// <summary>
+    /// Genişlemiş satırda ^ ile saat arasındaki sistem düğmeleri: Plan 4.1'de ses düğmesi. Pano, Wi‑Fi ve bildirim
+    /// düğmeleri Plan 4'ün sonraki parçalarında bu genişliği büyütür.
+    /// </summary>
+    public const double SystemSectionWidth = 36;
+
     /// <summary>Akıllı gizlenmede adayı açan üst kenar bölgesinin genişliği (ortada).</summary>
     public const double RevealZoneWidth = 900;
 
@@ -30,10 +36,11 @@ public static class IslandLayout
     private const double ButtonPitch = 38;
 
     /// <summary>
-    /// Genişlemiş hap genişliği: 5 uygulama düğmesine kadar 770 DIP + müzik bölümü (920); her ek düğme ("+N" dahil)
-    /// 38 DIP, en fazla 1250.
+    /// Genişlemiş hap genişliği: 5 uygulama düğmesine kadar 770 DIP + müzik bölümü + sistem düğmeleri (956); her ek
+    /// düğme ("+N" dahil) 38 DIP, en fazla 1250.
     /// </summary>
     public static double ExpandedWidthFor(int appButtonCount) =>
         Math.Min(MaxExpandedWidth,
-            Expanded.Width + MusicSectionWidth + Math.Max(0, appButtonCount - ButtonsThatFitBase) * ButtonPitch);
+            Expanded.Width + MusicSectionWidth + SystemSectionWidth
+            + Math.Max(0, appButtonCount - ButtonsThatFitBase) * ButtonPitch);
 }

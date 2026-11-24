@@ -4,6 +4,8 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using CamAda.Audio;
+using CamAda.Core.Audio;
 using CamAda.Core.Media;
 
 namespace CamAda.Island;
@@ -21,6 +23,15 @@ public partial class IslandBar : UserControl
     public event EventHandler? TrayClicked;
     public event EventHandler? MusicClicked;
     public event EventHandler? ClockClicked;
+    public event EventHandler? SoundClicked;
+
+    /// <summary>Ses düğmesinin hoparlör glifini ve mikrofon kapalı rozetini günceller.</summary>
+    public void ShowSound(SpeakerLevel level, bool micMuted)
+    {
+        SoundGlyph.Text = SpeakerGlyph.For(level);
+        MicOffBadge.Visibility = micMuted ? Visibility.Visible : Visibility.Collapsed;
+        AutomationProperties.SetName(SoundButton, micMuted ? "Ses ve mikrofon: mikrofon kapalı" : "Ses ve mikrofon");
+    }
 
     /// <summary>Müzik bölümünü günceller: parça varsa dönen mini plak ve şarkı adı, yoksa soluk nota ve "Spotify".</summary>
     public void ShowMusic(NowPlaying? track, ImageSource? cover)
@@ -62,6 +73,8 @@ public partial class IslandBar : UserControl
     private void TrayButton_Click(object sender, RoutedEventArgs e) => TrayClicked?.Invoke(this, EventArgs.Empty);
 
     private void ClockButton_Click(object sender, RoutedEventArgs e) => ClockClicked?.Invoke(this, EventArgs.Empty);
+
+    private void SoundButton_Click(object sender, RoutedEventArgs e) => SoundClicked?.Invoke(this, EventArgs.Empty);
 
     private void App_Click(object sender, RoutedEventArgs e)
     {
