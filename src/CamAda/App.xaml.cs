@@ -3,6 +3,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using CamAda.Audio;
+using CamAda.Clips;
+using CamAda.Panels;
 using CamAda.Core.Apps;
 using CamAda.Core.Audio;
 using CamAda.Core.Input;
@@ -44,6 +46,7 @@ public partial class App : Application
     private ISpotifyExtras? _spotifyExtras;
     private AudioService? _audio;
     private GlobalHotkeys? _hotkeys;
+    private ClipboardService? _clips;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -150,6 +153,7 @@ public partial class App : Application
         }
 
         StartAudio();
+        StartClipboard();
 
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
         _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
@@ -196,6 +200,27 @@ public partial class App : Application
         UpdateSoundButton();
         RegisterMicHotkey(audio);
     }
+
+    /// <summary>
+    /// Pano geçmişi (tasarım "Geçmiş"): pano düğmesi ve Pano paneli. Dinleyici kurulamazsa ada panosuz çalışır.
+    /// </summary>
+    private void StartClipboard()
+    {
+        try
+        {
+            _clips = new ClipboardService(Dispatcher, Path.Combine(RoamingDir, "clipboard"), LogCrash);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+        {
+            LogCrash(ex);
+            return;
+        }
+
+        _island!.Bar.ClipboardClicked += (_, _) =>
+            _island.Panels.Toggle("clipboard", () => CreateClipboardPanel(pasteOnChoose: false), ClipboardPanel.PanelWidth);
+    }
+
+    private ClipboardPanel CreateClipboardPanel(bool pasteOnChoose) => new(_clips!, pasteOnChoose);
 
     /// <summary>
     /// Ctrl+Shift+M (ayardan değişir): mikrofonu her yerden kapatıp açar ve adada kısaca gösterir. Kısayolu başka bir
@@ -521,6 +546,7 @@ public partial class App : Application
         _island?.Close();
         CloseRecord();
         _hotkeys?.Dispose();
+        _clips?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();

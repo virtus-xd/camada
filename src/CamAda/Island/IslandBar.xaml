@@ -114,7 +114,13 @@
                       Stroke="{StaticResource TextBrush}" StrokeThickness="2.2"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
             </Button>
-            <!-- Ses (spec §7.2: "ses (+ mikrofon kapalıysa işaret)"); genişlik IslandLayout.SystemSectionWidth -->
+            <!-- Pano (spec §7.2; Plan 4.2) ve ses: ikisi birlikte IslandLayout.SystemSectionWidth -->
+            <Button x:Name="ClipboardButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
+                    AutomationProperties.Name="Pano" Click="ClipboardButton_Click">
+                <TextBlock Text="&#xE77F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <!-- Ses (spec §7.2: "ses (+ mikrofon kapalıysa işaret)") -->
             <Button x:Name="SoundButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
                     AutomationProperties.Name="Ses ve mikrofon" Click="SoundButton_Click">
                 <Grid Width="26" Height="24">

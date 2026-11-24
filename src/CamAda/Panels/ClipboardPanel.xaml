@@ -1,0 +1,46 @@
+<UserControl x:Class="CamAda.Panels.ClipboardPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <!-- Satırın içindeki küçük simge düğmeleri (sabitle, sil): yalnız fareyle; klavyede Delete kullanılır -->
+        <Style x:Key="RowIconButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="13">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PanelItemHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <Grid Margin="4,0,0,12">
+            <TextBlock Text="Pano" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" />
+            <Button x:Name="ClearButton" Style="{StaticResource PanelButton}" HorizontalAlignment="Right" Padding="10,4"
+                    FontSize="12" Content="Sabitlenmeyenleri sil" Click="ClearButton_Click" />
+        </Grid>
+
+        <ScrollViewer x:Name="ListScroll" MaxHeight="420" VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel>
+                <StackPanel x:Name="PinnedList" />
+                <Rectangle x:Name="PinnedSeparator" Height="1" Fill="#1FFFFFFF" Margin="4,4,4,8" Visibility="Collapsed" />
+                <StackPanel x:Name="RecentList" />
+                <TextBlock x:Name="EmptyText" Text="Kopyaladıkların burada görünür." Margin="4,0,0,4" FontSize="12.5"
+                           Foreground="{StaticResource TextSecondaryBrush}" Visibility="Collapsed" />
+            </StackPanel>
+        </ScrollViewer>
+    </StackPanel>
+</UserControl>

@@ -24,6 +24,7 @@ public partial class IslandBar : UserControl
     public event EventHandler? MusicClicked;
     public event EventHandler? ClockClicked;
     public event EventHandler? SoundClicked;
+    public event EventHandler? ClipboardClicked;
 
     /// <summary>Ses düğmesinin hoparlör glifini ve mikrofon kapalı rozetini günceller.</summary>
     public void ShowSound(SpeakerLevel level, bool micMuted)
@@ -75,6 +76,8 @@ public partial class IslandBar : UserControl
     private void ClockButton_Click(object sender, RoutedEventArgs e) => ClockClicked?.Invoke(this, EventArgs.Empty);
 
     private void SoundButton_Click(object sender, RoutedEventArgs e) => SoundClicked?.Invoke(this, EventArgs.Empty);
+
+    private void ClipboardButton_Click(object sender, RoutedEventArgs e) => ClipboardClicked?.Invoke(this, EventArgs.Empty);
 
     private void App_Click(object sender, RoutedEventArgs e)
     {
