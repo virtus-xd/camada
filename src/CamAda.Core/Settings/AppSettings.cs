@@ -40,4 +40,13 @@ public sealed record AppSettings
 
     /// <summary>Adada sabitlenmiş uygulamalar. null: henüz belirlenmedi, ilk açılışta bilgisayarda aranır.</summary>
     public IReadOnlyList<Apps.PinnedApp>? PinnedApps { get; init; }
+
+    /// <summary>Boştaki adada gösterilen hava durumunun konumu. null: hava durumu gösterilmez.</summary>
+    public WeatherLocation? Weather { get; init; }
 }
+
+/// <summary>
+/// Hava durumu konumu: şehir adı ve (bilinmiyorsa null) koordinatlar. Koordinat yoksa uygulama adı bir kez Open-Meteo'da
+/// arayıp bulduğu koordinatları ayara yazar; şehir değişince yalnız ad yazılıp koordinatlar silinir.
+/// </summary>
+public sealed record WeatherLocation(string Name, double? Latitude, double? Longitude);

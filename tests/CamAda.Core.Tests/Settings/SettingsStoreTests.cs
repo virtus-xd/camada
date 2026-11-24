@@ -22,6 +22,37 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Weather_is_off_by_default()
+    {
+        var s = new SettingsStore(_dir).Load();
+        Assert.Null(s.Weather);
+    }
+
+    [Fact]
+    public void Weather_city_without_coordinates_is_kept()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "Weather": { "Name": "İstanbul" } }""");
+        var s = new SettingsStore(_dir).Load();
+        Assert.Equal(new WeatherLocation("İstanbul", null, null), s.Weather);
+    }
+
+    [Fact]
+    public void Out_of_range_weather_coordinates_are_dropped()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            """{ "SettingsVersion": 2, "Weather": { "Name": "Ankara", "Latitude": 95, "Longitude": 32.4 } }""");
+        var s = new SettingsStore(_dir).Load();
+        Assert.Equal(new WeatherLocation("Ankara", null, null), s.Weather);
+    }
+
+    [Fact]
+    public void Weather_without_name_is_off()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "Weather": { "Name": "  " } }""");
+        Assert.Null(new SettingsStore(_dir).Load().Weather);
+    }
+
+    [Fact]
     public void Old_file_without_version_turns_on_taskbar_hiding_once()
     {
         File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "HideWindowsTaskbar": false }""");

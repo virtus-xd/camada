@@ -9,7 +9,9 @@ using CamAda.Core.Island;
 using CamAda.Core.Settings;
 using CamAda.Core.Time;
 using CamAda.Glass;
+using System.Globalization;
 using CamAda.Core.Media;
+using CamAda.Core.Weather;
 using CamAda.Interop;
 using CamAda.Media;
 using CamAda.Panels;
@@ -33,6 +35,7 @@ public partial class IslandWindow : Window
     private readonly NowPlayingService _media;
     private readonly DispatcherTimer _graceTimer = new(DispatcherPriority.Normal);
     private CompactView _compactView = CompactView.Idle;
+    private WeatherNow? _weather;
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Normal);
     private readonly HoverIntent _hover;
     private readonly SmartHide _smartHide;
@@ -369,10 +372,42 @@ public partial class IslandWindow : Window
             });
     }
 
+    /// <summary>Boştaki adada tarihin yanında gösterilecek hava durumu (null: yalnız tarih).</summary>
+    public void ShowWeather(WeatherNow? weather)
+    {
+        _weather = weather;
+        UpdateDateText(DateTime.Now);
+    }
+
+    /// <summary>"Pzt, 23 Kasım · 12° Bulutlu"; sığmazsa durum adı düşer ("Pzt, 23 Kasım · 12°").</summary>
+    private void UpdateDateText(DateTime now)
+    {
+        var date = ClockFormatter.Date(now);
+        if (_weather is not { } weather)
+        {
+            CompactDate.Text = date;
+            return;
+        }
+
+        var shortText = $"{date} · {WeatherText.Temperature(weather.TemperatureC)}";
+        var description = WeatherText.Describe(weather.WeatherCode);
+        var fullText = description.Length > 0 ? $"{shortText} {description}" : shortText;
+        CompactDate.Text = Fits(fullText) ? fullText : shortText;
+    }
+
+    private bool Fits(string text)
+    {
+        const double sidePadding = 32, clockAndGap = 60;
+        var formatted = new FormattedText(text, CultureInfo.GetCultureInfo("tr-TR"), FlowDirection.LeftToRight,
+            new Typeface(CompactDate.FontFamily, CompactDate.FontStyle, CompactDate.FontWeight, CompactDate.FontStretch),
+            CompactDate.FontSize, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        return formatted.Width <= IslandLayout.Compact.Width - sidePadding - clockAndGap;
+    }
+
     private void RefreshClock()
     {
         var now = DateTime.Now;
-        CompactDate.Text = ClockFormatter.Date(now);
+        UpdateDateText(now);
         CompactTime.Text = ClockFormatter.Time(now);
         ExpandedContent.SetTime(CompactTime.Text);
 

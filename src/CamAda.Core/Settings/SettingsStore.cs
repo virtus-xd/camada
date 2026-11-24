@@ -100,7 +100,22 @@ public sealed class SettingsStore
             PinnedApps = s.PinnedApps?.Where(p => p is not null && !string.IsNullOrWhiteSpace(p.LaunchPath))
                 .Select(Repair)
                 .ToList(),
+            Weather = SanitizeWeather(s.Weather),
         };
+    }
+
+    /// <summary>Adı olmayan konum kapalı sayılır; aralık dışı ya da yarım koordinatlar silinir (ad yeniden aranır).</summary>
+    private static WeatherLocation? SanitizeWeather(WeatherLocation? weather)
+    {
+        if (weather is null || string.IsNullOrWhiteSpace(weather.Name))
+        {
+            return null;
+        }
+
+        var valid = weather.Latitude is >= -90 and <= 90 && weather.Longitude is >= -180 and <= 180;
+        return valid
+            ? weather with { Name = weather.Name.Trim() }
+            : new WeatherLocation(weather.Name.Trim(), null, null);
     }
 
     /// <summary>

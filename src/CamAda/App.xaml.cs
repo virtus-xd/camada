@@ -10,6 +10,7 @@ using CamAda.Core.Startup;
 using CamAda.Interop;
 using CamAda.Island;
 using CamAda.Media;
+using CamAda.Weather;
 using CamAda.Safety;
 using CamAda.Shell;
 
@@ -31,6 +32,7 @@ public partial class App : Application
     private Process? _watchdog;
     private DockViewModel? _dock;
     private NowPlayingService? _media;
+    private WeatherService? _weather;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -122,6 +124,10 @@ public partial class App : Application
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
         _island.LocationChanged += (_, _) => UpdateTrayHostSizeData(); // ekran ayarı değişince ada yeniden yerleşir
         _island.Show();
+
+        _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
+        _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
+        _weather.Start();
         _ = Dispatcher.BeginInvoke(UpdateTrayHostSizeData, DispatcherPriority.Loaded);
 
         _ = _appIndex.GetItemsAsync(); // ilk aramada beklememek için arka planda hazırla
@@ -211,6 +217,13 @@ public partial class App : Application
 
         var pinned = PinnedAppDefaults.Resolve(Environment.ExpandEnvironmentVariables, File.Exists, steamExe);
         _settings = _settings with { PinnedApps = pinned };
+        _settingsStore.Save(_settings);
+    }
+
+    /// <summary>Hava durumu şehrinin bulunan koordinatlarını ayara yazar (bir kez; şehir değişince yeniden aranır).</summary>
+    private void SaveWeatherLocation(WeatherLocation location)
+    {
+        _settings = _settings with { Weather = location };
         _settingsStore.Save(_settings);
     }
 
@@ -347,6 +360,7 @@ public partial class App : Application
         _exiting = true;
         TryShowTaskbar();
         _island?.Close();
+        _weather?.Dispose();
         _media?.Dispose();
         _dock?.Dispose();
         _shell?.Manager.AppBarManager.SignalGracefulShutdown(); // AppBar'ın kapanmasına izin ver
