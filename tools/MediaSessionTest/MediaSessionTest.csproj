@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Elle denemeler için sahte "Spotify" medya oturumu (Plan 3). Çözüme eklenmez. Seçenekler ve çalıştırma
+       komutu Program.cs'nin başındaki açıklamada. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <AssemblyName>SpotifyDeneme</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

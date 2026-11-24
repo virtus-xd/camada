@@ -9,6 +9,7 @@ using CamAda.Core.Settings;
 using CamAda.Core.Startup;
 using CamAda.Interop;
 using CamAda.Island;
+using CamAda.Media;
 using CamAda.Safety;
 using CamAda.Shell;
 
@@ -29,6 +30,7 @@ public partial class App : Application
     private IslandWindow? _island;
     private Process? _watchdog;
     private DockViewModel? _dock;
+    private NowPlayingService? _media;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -55,12 +57,12 @@ public partial class App : Application
                 return;
 
             case StartupMode.Normal normal:
-                StartNormal(normal.Restarting);
+                await StartNormalAsync(normal.Restarting);
                 return;
         }
     }
 
-    private void StartNormal(bool restarting)
+    private async Task StartNormalAsync(bool restarting)
     {
         _singleInstance = new Mutex(initiallyOwned: true, @"Local\CamAda.Main", out var createdNew);
         if (!createdNew && !(restarting && WaitForPreviousInstance(_singleInstance)))
@@ -68,6 +70,9 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // Çalma durumu ada, panel ve plaktan önce hazır olsun (hepsi aynı servisi dinler).
+        _media = await NowPlayingService.CreateAsync(Dispatcher);
 
         // Önceki oturum hem ana süreci hem bekçiyi kaybettiyse görev çubuğunu önce geri getir.
         if (WatchdogDecision.ShouldRestore(_safety.Load()))
@@ -117,7 +122,7 @@ public partial class App : Application
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
         _island.LocationChanged += (_, _) => UpdateTrayHostSizeData(); // ekran ayarı değişince ada yeniden yerleşir
         _island.Show();
-        Dispatcher.BeginInvoke(UpdateTrayHostSizeData, DispatcherPriority.Loaded);
+        _ = Dispatcher.BeginInvoke(UpdateTrayHostSizeData, DispatcherPriority.Loaded);
 
         _ = _appIndex.GetItemsAsync(); // ilk aramada beklememek için arka planda hazırla
     }
@@ -342,6 +347,7 @@ public partial class App : Application
         _exiting = true;
         TryShowTaskbar();
         _island?.Close();
+        _media?.Dispose();
         _dock?.Dispose();
         _shell?.Manager.AppBarManager.SignalGracefulShutdown(); // AppBar'ın kapanmasına izin ver
         _strip?.Close();
