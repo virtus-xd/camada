@@ -11,6 +11,7 @@ using CamAda.Interop;
 using CamAda.Island;
 using CamAda.Media;
 using CamAda.Record;
+using CamAda.Spotify;
 using CamAda.Weather;
 using CamAda.Safety;
 using CamAda.Shell;
@@ -35,6 +36,7 @@ public partial class App : Application
     private NowPlayingService? _media;
     private WeatherService? _weather;
     private RecordWindow? _record;
+    private SpotifyClient? _spotify;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -133,6 +135,16 @@ public partial class App : Application
             _record.Show();
         }
 
+        // Beğen ve sıradaki şarkılar (Spotify Web API): bağlı değilken istek atılmaz, kart ve panel bu denetimleri gizler.
+        _spotify = new SpotifyClient(() => _settings.SpotifyClientId, new SpotifyTokenStore(LocalDir), TimeProvider.System);
+        var extras = new SpotifyExtras(_spotify, _media!, Dispatcher);
+        _island.MusicExtras = extras;
+        _island.MusicFooter = () => _spotify.IsConnected ? null : new SpotifyConnectView(_spotify, SaveSpotifyClientId);
+        if (_record is not null)
+        {
+            _record.Extras = extras;
+        }
+
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
         _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
         _weather.Start();
@@ -225,6 +237,13 @@ public partial class App : Application
 
         var pinned = PinnedAppDefaults.Resolve(Environment.ExpandEnvironmentVariables, File.Exists, steamExe);
         _settings = _settings with { PinnedApps = pinned };
+        _settingsStore.Save(_settings);
+    }
+
+    /// <summary>Müzik panelinde yapıştırılan Spotify Client ID'sini ayara yazar.</summary>
+    private void SaveSpotifyClientId(string clientId)
+    {
+        _settings = _settings with { SpotifyClientId = clientId };
         _settingsStore.Save(_settings);
     }
 

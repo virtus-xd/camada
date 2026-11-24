@@ -18,7 +18,8 @@ public sealed class RecordCard : Border
     public RecordCard(NowPlayingService media)
     {
         Width = RecordLayout.CardWidth;
-        Height = RecordLayout.CardHeight;
+        MinHeight = RecordLayout.CardHeight; // "Sıradaki" varken içeriğe göre uzar
+        VerticalAlignment = VerticalAlignment.Center;
         CornerRadius = new CornerRadius(24);
         BorderThickness = new Thickness(1);
         BorderBrush = (Brush)FindResource("GlassEdgeBrush");

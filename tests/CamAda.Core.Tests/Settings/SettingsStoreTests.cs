@@ -22,6 +22,20 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Spotify_client_id_is_trimmed()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "SpotifyClientId": "  abc123  " }""");
+        Assert.Equal("abc123", new SettingsStore(_dir).Load().SpotifyClientId);
+    }
+
+    [Fact]
+    public void Blank_spotify_client_id_is_null()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "SpotifyClientId": "   " }""");
+        Assert.Null(new SettingsStore(_dir).Load().SpotifyClientId);
+    }
+
+    [Fact]
     public void Record_has_spec_defaults()
     {
         var r = new SettingsStore(_dir).Load().Record;

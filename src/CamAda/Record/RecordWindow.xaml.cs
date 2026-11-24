@@ -1,17 +1,18 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Threading;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using CamAda.Core.Glass;
 using CamAda.Core.Island;
-using CamAda.Glass;
 using CamAda.Core.Media;
 using CamAda.Core.Record;
 using CamAda.Core.Settings;
+using CamAda.Glass;
 using CamAda.Interop;
 using CamAda.Media;
 using ManagedShell.AppBar;
@@ -28,6 +29,9 @@ public sealed partial class RecordWindow : Window
 {
     private static readonly TimeSpan VisibilityPoll = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan CardFade = TimeSpan.FromSeconds(0.15);
+
+    /// <summary>Kartın yuvası, kartın uzayabilmesi için RecordLayout'taki yerinin üstüne ve altına bu kadar taşar.</summary>
+    private const double CardGrowth = 40;
 
     private readonly NowPlayingService _media;
     private readonly Func<RecordSettings> _settings;
@@ -85,7 +89,8 @@ public sealed partial class RecordWindow : Window
         Disc.LostKeyboardFocus += (_, _) => FocusRing.Visibility = Visibility.Collapsed;
 
         _card = new RecordCard(media) { Visibility = Visibility.Hidden, Opacity = 0, RenderTransform = _cardSlide };
-        Root.Children.Add(_card);
+        CardSlot.Children.Add(_card);
+        CardShadow.SetBinding(HeightProperty, new Binding(nameof(ActualHeight)) { Source = _card });
         _wallpaper = new WallpaperSource(Dispatcher);
 
         // Plak, köprü ve kart tek bir "üstünde" niyetini besler: plaktan karta geçerken kart kapanmaz (spec §7.8).
@@ -145,13 +150,13 @@ public sealed partial class RecordWindow : Window
         Visual.Configure(_geometry.Disc.Width, settings.EffectiveLabelDiameter, dpi.DpiScaleX);
 
         var card = _geometry.Card;
-        foreach (var element in new FrameworkElement[] { _card, CardShadow })
-        {
-            Canvas.SetLeft(element, card.X);
-            Canvas.SetTop(element, card.Y);
-            element.Width = card.Width;
-            element.Height = card.Height;
-        }
+        var slotTop = Math.Max(0, card.Y - CardGrowth);
+        var slotBottom = Math.Min(_geometry.Window.Height, card.Y + card.Height + CardGrowth);
+        Canvas.SetLeft(CardSlot, card.X);
+        Canvas.SetTop(CardSlot, slotTop);
+        CardSlot.Width = card.Width;
+        CardSlot.Height = slotBottom - slotTop;
+        CardShadow.Width = card.Width;
 
         var bridgeLeft = _geometry.VisibleDisc.X + _geometry.VisibleDisc.Width - 1;
         Canvas.SetLeft(CardBridge, bridgeLeft);

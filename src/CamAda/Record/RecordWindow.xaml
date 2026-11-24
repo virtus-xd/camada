@@ -16,8 +16,7 @@
         Foreground="{StaticResource TextBrush}">
     <!-- Pencere ana ekranın sol kenarından başlar; diskin ekran dışı kısmı pencerede kırpılır (RecordLayout) -->
     <Canvas x:Name="Root" ClipToBounds="True" KeyboardNavigation.TabNavigation="Cycle">
-        <!-- Kartın gölgesi (efektsiz) ve plaktan karta geçerken fare olayları kesilmesin diye neredeyse saydam köprü -->
-        <glass:SoftShadow x:Name="CardShadow" Visibility="Hidden" />
+        <!-- Plaktan karta geçerken fare olayları kesilmesin diye neredeyse saydam köprü -->
         <Rectangle x:Name="CardBridge" Fill="#01000000" Visibility="Hidden" />
         <local:RecordDisc x:Name="Disc" Focusable="True" Cursor="Hand" FocusVisualStyle="{x:Null}"
                           AutomationProperties.Name="Plak" AutomationProperties.HelpText="Çal ya da duraklat">
@@ -27,5 +26,9 @@
             <Ellipse x:Name="FocusRing" Margin="-4" Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
                      Visibility="Collapsed" IsHitTestVisible="False" />
         </local:RecordDisc>
+        <!-- Kart yuvası: kart içeriğine göre uzar ("Sıradaki" varken) ve yuvada dikey ortalı kalır; gölgesi efektsiz -->
+        <Grid x:Name="CardSlot">
+            <glass:SoftShadow x:Name="CardShadow" Visibility="Hidden" VerticalAlignment="Center" />
+        </Grid>
     </Canvas>
 </Window>

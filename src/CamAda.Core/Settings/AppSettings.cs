@@ -46,6 +46,9 @@ public sealed record AppSettings
 
     /// <summary>Masaüstündeki plak çalar (spec §7.8).</summary>
     public RecordSettings Record { get; init; } = new();
+
+    /// <summary>Kullanıcının Spotify geliştirici uygulamasının Client ID'si (beğen ve sıradaki için). null: bağlı değil.</summary>
+    public string? SpotifyClientId { get; init; }
 }
 
 /// <summary>

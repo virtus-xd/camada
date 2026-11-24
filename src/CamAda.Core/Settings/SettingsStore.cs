@@ -102,6 +102,7 @@ public sealed class SettingsStore
                 .ToList(),
             Weather = SanitizeWeather(s.Weather),
             Record = SanitizeRecord(s.Record),
+            SpotifyClientId = string.IsNullOrWhiteSpace(s.SpotifyClientId) ? null : s.SpotifyClientId.Trim(),
         };
     }
 
