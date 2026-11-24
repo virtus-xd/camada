@@ -43,6 +43,9 @@ public sealed record AppSettings
 
     /// <summary>Boştaki adada gösterilen hava durumunun konumu. null: hava durumu gösterilmez.</summary>
     public WeatherLocation? Weather { get; init; }
+
+    /// <summary>Masaüstündeki plak çalar (spec §7.8).</summary>
+    public RecordSettings Record { get; init; } = new();
 }
 
 /// <summary>

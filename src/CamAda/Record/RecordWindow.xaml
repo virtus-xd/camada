@@ -1,0 +1,34 @@
+<Window x:Class="CamAda.Record.RecordWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CamAda.Record"
+        Title="CamAda plak"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="False"
+        ResizeMode="NoResize"
+        UseLayoutRounding="True"
+        FontFamily="{StaticResource Manrope}"
+        Foreground="{StaticResource TextBrush}">
+    <!-- Pencere ana ekranın sol kenarından başlar; diskin ekran dışı kısmı pencerede kırpılır (RecordLayout) -->
+    <Canvas x:Name="Root" ClipToBounds="True">
+        <local:RecordDisc x:Name="Disc" Focusable="True" Cursor="Hand" FocusVisualStyle="{x:Null}"
+                          AutomationProperties.Name="Plak" AutomationProperties.HelpText="Çal ya da duraklat">
+            <!-- Görev 6'da gerçekçi çizim bu dönen grubun yerine gelir -->
+            <Grid x:Name="Spinner" RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform>
+                    <RotateTransform x:Name="Spin" />
+                </Grid.RenderTransform>
+                <Ellipse Fill="#0D0D10" Stroke="#30FFFFFF" StrokeThickness="1" />
+                <Ellipse x:Name="Label" Fill="#1A1A22" />
+                <Ellipse x:Name="Hole" Width="6" Height="6" Fill="#0D0D10" />
+            </Grid>
+            <!-- Klavye odağı halkası -->
+            <Ellipse x:Name="FocusRing" Margin="-4" Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
+                     Visibility="Collapsed" IsHitTestVisible="False" />
+        </local:RecordDisc>
+    </Canvas>
+</Window>

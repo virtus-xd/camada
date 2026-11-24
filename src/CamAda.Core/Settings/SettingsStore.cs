@@ -101,6 +101,26 @@ public sealed class SettingsStore
                 .Select(Repair)
                 .ToList(),
             Weather = SanitizeWeather(s.Weather),
+            Record = SanitizeRecord(s.Record),
+        };
+    }
+
+    /// <summary>Aralık dışı plak ölçüleri varsayılana döner; etiket çapı aralık dışıysa varsayılan orana bırakılır.</summary>
+    private static RecordSettings SanitizeRecord(RecordSettings? record)
+    {
+        var defaults = new RecordSettings();
+        if (record is null)
+        {
+            return defaults;
+        }
+
+        var diameter = record.Diameter is >= 160 and <= 640 ? record.Diameter : defaults.Diameter;
+        return record with
+        {
+            Diameter = diameter,
+            OutsideFraction = record.OutsideFraction is >= 0 and <= 0.8 ? record.OutsideFraction : defaults.OutsideFraction,
+            BottomOffset = record.BottomOffset is >= 0 and <= 600 ? record.BottomOffset : defaults.BottomOffset,
+            LabelDiameter = record.LabelDiameter is { } label && label >= 40 && label <= diameter * 0.6 ? label : null,
         };
     }
 

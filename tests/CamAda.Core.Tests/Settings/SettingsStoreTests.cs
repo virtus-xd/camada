@@ -22,6 +22,45 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Record_has_spec_defaults()
+    {
+        var r = new SettingsStore(_dir).Load().Record;
+        Assert.True(r.Enabled);
+        Assert.Equal(320, r.Diameter);
+        Assert.Equal(0.45, r.OutsideFraction);
+        Assert.Equal(70, r.BottomOffset);
+        Assert.Null(r.LabelDiameter);
+        Assert.Equal(108, r.EffectiveLabelDiameter);
+    }
+
+    [Fact]
+    public void Out_of_range_record_values_fall_back_to_defaults()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            """{ "SettingsVersion": 2, "Record": { "Diameter": 0, "OutsideFraction": 1.5, "BottomOffset": -5, "LabelDiameter": 500 } }""");
+        var r = new SettingsStore(_dir).Load().Record;
+        Assert.Equal(320, r.Diameter);
+        Assert.Equal(0.45, r.OutsideFraction);
+        Assert.Equal(70, r.BottomOffset);
+        Assert.Null(r.LabelDiameter);
+    }
+
+    [Fact]
+    public void Null_record_falls_back_to_defaults()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "Record": null }""");
+        Assert.Equal(320, new SettingsStore(_dir).Load().Record.Diameter);
+    }
+
+    [Fact]
+    public void Effective_label_diameter_is_not_written_to_the_file()
+    {
+        var store = new SettingsStore(_dir);
+        store.Load();
+        Assert.DoesNotContain("EffectiveLabelDiameter", File.ReadAllText(store.FilePath));
+    }
+
+    [Fact]
     public void Weather_is_off_by_default()
     {
         var s = new SettingsStore(_dir).Load();

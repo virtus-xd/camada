@@ -10,6 +10,7 @@ using CamAda.Core.Startup;
 using CamAda.Interop;
 using CamAda.Island;
 using CamAda.Media;
+using CamAda.Record;
 using CamAda.Weather;
 using CamAda.Safety;
 using CamAda.Shell;
@@ -33,6 +34,7 @@ public partial class App : Application
     private DockViewModel? _dock;
     private NowPlayingService? _media;
     private WeatherService? _weather;
+    private RecordWindow? _record;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -124,6 +126,12 @@ public partial class App : Application
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
         _island.LocationChanged += (_, _) => UpdateTrayHostSizeData(); // ekran ayarı değişince ada yeniden yerleşir
         _island.Show();
+
+        if (_settings.Record.Enabled)
+        {
+            _record = new RecordWindow(_media!, () => _settings.Record);
+            _record.Show();
+        }
 
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
         _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
@@ -360,6 +368,7 @@ public partial class App : Application
         _exiting = true;
         TryShowTaskbar();
         _island?.Close();
+        _record?.Close();
         _weather?.Dispose();
         _media?.Dispose();
         _dock?.Dispose();

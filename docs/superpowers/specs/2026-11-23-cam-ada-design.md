@@ -170,6 +170,7 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 3. **Tam ekran algılama**: oyunlarda adanın gizlenmesi.
 4. **Spotify API**: Şubat 2026 değişikliklerinden sonra "beğen" ve "sıra" uç noktalarının hâlâ çalıştığı doğrulanmalı.
 5. **Bildirim dinleyicisi**: seyrek paket ile izin akışının Insider sürümde çalıştığı.
+6. **Plağın masaüstü katmanı** (Plan 3 / Görev 5 ölçümü, 24.11.2026): Pencere `WM_WINDOWPOSCHANGING`'de hep `HWND_BOTTOM`'a zorlanır; Windows masaüstünü (Progman) en altta tuttuğu için plak onun hemen üstünde kalır, öne alınmaya zorlansa bile pencerelerin altında kalır. Yalnız bu, Win+D'de yetmedi (masaüstü öne gelince plak kayboldu); pencerenin sahibi masaüstü yapılınca (`GWLP_HWNDPARENT = GetShellWindow()`) Win+D'de plak görünür ve tıklanabilir kaldı. Araç penceresi (`WS_EX_TOOLWINDOW`): Alt+Tab'da yok.
 
 **Cam görünümü kararı (Plan 1 / Görev 7, 23.11.2026):** Varsayılan **duvar kağıdı camı**. Gerekçe: bulanık ve doygun duvar kağıdı kesiti, kusursuz yumuşak kenarlar, genişleme sırasında kayma yok, boştayken işlemci ~%0. Akrilik elendi: WPF'in katmanlı penceresinde Windows bulanıklığı bölgeye kırpılmıyor, bütün pencereyi gri bir dikdörtgen olarak kaplıyor. Duvar kağıdı yoksa (düz renk masaüstü) ada kendiliğinden düz cama geçer. Paneller ve plak kartı da aynı yöntemi kullanır; bir panel pencerelerin üstüne açıldığında arkasında duvar kağıdı olmayabileceği için panellerde ton daha koyu (düz cam) tutulur.
 

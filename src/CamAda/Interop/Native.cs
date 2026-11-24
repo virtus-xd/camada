@@ -11,6 +11,9 @@ internal static partial class Native
     public const uint SWP_NOMOVE = 0x0002;
     public const int WM_MOUSEACTIVATE = 0x0021;
     public const int MA_NOACTIVATE = 3;
+    public const uint SWP_NOZORDER = 0x0004;
+    public static readonly nint HWND_BOTTOM = 1;
+    public const long WS_EX_TOOLWINDOW = 0x80;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct WINDOWPOS
@@ -140,6 +143,23 @@ internal static partial class Native
             HasCaption: (style & WS_CAPTION) == WS_CAPTION,
             ReportedByShell: reportedByShell);
     }
+
+    /// <summary>
+    /// Pencerenin sahibini masaüstü penceresi (Progman) yapar. Sahipli pencere z-sırasında hep sahibinin üstünde kalır;
+    /// Win+D masaüstünü pencerelerin önüne aldığında plak da onunla birlikte görünür kalır.
+    /// </summary>
+    public static void OwnByDesktop(nint hwnd)
+    {
+        const int GWLP_HWNDPARENT = -8;
+        var desktop = GetShellWindow();
+        if (desktop != 0)
+        {
+            SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, desktop);
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern nint GetShellWindow();
 
     public static bool WindowExists(nint hwnd) => IsWindow(hwnd);
 
