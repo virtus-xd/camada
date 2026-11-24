@@ -90,6 +90,8 @@ public partial class IslandWindow : Window
         var actions = new DockActions(_dock, _panels);
         ExpandedContent.AppClicked += (_, e) => actions.Click(e.Item, e.Button);
         ExpandedContent.AppMiddleClicked += (_, e) => actions.MiddleClick(e.Item, e.Button);
+        ExpandedContent.MusicClicked += (_, _) =>
+            _panels.Toggle("music", () => MusicPanel.Create(_media, MusicExtras, MusicFooter?.Invoke()), MusicPanel.Width);
 
         _dock.Changed += (_, _) =>
         {
@@ -145,6 +147,12 @@ public partial class IslandWindow : Window
 
     /// <summary>Genişlemiş satır (Başlat, Ara, uygulamalar, ^ olayları için).</summary>
     public IslandBar Bar => ExpandedContent;
+
+    /// <summary>Müzik panelindeki beğen ve "Sıradaki" kaynağı (Spotify'a bağlanınca).</summary>
+    public ISpotifyExtras? MusicExtras { get; set; }
+
+    /// <summary>Müzik panelinin altına eklenen görünüm (Spotify'a bağlanma); her açılışta yeniden oluşturulur.</summary>
+    public Func<FrameworkElement?>? MusicFooter { get; set; }
 
     /// <summary>Adanın altındaki paneller (tek panel kuralı; açıkken ada büyük kalır).</summary>
     public PanelHost Panels => _panels;
@@ -221,6 +229,7 @@ public partial class IslandWindow : Window
 
         CompactRecord.Show(_media.Cover, playing);
         CompactEqualizer.IsPlaying = playing;
+        ExpandedContent.ShowMusic(track, _media.Cover);
 
         if (view != _compactView)
         {
@@ -253,6 +262,7 @@ public partial class IslandWindow : Window
                      && _compactView == CompactView.Music;
         CompactRecord.CanAnimate = active;
         CompactEqualizer.CanAnimate = active;
+        ExpandedContent.MusicCanAnimate = IsVisible && !_fullScreen && _hover.IsExpanded;
     }
 
     /// <summary>Bir pencerenin üstünde açıldığında arkada duvar kağıdı yok: tonu koyulaştır (düz cam).</summary>

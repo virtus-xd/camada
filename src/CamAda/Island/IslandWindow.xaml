@@ -12,7 +12,7 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         ResizeMode="NoResize"
-        Width="1200" Height="160"
+        Width="1350" Height="160"
         FontFamily="{StaticResource Manrope}"
         Foreground="{StaticResource TextBrush}"
         UseLayoutRounding="True">

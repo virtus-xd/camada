@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using CamAda.Core.Media;
 
 namespace CamAda.Island;
 
@@ -16,6 +19,30 @@ public partial class IslandBar : UserControl
     public event EventHandler? StartClicked;
     public event EventHandler? SearchClicked;
     public event EventHandler? TrayClicked;
+    public event EventHandler? MusicClicked;
+
+    /// <summary>Müzik bölümünü günceller: parça varsa dönen mini plak ve şarkı adı, yoksa soluk nota ve "Spotify".</summary>
+    public void ShowMusic(NowPlaying? track, ImageSource? cover)
+    {
+        var hasTrack = track is not null;
+        MusicRecord.Visibility = hasTrack ? Visibility.Visible : Visibility.Collapsed;
+        MusicGlyph.Visibility = hasTrack ? Visibility.Collapsed : Visibility.Visible;
+        MusicTitle.Text = track?.Title ?? "Spotify";
+        MusicTitle.Foreground = (Brush)FindResource(hasTrack ? "TextBrush" : "TextSecondaryBrush");
+        MusicRecord.Show(cover, track?.State == PlaybackState.Playing);
+        AutomationProperties.SetName(MusicButton, track is null
+            ? "Müzik: çalmıyor"
+            : string.IsNullOrWhiteSpace(track.Artist) ? $"Müzik: {track.Title}" : $"Müzik: {track.Title}, {track.Artist}");
+    }
+
+    /// <summary>Müzik bölümündeki mini plak yalnız genişlemiş ada ekrandayken döner.</summary>
+    public bool MusicCanAnimate
+    {
+        get => MusicRecord.CanAnimate;
+        set => MusicRecord.CanAnimate = value;
+    }
+
+    private void MusicButton_Click(object sender, RoutedEventArgs e) => MusicClicked?.Invoke(this, EventArgs.Empty);
     public event EventHandler<AppButtonEventArgs>? AppClicked;
     public event EventHandler<AppButtonEventArgs>? AppMiddleClicked;
 

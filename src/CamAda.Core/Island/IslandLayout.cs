@@ -12,13 +12,16 @@ public static class IslandLayout
     /// <summary>Hapın ekranın üst kenarından uzaklığı.</summary>
     public const double TopMargin = 8;
 
-    /// <summary>Ada penceresinin genişliği: en geniş hap (1100) + gölge payı.</summary>
-    public const double WindowWidth = 1200;
+    /// <summary>Ada penceresinin genişliği: en geniş hap (1250) + gölge payı.</summary>
+    public const double WindowWidth = 1350;
 
     public const double WindowHeight = 160;
 
     /// <summary>Genişlemiş hapın üst sınırı.</summary>
-    public const double MaxExpandedWidth = 1100;
+    public const double MaxExpandedWidth = 1250;
+
+    /// <summary>Genişlemiş satırda uygulamalar ile ^ arasındaki müzik bölümü (mini plak + şarkı adı).</summary>
+    public const double MusicSectionWidth = 150;
 
     /// <summary>Akıllı gizlenmede adayı açan üst kenar bölgesinin genişliği (ortada).</summary>
     public const double RevealZoneWidth = 900;
@@ -27,8 +30,10 @@ public static class IslandLayout
     private const double ButtonPitch = 38;
 
     /// <summary>
-    /// Genişlemiş hap genişliği: 5 uygulama düğmesine kadar 770 DIP; her ek düğme ("+N" dahil) 38 DIP, en fazla 1100.
+    /// Genişlemiş hap genişliği: 5 uygulama düğmesine kadar 770 DIP + müzik bölümü (920); her ek düğme ("+N" dahil)
+    /// 38 DIP, en fazla 1250.
     /// </summary>
     public static double ExpandedWidthFor(int appButtonCount) =>
-        Math.Min(MaxExpandedWidth, Expanded.Width + Math.Max(0, appButtonCount - ButtonsThatFitBase) * ButtonPitch);
+        Math.Min(MaxExpandedWidth,
+            Expanded.Width + MusicSectionWidth + Math.Max(0, appButtonCount - ButtonsThatFitBase) * ButtonPitch);
 }

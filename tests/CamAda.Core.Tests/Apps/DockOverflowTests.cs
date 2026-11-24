@@ -38,12 +38,13 @@ public class DockOverflowTests
 
 public class IslandLayoutTests
 {
+    // Plan 3: genişlemiş satıra 150 DIP müzik bölümü eklendi (770 + 150 = 920), üst sınır 1250.
     [Theory]
-    [InlineData(0, 770)]
-    [InlineData(5, 770)]
-    [InlineData(6, 808)]
-    [InlineData(11, 998)]
-    [InlineData(30, 1100)]
+    [InlineData(0, 920)]
+    [InlineData(5, 920)]
+    [InlineData(6, 958)]
+    [InlineData(11, 1148)]
+    [InlineData(30, 1250)]
     public void Expanded_width_grows_with_app_buttons(int buttons, double expected) =>
         Assert.Equal(expected, IslandLayout.ExpandedWidthFor(buttons));
 }
