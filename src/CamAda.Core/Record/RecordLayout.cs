@@ -51,17 +51,35 @@ public static class RecordLayout
     }
 }
 
+/// <summary>Plağın tıklanan ve üzerine gelinen alanı: dönen kare görüntünün tamamı değil, yalnız diskin dairesi.</summary>
+public static class DiscHit
+{
+    public static bool Contains(double x, double y, double width, double height)
+    {
+        var radius = Math.Min(width, height) / 2;
+        var dx = x - width / 2;
+        var dy = y - height / 2;
+        return radius > 0 && dx * dx + dy * dy <= radius * radius;
+    }
+}
+
 /// <summary>Plak pencerelerin arkasında durduğu için tamamen örtülünce dönüş çizimi durdurulur (boşta işlemci harcamasın).</summary>
 public static class RecordVisibility
 {
     /// <summary>
     /// Görünen disk dikdörtgenini (ekran, fiziksel piksel) tamamen içine alan uygun bir pencere varsa true: görünür,
-    /// gizlenmemiş, yok sayılmayan, başlıklı, masaüstü olmayan ve bizim olmayan.
+    /// gizlenmemiş, yok sayılmayan, başlıklı, masaüstü olmayan ve bizim olmayan. Pencereler z-sırasıyla (üstten alta)
+    /// gelir; plağın kendi penceresinin altındakiler sayılmaz (Win+D masaüstünü ve plağı küçülmemiş pencerelerin önüne getirir).
     /// </summary>
     public static bool IsCovered(IEnumerable<WindowSample> windows, RectD visibleDiscOnScreen)
     {
         foreach (var w in windows)
         {
+            if (w.IsSelf)
+            {
+                return false;
+            }
+
             var eligible = w.Visible && !w.Cloaked && !w.Ignorable && w.HasTitle && !w.IsDesktop && !w.IsOwn;
             if (eligible && Contains(w.Bounds, visibleDiscOnScreen))
             {

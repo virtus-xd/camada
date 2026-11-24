@@ -81,18 +81,20 @@ public sealed record SpotifyToken(string AccessToken, string RefreshToken, DateT
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object
-                || !root.TryGetProperty("access_token", out var access) || access.GetString() is not { Length: > 0 } accessToken
+                || !root.TryGetProperty("access_token", out var access) || access.ValueKind != JsonValueKind.String
+                || access.GetString() is not { Length: > 0 } accessToken
                 || !root.TryGetProperty("expires_in", out var expires) || !expires.TryGetInt32(out var seconds))
             {
                 return null;
             }
 
-            var refreshToken = root.TryGetProperty("refresh_token", out var refresh) && refresh.GetString() is { Length: > 0 } r
+            var refreshToken = root.TryGetProperty("refresh_token", out var refresh) && refresh.ValueKind == JsonValueKind.String
+                               && refresh.GetString() is { Length: > 0 } r
                 ? r
                 : previousRefreshToken;
             return refreshToken is null ? null : new SpotifyToken(accessToken, refreshToken, now.AddSeconds(seconds));
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException) // bozuk ya da beklenmedik türde yanıt
         {
             return null;
         }

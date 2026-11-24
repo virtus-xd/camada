@@ -46,6 +46,7 @@ public sealed partial class RecordWindow : Window
     private WallpaperGlass? _glass;
     private RecordGeometry _geometry;
     private bool _cardOpen;
+    private bool _keyboardFocus;
     private bool _covered;
     private bool _rendering;
     private bool _closed;
@@ -69,13 +70,30 @@ public sealed partial class RecordWindow : Window
         };
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         _media.Changed += OnMediaChanged;
+        IsVisibleChanged += (_, _) => UpdateAnimation(); // gösterilince dönüş bir sonraki medya olayını beklemesin
         Closed += OnClosed;
 
         Disc.Invoked += async (_, _) => await _media.TogglePlayPauseAsync();
-        Disc.MouseLeftButtonUp += (_, e) =>
+        // Tıklama: diskin üstünde basılıp yine diskin dairesinde bırakılınca (başka yerde basılıp sürüklenince değil).
+        Disc.MouseLeftButtonDown += (_, e) =>
         {
             e.Handled = true;
-            Disc.Invoke();
+            Disc.CaptureMouse();
+        };
+        Disc.MouseLeftButtonUp += (_, e) =>
+        {
+            if (!Disc.IsMouseCaptured)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            Disc.ReleaseMouseCapture();
+            var point = e.GetPosition(Disc);
+            if (DiscHit.Contains(point.X, point.Y, Disc.ActualWidth, Disc.ActualHeight))
+            {
+                Disc.Invoke();
+            }
         };
         Disc.KeyDown += (_, e) =>
         {
@@ -101,7 +119,23 @@ public sealed partial class RecordWindow : Window
         }
 
         _hover.ExpandedChanged += (_, _) => Dispatcher.BeginInvoke(UpdateCard);
-        Root.IsKeyboardFocusWithinChanged += (_, _) => UpdateCard(); // plak klavye odağı alınca kart açılır
+
+        // Plak ya da kart klavyeyle odaklanınca kart açılır. Fareyle tıklanan düğme de odağı alır; o odak kartı açık
+        // tutmaz (yoksa karttaki bir düğmeye tıkladıktan sonra fare çekilince kart kapanmazdı).
+        Root.GotKeyboardFocus += (_, _) =>
+        {
+            _keyboardFocus = InputManager.Current.MostRecentInputDevice is KeyboardDevice;
+            UpdateCard();
+        };
+        Root.IsKeyboardFocusWithinChanged += (_, _) =>
+        {
+            if (!Root.IsKeyboardFocusWithin)
+            {
+                _keyboardFocus = false;
+            }
+
+            UpdateCard();
+        };
 
         UpdateMedia();
     }
@@ -171,7 +205,7 @@ public sealed partial class RecordWindow : Window
     /// </summary>
     private void UpdateCard()
     {
-        var open = !_closed && (_hover.IsExpanded || Root.IsKeyboardFocusWithin);
+        var open = !_closed && (_hover.IsExpanded || (Root.IsKeyboardFocusWithin && _keyboardFocus));
         if (open == _cardOpen)
         {
             return;
@@ -237,20 +271,31 @@ public sealed partial class RecordWindow : Window
         UpdateAnimation();
     }
 
-    /// <summary>Dönüş yalnız çalarken ya da yavaşlarken ve plak görünürken; örtülme yoklaması yalnız çalarken.</summary>
+    /// <summary>
+    /// Dönüş yalnız çalarken ya da yavaşlarken ve plak görünürken çizilir; örtülme yoklaması yalnız o sırada sürer.
+    /// Çizilmiyorken hız hemen hedefe oturur: örtülüyken duraklatılan plak tam hızda kalıp yoklamayı açık tutmaz.
+    /// </summary>
     private void UpdateAnimation()
     {
-        var active = Playing || _spin.IsMoving;
-        if (active && !_closed)
+        if ((Playing || _spin.IsMoving) && !_closed && !_visibilityTimer.IsEnabled)
         {
             _visibilityTimer.Start();
+            RefreshCovered(); // yoklama dururken örtülme bilgisi eskidi
         }
-        else
+
+        var drawable = IsRecordVisible && SystemParameters.ClientAreaAnimation && !_closed;
+        if (!drawable)
+        {
+            _spin.Settle(Playing);
+        }
+
+        var active = Playing || _spin.IsMoving;
+        if (!active || _closed)
         {
             _visibilityTimer.Stop();
         }
 
-        var wanted = active && IsRecordVisible && SystemParameters.ClientAreaAnimation && !_closed;
+        var wanted = active && drawable;
         if (wanted && !_rendering)
         {
             _rendering = true;
@@ -276,9 +321,18 @@ public sealed partial class RecordWindow : Window
     /// <summary>Plağın görünen kısmı bir pencereyle tamamen örtülüyse dönüş çizimini durdurur.</summary>
     private void CheckCovered()
     {
+        if (RefreshCovered())
+        {
+            UpdateAnimation();
+        }
+    }
+
+    /// <summary>Örtülme bilgisini tazeler; değiştiyse true.</summary>
+    private bool RefreshCovered()
+    {
         if (PresentationSource.FromVisual(this) is null)
         {
-            return;
+            return false;
         }
 
         var dpi = VisualTreeHelper.GetDpi(this);
@@ -287,13 +341,16 @@ public sealed partial class RecordWindow : Window
             (_geometry.Window.Y + _geometry.VisibleDisc.Y) * dpi.DpiScaleY,
             _geometry.VisibleDisc.Width * dpi.DpiScaleX,
             _geometry.VisibleDisc.Height * dpi.DpiScaleY);
-        var covered = RecordVisibility.IsCovered(Native.SampleTopLevelWindows(_ownProcessId), visible);
-        if (covered != _covered)
+        var self = new WindowInteropHelper(this).Handle;
+        var covered = RecordVisibility.IsCovered(Native.SampleTopLevelWindows(_ownProcessId, self), visible);
+        if (covered == _covered)
         {
-            _covered = covered;
-            UpdateAnimation();
-            VisibilityChanged?.Invoke(this, EventArgs.Empty);
+            return false;
         }
+
+        _covered = covered;
+        VisibilityChanged?.Invoke(this, EventArgs.Empty);
+        return true;
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Place);

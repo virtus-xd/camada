@@ -148,4 +148,19 @@ public class SpotifyTests
     [Fact]
     public void Broken_queue_is_empty() =>
         Assert.Empty(SpotifyJson.Queue("{", 3));
+
+    // Son inceleme: beklenmedik biçimde JsonElement erişimleri InvalidOperationException atıyordu; yalnız JsonException
+    // yakalandığından görev çubuğunun yerini alan uygulama çökebilirdi.
+    [Fact]
+    public void Unexpected_json_shapes_do_not_throw()
+    {
+        Assert.Null(SpotifyJson.CurrentTrack("[1]"));
+        Assert.Null(SpotifyJson.CurrentTrack("""{"item":{"type":"track","uri":5,"name":"Şarkı"}}"""));
+        Assert.Empty(SpotifyJson.Queue("[]", 3));
+        Assert.Empty(SpotifyJson.Queue("""{"queue":[null]}""", 3));
+        Assert.Empty(SpotifyJson.Queue("""{"queue":[{"name":7}]}""", 3));
+        Assert.Equal([new QueueItem("Bir", "")], SpotifyJson.Queue("""{"queue":[{"name":"Bir","artists":[null,{"name":1}]}]}""", 3));
+        Assert.Null(SpotifyToken.Parse("""{"access_token":5,"expires_in":3600,"refresh_token":"R"}""", Now, null));
+        Assert.Null(SpotifyToken.Parse("[]", Now, null));
+    }
 }

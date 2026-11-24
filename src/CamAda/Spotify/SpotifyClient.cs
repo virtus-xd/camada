@@ -47,6 +47,8 @@ public sealed class SpotifyClient
         _token = store.Load();
     }
 
+    public string? ClientId => _clientId();
+
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_clientId());
 
     public bool IsConnected => IsConfigured && _token is not null;

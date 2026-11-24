@@ -75,7 +75,7 @@ public sealed class WeatherService : IDisposable
                 return;
             }
 
-            if (location.Latitude is not { } latitude || location.Longitude is not { } longitude)
+            if (location.Coordinates is not var (latitude, longitude))
             {
                 var found = OpenMeteo.ParseGeocode(await Http.GetStringAsync(OpenMeteo.GeocodeUrl(location.Name)));
                 if (found is null)
@@ -85,7 +85,7 @@ public sealed class WeatherService : IDisposable
                 }
 
                 (latitude, longitude) = (found.Value.Latitude, found.Value.Longitude);
-                _saveResolved(location with { Latitude = latitude, Longitude = longitude });
+                _saveResolved(location with { Latitude = latitude, Longitude = longitude, ResolvedName = location.Name });
             }
 
             if (OpenMeteo.ParseForecast(await Http.GetStringAsync(OpenMeteo.ForecastUrl(latitude, longitude))) is { } now)

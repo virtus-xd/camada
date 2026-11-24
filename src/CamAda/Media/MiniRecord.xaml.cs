@@ -73,7 +73,13 @@ public sealed partial class MiniRecord : UserControl
 
     private void UpdateRendering()
     {
-        var wanted = _canAnimate && SystemParameters.ClientAreaAnimation && (_playing || _spin.IsMoving);
+        var drawable = _canAnimate && SystemParameters.ClientAreaAnimation;
+        if (!drawable)
+        {
+            _spin.Settle(_playing); // görünmezken duraklatılan plak, görünür olunca hayalet bir yavaşlama göstermesin
+        }
+
+        var wanted = drawable && (_playing || _spin.IsMoving);
         if (wanted && !_rendering)
         {
             _rendering = true;

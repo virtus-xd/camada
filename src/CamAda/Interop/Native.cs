@@ -82,7 +82,8 @@ internal static partial class Native
     private static partial int SetWindowRgn(nint hwnd, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
 
     /// <summary>Üst düzey pencereleri z-sırasında yukarıdan aşağı örnekler (koordinatlar fiziksel piksel).</summary>
-    public static List<Core.Island.WindowSample> SampleTopLevelWindows(int ownProcessId)
+    /// <param name="self">Sorgulayan pencere: örnekte IsSelf olarak işaretlenir (z-sırasında altındakiler onu örtemez).</param>
+    public static List<Core.Island.WindowSample> SampleTopLevelWindows(int ownProcessId, nint self = 0)
     {
         const long WS_EX_TOOLWINDOW = 0x80, WS_EX_TRANSPARENT = 0x20;
         var samples = new List<Core.Island.WindowSample>(128);
@@ -104,7 +105,8 @@ internal static partial class Native
                 Ignorable: (exStyle & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT)) != 0,
                 HasTitle: GetWindowTextLength(hwnd) > 0,
                 IsDesktop: cls is "Progman" or "WorkerW",
-                IsOwn: pid == ownProcessId));
+                IsOwn: pid == ownProcessId,
+                IsSelf: self != 0 && hwnd == self));
             return true;
         }, 0);
 

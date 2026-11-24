@@ -71,8 +71,38 @@ public class RecordLayoutTests
     private static readonly RectD VisibleDiscOnScreen = new(0, 594, 220, 400);
 
     private static WindowSample Win(double x, double y, double w, double h, bool visible = true, bool cloaked = false,
-        bool isDesktop = false, bool isOwn = false) =>
-        new(new RectD(x, y, w, h), visible, cloaked, Ignorable: false, HasTitle: true, isDesktop, isOwn);
+        bool isDesktop = false, bool isOwn = false, bool isSelf = false) =>
+        new(new RectD(x, y, w, h), visible, cloaked, Ignorable: false, HasTitle: true, isDesktop, isOwn, isSelf);
+
+    // Son inceleme: Win+D masaüstünü (ve ona bağlı plağı) pencerelerin önüne getirir ama pencereler küçülmez; plağın
+    // altında kalan büyütülmüş pencere "örtüyor" sayılıyor ve plak tam da masaüstü gösterilirken dönmüyordu.
+    [Fact]
+    public void Windows_below_the_record_do_not_cover() =>
+        Assert.False(RecordVisibility.IsCovered(
+            [Win(0, 0, 1920, 1080, isOwn: true, isSelf: true), Win(-8, -8, 1936, 1048)], VisibleDiscOnScreen));
+
+    [Fact]
+    public void Windows_above_the_record_cover() =>
+        Assert.True(RecordVisibility.IsCovered(
+            [Win(-8, -8, 1936, 1048), Win(0, 0, 1920, 1080, isOwn: true, isSelf: true)], VisibleDiscOnScreen));
+
+    // --- DiscHit: tıklama ve üzerine gelme yalnız diskin dairesinde (dönen kare görüntünün köşelerinde değil) ---
+
+    [Fact]
+    public void Disc_center_and_edge_are_on_the_disc()
+    {
+        Assert.True(DiscHit.Contains(160, 160, 320, 320));
+        Assert.True(DiscHit.Contains(160, 0.5, 320, 320));
+        Assert.True(DiscHit.Contains(319.5, 160, 320, 320));
+    }
+
+    [Fact]
+    public void Square_corners_are_off_the_disc()
+    {
+        Assert.False(DiscHit.Contains(5, 5, 320, 320));
+        Assert.False(DiscHit.Contains(300, 300, 320, 320));
+        Assert.False(DiscHit.Contains(-1, 160, 320, 320));
+    }
 
     [Fact]
     public void Maximized_window_covers_the_record() =>

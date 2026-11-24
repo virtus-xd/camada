@@ -6,6 +6,7 @@ namespace CamAda.Core.Island;
 /// <param name="Ignorable">Araç penceresi, odak almayan ya da tıklamayı geçiren katman (ör. ipuçları, oyun üstü katmanlar).</param>
 /// <param name="IsDesktop">Masaüstü penceresi (Progman / WorkerW).</param>
 /// <param name="IsOwn">Bizim süreçimize ait pencere.</param>
+/// <param name="IsSelf">Sorgulayan pencerenin kendisi (z-sırasında bunun altındakiler onu örtemez).</param>
 public readonly record struct WindowSample(
     RectD Bounds,
     bool Visible,
@@ -13,7 +14,8 @@ public readonly record struct WindowSample(
     bool Ignorable,
     bool HasTitle,
     bool IsDesktop,
-    bool IsOwn);
+    bool IsOwn,
+    bool IsSelf = false);
 
 /// <summary>Adanın bir pencerenin üstünü kapatıp kapatmadığına karar verir.</summary>
 public static class OcclusionRule

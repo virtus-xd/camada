@@ -30,7 +30,7 @@ public static class OpenMeteo
                 return new WeatherNow(celsius, weatherCode);
             }
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException) // bozuk ya da beklenmedik türde yanıt
         {
         }
 
@@ -48,15 +48,17 @@ public static class OpenMeteo
                 && results.ValueKind == JsonValueKind.Array && results.GetArrayLength() > 0)
             {
                 var first = results[0];
-                if (first.TryGetProperty("latitude", out var lat) && lat.TryGetDouble(out var latitude)
+                if (first.ValueKind == JsonValueKind.Object
+                    && first.TryGetProperty("latitude", out var lat) && lat.TryGetDouble(out var latitude)
                     && first.TryGetProperty("longitude", out var lon) && lon.TryGetDouble(out var longitude)
-                    && first.TryGetProperty("name", out var name) && name.GetString() is { } cityName)
+                    && first.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String
+                    && name.GetString() is { } cityName)
                 {
                     return (latitude, longitude, cityName);
                 }
             }
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException) // bozuk ya da beklenmedik türde yanıt
         {
         }
 

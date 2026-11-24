@@ -1,3 +1,4 @@
+using CamAda.Core.Settings;
 using CamAda.Core.Weather;
 
 namespace CamAda.Core.Tests.Weather;
@@ -69,4 +70,24 @@ public class WeatherTests
     [InlineData(-0.2, "0°")]
     public void Temperature_is_rounded(double celsius, string expected) =>
         Assert.Equal(expected, WeatherText.Temperature(celsius));
+
+    // Son inceleme: şehir adı değişip koordinatlar kalınca (Ankara → İzmir) sessizce eski şehrin havası gösteriliyordu.
+    [Fact]
+    public void Coordinates_are_used_only_for_the_name_they_were_found_for()
+    {
+        Assert.Equal((39.92, 32.85), new WeatherLocation("Ankara", 39.92, 32.85, "Ankara").Coordinates);
+        Assert.Null(new WeatherLocation("İzmir", 39.92, 32.85, "Ankara").Coordinates);
+        Assert.Null(new WeatherLocation("Ankara", 39.92, 32.85).Coordinates); // eski ayar: hangi ad için bulunduğu bilinmiyor
+        Assert.Null(new WeatherLocation("Ankara", null, null, "Ankara").Coordinates);
+    }
+
+    [Fact]
+    public void Unexpected_json_shapes_are_null()
+    {
+        Assert.Null(OpenMeteo.ParseForecast("""{"current":{"temperature_2m":"sıcak","weather_code":3}}"""));
+        Assert.Null(OpenMeteo.ParseForecast("[1,2]"));
+        Assert.Null(OpenMeteo.ParseGeocode("""{"results":[{"latitude":1,"longitude":2,"name":5}]}"""));
+        Assert.Null(OpenMeteo.ParseGeocode("""{"results":[null]}"""));
+        Assert.Null(OpenMeteo.ParseGeocode("[]"));
+    }
 }

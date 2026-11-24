@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CamAda.Core.Settings;
 
 /// <summary>Ada ve plak çalarda kullanılan cam görünümü yöntemi.</summary>
@@ -53,6 +55,16 @@ public sealed record AppSettings
 
 /// <summary>
 /// Hava durumu konumu: şehir adı ve (bilinmiyorsa null) koordinatlar. Koordinat yoksa uygulama adı bir kez Open-Meteo'da
-/// arayıp bulduğu koordinatları ayara yazar; şehir değişince yalnız ad yazılıp koordinatlar silinir.
+/// arar, bulduğu koordinatları hangi ad için bulduğuyla (<paramref name="ResolvedName"/>) birlikte ayara yazar. Şehir adı
+/// değişince eski koordinatlar kullanılmaz, yeni ad aranır.
 /// </summary>
-public sealed record WeatherLocation(string Name, double? Latitude, double? Longitude);
+public sealed record WeatherLocation(string Name, double? Latitude, double? Longitude, string? ResolvedName = null)
+{
+    /// <summary>Koordinatlar yalnız şimdiki ad için bulunmuşlarsa; yoksa null (ad yeniden aranır).</summary>
+    [JsonIgnore]
+    public (double Latitude, double Longitude)? Coordinates =>
+        Latitude is { } latitude && Longitude is { } longitude
+        && string.Equals(ResolvedName?.Trim(), Name.Trim(), StringComparison.Ordinal)
+            ? (latitude, longitude)
+            : null;
+}

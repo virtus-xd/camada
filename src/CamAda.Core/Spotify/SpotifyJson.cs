@@ -14,10 +14,10 @@ public static class SpotifyJson
     /// <summary>Çalan parça şarkıysa adresi (spotify:track:…) ve adı; hiçbir şey çalmıyorsa ya da podcast bölümüyse null.</summary>
     public static (string Uri, string Title)? CurrentTrack(string json) =>
         Read(json, root =>
-            root.TryGetProperty("item", out var item) && item.ValueKind == JsonValueKind.Object
-            && item.TryGetProperty("type", out var type) && type.GetString() == "track"
-            && item.TryGetProperty("uri", out var uri) && uri.GetString() is { Length: > 0 } trackUri
-            && item.TryGetProperty("name", out var name) && name.GetString() is { } title
+            root.ValueKind == JsonValueKind.Object && root.TryGetProperty("item", out var item)
+            && Text(item, "type") == "track"
+            && Text(item, "uri") is { Length: > 0 } trackUri
+            && Text(item, "name") is { } title
                 ? (trackUri, title)
                 : ((string, string)?)null);
 
@@ -33,23 +33,31 @@ public static class SpotifyJson
     public static IReadOnlyList<QueueItem> Queue(string json, int max) =>
         Read(json, root =>
         {
-            if (!root.TryGetProperty("queue", out var queue) || queue.ValueKind != JsonValueKind.Array)
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("queue", out var queue) || queue.ValueKind != JsonValueKind.Array)
             {
                 return [];
             }
 
             return queue.EnumerateArray()
-                .Where(t => t.TryGetProperty("name", out _))
+                .Where(t => Text(t, "name") is not null)
                 .Take(max)
                 .Select(t => new QueueItem(
-                    t.GetProperty("name").GetString() ?? "",
+                    Text(t, "name")!,
                     t.TryGetProperty("artists", out var artists) && artists.ValueKind == JsonValueKind.Array
                         ? string.Join(", ", artists.EnumerateArray()
-                            .Select(a => a.TryGetProperty("name", out var n) ? n.GetString() : null)
+                            .Select(a => Text(a, "name"))
                             .Where(n => !string.IsNullOrEmpty(n)))
                         : ""))
                 .ToList();
         }) ?? [];
+
+    /// <summary>Nesnenin metin türündeki alanı; nesne değilse, alan yoksa ya da metin değilse null.</summary>
+    private static string? Text(JsonElement element, string property) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
 
     private static T? Read<T>(string json, Func<JsonElement, T?> read)
     {
@@ -63,7 +71,7 @@ public static class SpotifyJson
             using var doc = JsonDocument.Parse(json);
             return doc.RootElement.ValueKind is JsonValueKind.Object or JsonValueKind.Array ? read(doc.RootElement) : default;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException) // bozuk ya da beklenmedik türde yanıt
         {
             return default;
         }

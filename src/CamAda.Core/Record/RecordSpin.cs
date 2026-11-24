@@ -23,6 +23,12 @@ public sealed class RecordSpin
 
     public bool IsMoving => Velocity > 0;
 
+    /// <summary>
+    /// Plak çizilmiyorken (örtülü, ada genişlemiş, ekran dışı) hızlanma ya da yavaşlama görünmez: hız hemen hedefe oturur.
+    /// Böylece görünmezken duraklatılan plak tam hızda kalmaz (yoklama sürmez, görünür olunca hayalet yavaşlama olmaz).
+    /// </summary>
+    public void Settle(bool playing) => Velocity = playing ? PlayingDegreesPerSecond : 0;
+
     public void Advance(TimeSpan elapsed, bool playing, bool reduceMotion)
     {
         if (reduceMotion)

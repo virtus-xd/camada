@@ -81,4 +81,23 @@ public class RecordSpinTests
         var moved = (spin.Angle - angle + 360) % 360;
         Assert.True(moved <= 20.0001, $"{moved}°");
     }
+
+    // Son inceleme: plak çizilmiyorken (örtülü, ada genişlemiş) hız Advance ile değişmiyordu; duraklatınca tam hızda
+    // kalıp örtülme yoklamasını sonsuza dek açık tutuyor, görünür olunca hayalet bir yavaşlama gösteriyordu.
+    [Fact]
+    public void Settle_while_not_drawn_jumps_to_the_target_speed()
+    {
+        var spin = new RecordSpin();
+        spin.Advance(TimeSpan.FromSeconds(0.1), playing: true, reduceMotion: false);
+        spin.Advance(TimeSpan.FromSeconds(0.1), playing: true, reduceMotion: false);
+        var angle = spin.Angle;
+
+        spin.Settle(playing: false);
+        Assert.Equal(0, spin.Velocity);
+        Assert.False(spin.IsMoving);
+        Assert.Equal(angle, spin.Angle);
+
+        spin.Settle(playing: true);
+        Assert.Equal(RecordSpin.PlayingDegreesPerSecond, spin.Velocity);
+    }
 }

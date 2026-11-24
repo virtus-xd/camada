@@ -74,7 +74,10 @@ public sealed partial class SpotifyConnectView : UserControl
             return;
         }
 
+        // Yanlış Client ID ya da eksik yönlendirme adresi olabilir: adımlar kayıtlı Client ID ile yeniden açılır.
         ShowSummary("Bağlanılamadı. Yönlendirme adresini ve Client ID'yi kontrol edip yeniden dene.");
+        ClientIdBox.Text = _client.ClientId ?? "";
+        Steps.Visibility = Visibility.Visible;
     }
 
     private void OpenDashboard_Click(object sender, RoutedEventArgs e)
