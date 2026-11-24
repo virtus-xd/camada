@@ -16,15 +16,31 @@ public enum IslandPresence
     Peek,
 }
 
+/// <summary>Adanın gösterdiği kısa genişleme (spec §7.5).</summary>
+public enum FlashKind
+{
+    None,
+
+    /// <summary>Bilgi göstergesi (ör. ses değişti): örtülü yerde tıklamaları alttaki pencereye geçirir.</summary>
+    Passive,
+
+    /// <summary>Düğmeli önizleme (ekran görüntüsü: Kopyala / Düzenle): örtülü yerde de tıklanabilir (Plan 4.2).</summary>
+    Interactive,
+}
+
 public static class IslandPresenceRule
 {
-    /// <param name="flashing">
-    /// Ada kısa bir gösterge gösteriyor (ör. ses değişti, spec §7.5): örtülü yerde de görünür ama tıklamaları alttaki
-    /// pencereye geçirir (Peek; spec §7.6 "çizgi tıklamaları engellemez", §4 sekme alanı).
+    /// <param name="flash">
+    /// Ada kısa bir gösterge gösteriyor: örtülü yerde de görünür. Bilgi göstergesi tıklamaları alttaki pencereye geçirir
+    /// (Peek; spec §7.6 "çizgi tıklamaları engellemez", §4 sekme alanı); düğmeli önizleme tıklanabilir kalır.
     /// </param>
-    public static IslandPresence Decide(bool fullScreen, bool occluded, bool expanded, bool flashing) =>
+    public static IslandPresence Decide(bool fullScreen, bool occluded, bool expanded, FlashKind flash) =>
         fullScreen ? IslandPresence.Hidden
         : !occluded || expanded ? IslandPresence.Shown
-        : flashing ? IslandPresence.Peek
-        : IslandPresence.Tucked;
+        : flash switch
+        {
+            FlashKind.Interactive => IslandPresence.Shown,
+            FlashKind.Passive => IslandPresence.Peek,
+            _ => IslandPresence.Tucked,
+        };
 }

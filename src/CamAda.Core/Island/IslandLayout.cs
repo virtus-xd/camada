@@ -9,6 +9,9 @@ public static class IslandLayout
     public static readonly PillSize Compact = new(400, 40);
     public static readonly PillSize Expanded = new(770, 46);
 
+    /// <summary>Ekran görüntüsü önizlemesi (Plan 4.2): küçük resim + "Ekran görüntüsü" + Kopyala + Düzenle.</summary>
+    public static readonly PillSize ScreenshotPeek = new(450, 76);
+
     /// <summary>Hapın ekranın üst kenarından uzaklığı.</summary>
     public const double TopMargin = 8;
 

@@ -15,6 +15,7 @@ public sealed class HoverIntent : IDisposable
     private bool _pointerInside;
     private bool _panelOpen;
     private bool _expanded;
+    private bool _suppressed;
 
     public HoverIntent(TimeProvider time, TimeSpan enterDelay, TimeSpan leaveDelay)
     {
@@ -37,7 +38,7 @@ public sealed class HoverIntent : IDisposable
         {
             _pointerInside = true;
             CancelPending();
-            if (!_expanded)
+            if (!_expanded && !_suppressed)
             {
                 Schedule(_enterDelay, expand: true);
             }
@@ -53,6 +54,28 @@ public sealed class HoverIntent : IDisposable
             if (_expanded && !_panelOpen)
             {
                 Schedule(_leaveDelay, expand: false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Açıkken imleç adayı genişletmez (ör. ekran görüntüsü önizlemesinin düğmelerine gidilirken önizleme kaybolmasın).
+    /// Kalkınca imleç hâlâ üstündeyse olağan gecikmeyle genişler.
+    /// </summary>
+    public void Suppress(bool on)
+    {
+        lock (_gate)
+        {
+            _suppressed = on;
+            if (_expanded)
+            {
+                return;
+            }
+
+            CancelPending();
+            if (!on && _pointerInside)
+            {
+                Schedule(_enterDelay, expand: true);
             }
         }
     }
@@ -114,7 +137,7 @@ public sealed class HoverIntent : IDisposable
         lock (_gate)
         {
             // Gecikmiş ya da artık geçersiz bir zamanlayıcı durumu bozmasın.
-            var stillWanted = expand ? _pointerInside : !_pointerInside && !_panelOpen;
+            var stillWanted = expand ? _pointerInside && !_suppressed : !_pointerInside && !_panelOpen;
             if (_expanded == expand || !stillWanted)
             {
                 return;

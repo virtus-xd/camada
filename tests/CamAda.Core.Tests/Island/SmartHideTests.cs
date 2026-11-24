@@ -72,21 +72,30 @@ public class SmartHideTests
     [InlineData(false, true, true, IslandPresence.Shown)]
     [InlineData(false, false, false, IslandPresence.Shown)]
     public void Presence_rule(bool fullScreen, bool occluded, bool expanded, IslandPresence expected) =>
-        Assert.Equal(expected, IslandPresenceRule.Decide(fullScreen, occluded, expanded, flashing: false));
+        Assert.Equal(expected, IslandPresenceRule.Decide(fullScreen, occluded, expanded, FlashKind.None));
 
     // Plan 4.1: ses değişince kısa gösterim (spec §7.5) çizgiye inmiş adayı gösterir, tam ekranda asla (spec §4).
     // Son inceleme (küçük 4, yükseltildi): örtülü yerdeki gösterim tıklamaları alttaki pencereye geçirir (spec §7.6).
     [Fact]
     public void Flash_over_a_covered_spot_peeks_click_through() =>
-        Assert.Equal(IslandPresence.Peek, IslandPresenceRule.Decide(false, true, false, flashing: true));
+        Assert.Equal(IslandPresence.Peek, IslandPresenceRule.Decide(false, true, false, FlashKind.Passive));
 
     [Fact]
     public void Flash_over_a_free_spot_is_a_normal_island() =>
-        Assert.Equal(IslandPresence.Shown, IslandPresenceRule.Decide(false, false, false, flashing: true));
+        Assert.Equal(IslandPresence.Shown, IslandPresenceRule.Decide(false, false, false, FlashKind.Passive));
 
     [Fact]
     public void Flash_never_shows_over_full_screen() =>
-        Assert.Equal(IslandPresence.Hidden, IslandPresenceRule.Decide(true, false, false, flashing: true));
+        Assert.Equal(IslandPresence.Hidden, IslandPresenceRule.Decide(true, false, false, FlashKind.Passive));
+
+    // Plan 4.2: ekran görüntüsü önizlemesinin Kopyala / Düzenle düğmeleri örtülü yerde de tıklanabilir.
+    [Fact]
+    public void Interactive_flash_is_clickable_over_a_window() =>
+        Assert.Equal(IslandPresence.Shown, IslandPresenceRule.Decide(false, true, false, FlashKind.Interactive));
+
+    [Fact]
+    public void Interactive_flash_never_shows_over_full_screen() =>
+        Assert.Equal(IslandPresence.Hidden, IslandPresenceRule.Decide(true, true, false, FlashKind.Interactive));
 
     // Üst kenar tetikleyicisi: ekran üstü 0, ada penceresi x 397..1522.
     [Theory]

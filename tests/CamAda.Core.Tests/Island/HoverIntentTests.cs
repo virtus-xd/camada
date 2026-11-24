@@ -82,6 +82,30 @@ public class HoverIntentTests
     }
 
     [Fact]
+    public void Suppressed_pointer_does_not_expand_until_released()
+    {
+        var h = Make();
+        h.Suppress(true);
+        h.PointerEntered(); Ms(1000);
+        Assert.False(h.IsExpanded);
+
+        h.Suppress(false);
+        Ms(119); Assert.False(h.IsExpanded);
+        Ms(1); Assert.True(h.IsExpanded);
+    }
+
+    [Fact]
+    public void Suppress_release_with_pointer_outside_does_nothing()
+    {
+        var h = Make();
+        h.Suppress(true);
+        h.PointerEntered(); h.PointerExited();
+        h.Suppress(false); Ms(5000);
+        Assert.False(h.IsExpanded);
+        Assert.Empty(_events);
+    }
+
+    [Fact]
     public void Closing_panel_while_pointer_inside_stays_expanded()
     {
         var h = Make(); h.PointerEntered(); Ms(120); h.SetPanelOpen(true); h.SetPanelOpen(false); Ms(5000);

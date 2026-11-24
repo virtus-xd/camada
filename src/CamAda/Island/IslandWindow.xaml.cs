@@ -52,7 +52,14 @@ public partial class IslandWindow : Window
     private static readonly TimeSpan FlashHold = TimeSpan.FromSeconds(1.5);
 
     private readonly DispatcherTimer _flashTimer = new(DispatcherPriority.Normal);
-    private bool _flashing;
+    private FlashKind _flashKind;
+
+    /// <summary>Ekran görüntüsü önizlemesi bu kadar sonra kaybolur; imleç üzerindeyken durur, çekilince 1 sn sonra.</summary>
+    private static readonly TimeSpan ShotHold = TimeSpan.FromSeconds(5);
+
+    private readonly DispatcherTimer _shotTimer = new(DispatcherPriority.Normal);
+    private Action? _shotCopy;
+    private Action? _shotEdit;
 
     /// <summary>Hapın genişlik animasyonunun en son hedefi (DIP).</summary>
     private double _widthTarget;
@@ -76,6 +83,7 @@ public partial class IslandWindow : Window
         _clockTimer.Tick += (_, _) => RefreshClock();
         _flashTimer.Interval = FlashHold;
         _flashTimer.Tick += (_, _) => EndFlash(immediate: false);
+        _shotTimer.Tick += (_, _) => EndScreenshot();
         SourceInitialized += OnSourceInitialized;
         DpiChanged += (_, e) =>
         {
@@ -139,6 +147,7 @@ public partial class IslandWindow : Window
             if (_hover.IsExpanded)
             {
                 EndFlash(immediate: true); // genişleyen ada göstergeyi taşımaz
+                EndScreenshot();
             }
 
             AnimateTo(_hover.IsExpanded);
@@ -178,7 +187,7 @@ public partial class IslandWindow : Window
     /// </summary>
     public void Flash(FlashContent content)
     {
-        if (_closed || _hover.IsExpanded || _panels.IsOpen)
+        if (_closed || _hover.IsExpanded || _panels.IsOpen || _flashKind == FlashKind.Interactive)
         {
             return;
         }
@@ -191,9 +200,9 @@ public partial class IslandWindow : Window
 
         _flashTimer.Stop();
         _flashTimer.Start();
-        if (!_flashing)
+        if (_flashKind == FlashKind.None)
         {
-            _flashing = true;
+            _flashKind = FlashKind.Passive;
             FadeFlash(show: true, immediate: false);
             ApplyPresence();
         }
@@ -202,14 +211,125 @@ public partial class IslandWindow : Window
     private void EndFlash(bool immediate)
     {
         _flashTimer.Stop();
-        if (!_flashing)
+        if (_flashKind != FlashKind.Passive)
         {
             return;
         }
 
-        _flashing = false;
+        _flashKind = FlashKind.None;
         FadeFlash(show: false, immediate);
         ApplyPresence();
+    }
+
+    /// <summary>
+    /// Ekran görüntüsü önizlemesi (spec §7.5, Plan 4.2): hap büyür, küçük resim + Kopyala / Düzenle görünür. Örtülü yerde
+    /// de tıklanabilir; önizleme boyunca imleç adayı genişletmez. Tam ekranda, ada genişlemişken ya da panel açıkken
+    /// gösterilmez. Yeni ekran görüntüsü gelirse içerik değişir ve süre yenilenir.
+    /// </summary>
+    public void ShowScreenshot(ImageSource thumbnail, Action copy, Action edit)
+    {
+        if (_closed || _fullScreen || _hover.IsExpanded || _panels.IsOpen)
+        {
+            return;
+        }
+
+        EndFlash(immediate: true);
+        ShotThumb.ImageSource = thumbnail;
+        ShotCopyText.Text = "Kopyala";
+        _shotCopy = copy;
+        _shotEdit = edit;
+        _shotTimer.Stop();
+        _shotTimer.Interval = ShotHold;
+        if (!ShotRow.IsMouseOver)
+        {
+            _shotTimer.Start();
+        }
+
+        if (_flashKind == FlashKind.Interactive)
+        {
+            return;
+        }
+
+        _flashKind = FlashKind.Interactive;
+        _hover.Suppress(true);
+        ShotRow.Visibility = Visibility.Visible;
+        AnimateShotSize(IslandLayout.ScreenshotPeek);
+        FadeShot(show: true);
+        ApplyPresence();
+    }
+
+    private void EndScreenshot()
+    {
+        _shotTimer.Stop();
+        if (_flashKind != FlashKind.Interactive)
+        {
+            return;
+        }
+
+        _flashKind = FlashKind.None;
+        _shotCopy = null;
+        _shotEdit = null;
+        if (!_hover.IsExpanded)
+        {
+            AnimateShotSize(IslandLayout.Compact); // genişleme varsa boyutu AnimateTo belirler
+        }
+
+        FadeShot(show: false);
+        _hover.Suppress(false);
+        ApplyPresence();
+        UpdateMediaAnimation();
+    }
+
+    private void AnimateShotSize(PillSize size)
+    {
+        var duration = SystemParameters.ClientAreaAnimation ? TimeSpan.FromSeconds(0.18) : TimeSpan.Zero;
+        var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+        AnimateWidth(size.Width, duration, easing);
+        PillBorder.BeginAnimation(HeightProperty, new DoubleAnimation(size.Height, duration) { EasingFunction = easing });
+    }
+
+    private void FadeShot(bool show)
+    {
+        var duration = SystemParameters.ClientAreaAnimation ? TimeSpan.FromSeconds(0.15) : TimeSpan.Zero;
+        var fade = new DoubleAnimation(show ? 1 : 0, duration);
+        if (!show)
+        {
+            fade.Completed += (_, _) =>
+            {
+                if (_flashKind != FlashKind.Interactive)
+                {
+                    ShotRow.Visibility = Visibility.Collapsed;
+                }
+            };
+        }
+
+        ShotRow.IsHitTestVisible = show;
+        ShotRow.BeginAnimation(OpacityProperty, fade);
+        CompactLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 0 : 1, duration));
+    }
+
+    private void ShotRow_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) => _shotTimer.Stop();
+
+    private void ShotRow_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (_flashKind == FlashKind.Interactive)
+        {
+            _shotTimer.Interval = TimeSpan.FromSeconds(1);
+            _shotTimer.Start();
+        }
+    }
+
+    private void ShotCopy_Click(object sender, RoutedEventArgs e)
+    {
+        _shotCopy?.Invoke();
+        ShotCopyText.Text = "Kopyalandı";
+    }
+
+    private void ShotEdit_Click(object sender, RoutedEventArgs e)
+    {
+        var edit = _shotEdit;
+        EndScreenshot();
+        edit?.Invoke();
     }
 
     private void FadeFlash(bool show, bool immediate)
@@ -246,7 +366,7 @@ public partial class IslandWindow : Window
             return;
         }
 
-        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded, _flashing);
+        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded, _flashKind);
 
         if (presence == IslandPresence.Hidden)
         {
@@ -331,7 +451,7 @@ public partial class IslandWindow : Window
     private void UpdateMediaAnimation()
     {
         var active = IsVisible && !_fullScreen && !_smartHide.IsOccluded && !_hover.IsExpanded
-                     && _compactView == CompactView.Music;
+                     && _flashKind != FlashKind.Interactive && _compactView == CompactView.Music;
         CompactRecord.CanAnimate = active;
         CompactEqualizer.CanAnimate = active;
         ExpandedContent.MusicCanAnimate = IsVisible && !_fullScreen && _hover.IsExpanded;

@@ -220,12 +220,56 @@ public partial class App : Application
         }
 
         _shots = new ScreenshotLibrary(Dispatcher, _clips, ScreenshotFolder(), LogCrash);
+        _shots.Arrived += (_, file) => ShowScreenshotPreview(file);
+        _shots.ClipboardOnlyShot += (_, item) => ShowScreenshotPreview(item);
         _island!.Bar.ClipboardClicked += (_, _) =>
             _island.Panels.Toggle("clipboard", () => CreateClipboardPanel(pasteOnChoose: false), ClipboardPanel.PanelWidth);
         RegisterClipboardHotkey();
     }
 
     private ClipboardPanel CreateClipboardPanel(bool pasteOnChoose) => new(_clips!, _shots, pasteOnChoose);
+
+    /// <summary>Yeni ekran görüntüsü dosyası: adada önizleme; Kopyala dosyayı panoya alır, Düzenle aracı açar.</summary>
+    private void ShowScreenshotPreview(ScreenshotFile file)
+    {
+        if (_island is null || _clips is null || _shots?.Thumbnail(file) is not { } thumbnail)
+        {
+            return;
+        }
+
+        var clips = _clips;
+        _island.ShowScreenshot(thumbnail,
+            () => _ = clips.PutAsync(new ScreenshotChoice(file.Path)),
+            () => ScreenshotLibrary.OpenForEdit(file.Path));
+    }
+
+    /// <summary>Yalnız panoya giden ekran görüntüsü: Düzenle önce geçici bir PNG'ye yazar.</summary>
+    private void ShowScreenshotPreview(ClipItem item)
+    {
+        if (_island is null || _clips is null || _clips.ThumbnailFor(item) is not { } thumbnail || item.Payload.Png is not { } png)
+        {
+            return;
+        }
+
+        var clips = _clips;
+        _island.ShowScreenshot(thumbnail,
+            () => _ = clips.PutAsync(new HistoryChoice(item.Id)),
+            () =>
+            {
+                try
+                {
+                    var folder = Path.Combine(Path.GetTempPath(), "CamAda");
+                    Directory.CreateDirectory(folder);
+                    var path = Path.Combine(folder, $"shot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+                    File.WriteAllBytes(path, png);
+                    ScreenshotLibrary.OpenForEdit(path);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    LogCrash(ex);
+                }
+            });
+    }
 
     /// <summary>Ekran görüntüsü klasörü; Debug derlemesinde CAMADA_SCREENSHOTS ortam değişkeni önceliklidir (deneme).</summary>
     private static string? ScreenshotFolder()
