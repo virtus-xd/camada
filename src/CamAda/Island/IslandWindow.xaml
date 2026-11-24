@@ -1,4 +1,4 @@
-<Window x:Class="CamAda.Island.IslandWindow"
+﻿<Window x:Class="CamAda.Island.IslandWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CamAda.Island"
@@ -94,6 +94,15 @@
                                    FontSize="13" Foreground="{StaticResource WarningBrush}" Margin="0,0,10,0"
                                    VerticalAlignment="Center" Visibility="Collapsed"
                                    AutomationProperties.Name="Mikrofon kapalı" />
+                        <!-- Düşük pil (Plan 4.3): yalnız ≤ %20 ve şarjda değilken -->
+                        <StackPanel x:Name="CompactBattery" Orientation="Horizontal" Margin="0,0,10,0"
+                                    VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="&#xE851;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                       Foreground="{StaticResource WarningBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="CompactBatteryText" Margin="4,0,0,0" FontSize="12" FontWeight="Bold"
+                                       Foreground="{StaticResource WarningBrush}" VerticalAlignment="Center"
+                                       Typography.NumeralAlignment="Tabular" />
+                        </StackPanel>
                         <media:EqualizerBars x:Name="CompactEqualizer" Margin="0,0,10,0" VerticalAlignment="Center" Opacity="0" />
                         <TextBlock x:Name="CompactTime" VerticalAlignment="Center"
                                    FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />

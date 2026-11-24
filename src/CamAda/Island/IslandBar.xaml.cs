@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -7,10 +7,13 @@ using System.Windows.Media;
 using CamAda.Audio;
 using CamAda.Core.Audio;
 using CamAda.Core.Media;
+using CamAda.Core.Network;
+using CamAda.Core.Power;
+using CamAda.QuickSettings;
 
 namespace CamAda.Island;
 
-/// <summary>Genişlemiş adanın satırı: Başlat, Ara | uygulamalar | ^ | saat (spec §7.2).</summary>
+/// <summary>Genişlemiş adanın satırı: Başlat, Ara | uygulamalar | müzik | ^, pano, Wi‑Fi, ses, pil | saat (spec §7.2).</summary>
 public partial class IslandBar : UserControl
 {
     public IslandBar()
@@ -25,6 +28,34 @@ public partial class IslandBar : UserControl
     public event EventHandler? ClockClicked;
     public event EventHandler? SoundClicked;
     public event EventHandler? ClipboardClicked;
+    public event EventHandler? WifiClicked;
+    public event EventHandler? BatteryClicked;
+
+    /// <summary>Wi‑Fi düğmesinin glifini, soluk/rozet hâlini ve erişilebilirlik adını günceller (Plan 4.3).</summary>
+    public void ShowNetwork(NetworkIcon icon, string accessibleName)
+    {
+        var (glyph, dim, badge) = QuickGlyphs.Network(icon);
+        WifiGlyph.Text = glyph;
+        WifiGlyph.Opacity = dim ? 0.45 : 1;
+        WifiBadge.Text = badge ?? "";
+        WifiBadge.Visibility = badge is null ? Visibility.Collapsed : Visibility.Visible;
+        WifiBadge.Foreground = (Brush)FindResource(badge == QuickGlyphs.Warning ? "WarningBrush" : "TextSecondaryBrush");
+        AutomationProperties.SetName(WifiButton, accessibleName);
+    }
+
+    /// <summary>Pil düğmesini günceller; <paramref name="icon"/> null ise (pil yok) düğme gizlenir.</summary>
+    public void ShowBattery(BatteryIcon? icon, string accessibleName)
+    {
+        BatteryButton.Visibility = icon is null ? Visibility.Collapsed : Visibility.Visible;
+        if (icon is null)
+        {
+            return;
+        }
+
+        BatteryGlyph.Text = QuickGlyphs.Battery(icon);
+        BatteryGlyph.Foreground = (Brush)FindResource(icon.Low ? "WarningBrush" : "TextBrush");
+        AutomationProperties.SetName(BatteryButton, accessibleName);
+    }
 
     /// <summary>Ses düğmesinin hoparlör glifini ve mikrofon kapalı rozetini günceller.</summary>
     public void ShowSound(SpeakerLevel level, bool micMuted)
@@ -78,6 +109,10 @@ public partial class IslandBar : UserControl
     private void SoundButton_Click(object sender, RoutedEventArgs e) => SoundClicked?.Invoke(this, EventArgs.Empty);
 
     private void ClipboardButton_Click(object sender, RoutedEventArgs e) => ClipboardClicked?.Invoke(this, EventArgs.Empty);
+
+    private void WifiButton_Click(object sender, RoutedEventArgs e) => WifiClicked?.Invoke(this, EventArgs.Empty);
+
+    private void BatteryButton_Click(object sender, RoutedEventArgs e) => BatteryClicked?.Invoke(this, EventArgs.Empty);
 
     private void App_Click(object sender, RoutedEventArgs e)
     {

@@ -1,4 +1,4 @@
-namespace CamAda.Core.Island;
+﻿namespace CamAda.Core.Island;
 
 /// <summary>Ada hapının boyutu (DIP). Köşe yarıçapı her zaman yüksekliğin yarısıdır.</summary>
 public readonly record struct PillSize(double Width, double Height);
@@ -27,10 +27,10 @@ public static class IslandLayout
     public const double MusicSectionWidth = 150;
 
     /// <summary>
-    /// Genişlemiş satırda ^ ile saat arasındaki sistem düğmeleri: pano (Plan 4.2) ve ses (Plan 4.1), 36'şar DIP. Wi‑Fi ve
-    /// bildirim düğmeleri Plan 4'ün sonraki parçalarında bu genişliği büyütür.
+    /// Genişlemiş satırda ^ ile saat arasındaki sistem düğmeleri: pano (Plan 4.2), Wi‑Fi (Plan 4.3), ses (Plan 4.1) ve pil
+    /// (Plan 4.3), 36'şar DIP. Bildirim düğmesi Plan 4.4'te bu genişliği büyütür.
     /// </summary>
-    public const double SystemSectionWidth = 72;
+    public const double SystemSectionWidth = 144;
 
     /// <summary>Akıllı gizlenmede adayı açan üst kenar bölgesinin genişliği (ortada).</summary>
     public const double RevealZoneWidth = 900;
@@ -39,7 +39,7 @@ public static class IslandLayout
     private const double ButtonPitch = 38;
 
     /// <summary>
-    /// Genişlemiş hap genişliği: 5 uygulama düğmesine kadar 770 DIP + müzik bölümü + sistem düğmeleri (992); her ek
+    /// Genişlemiş hap genişliği: 5 uygulama düğmesine kadar 770 DIP + müzik bölümü + sistem düğmeleri (1064); her ek
     /// düğme ("+N" dahil) 38 DIP, en fazla 1250.
     /// </summary>
     public static double ExpandedWidthFor(int appButtonCount) =>

@@ -1,4 +1,4 @@
-using CamAda.Core.Apps;
+﻿using CamAda.Core.Apps;
 using CamAda.Core.Island;
 
 namespace CamAda.Core.Tests.Apps;
@@ -39,12 +39,13 @@ public class DockOverflowTests
 public class IslandLayoutTests
 {
     // Plan 3: genişlemiş satıra 150 DIP müzik bölümü eklendi (770 + 150 = 920); Plan 4.1: 36 DIP ses düğmesi (956);
-    // Plan 4.2: 36 DIP pano düğmesi (992). Üst sınır 1250.
+    // Plan 4.2: 36 DIP pano düğmesi (992); Plan 4.3: Wi‑Fi + pil 72 DIP (1064). Üst sınır 1250.
     [Theory]
-    [InlineData(0, 992)]
-    [InlineData(5, 992)]
-    [InlineData(6, 1030)]
-    [InlineData(11, 1220)]
+    [InlineData(0, 1064)]
+    [InlineData(5, 1064)]
+    [InlineData(6, 1102)]
+    [InlineData(9, 1216)]
+    [InlineData(10, 1250)]
     [InlineData(30, 1250)]
     public void Expanded_width_grows_with_app_buttons(int buttons, double expected) =>
         Assert.Equal(expected, IslandLayout.ExpandedWidthFor(buttons));

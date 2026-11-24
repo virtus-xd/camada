@@ -1,4 +1,4 @@
-<UserControl x:Class="CamAda.Island.IslandBar"
+﻿<UserControl x:Class="CamAda.Island.IslandBar"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:media="clr-namespace:CamAda.Media"
@@ -114,11 +114,22 @@
                       Stroke="{StaticResource TextBrush}" StrokeThickness="2.2"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
             </Button>
-            <!-- Pano (spec §7.2; Plan 4.2) ve ses: ikisi birlikte IslandLayout.SystemSectionWidth -->
+            <!-- Pano (Plan 4.2), Wi‑Fi, ses ve pil: hepsi birlikte IslandLayout.SystemSectionWidth -->
             <Button x:Name="ClipboardButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
                     AutomationProperties.Name="Pano" Click="ClipboardButton_Click">
                 <TextBlock Text="&#xE77F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <!-- Wi‑Fi (Plan 4.3): ağ durumu; tıklayınca Hızlı ayarlar paneli -->
+            <Button x:Name="WifiButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
+                    AutomationProperties.Name="Wi‑Fi" Click="WifiButton_Click">
+                <Grid Width="26" Height="24">
+                    <TextBlock x:Name="WifiGlyph" Text="&#xE701;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <TextBlock x:Name="WifiBadge" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="10" Margin="0,-2,-3,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                               Visibility="Collapsed" />
+                </Grid>
             </Button>
             <!-- Ses (spec §7.2: "ses (+ mikrofon kapalıysa işaret)") -->
             <Button x:Name="SoundButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
@@ -130,6 +141,12 @@
                                FontSize="11" Foreground="{StaticResource WarningBrush}" Margin="0,-2,-3,0"
                                HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Collapsed" />
                 </Grid>
+            </Button>
+            <!-- Pil (Plan 4.3): doluluk, şarjda şimşek; pil yoksa gizli. Tıklayınca Hızlı ayarlar paneli -->
+            <Button x:Name="BatteryButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
+                    AutomationProperties.Name="Pil" Click="BatteryButton_Click" Visibility="Collapsed">
+                <TextBlock x:Name="BatteryGlyph" Text="&#xE83F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                           FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Button>
             <!-- Saat: tıklayınca Takvim paneli (spec §7.4 "Takvim") -->
             <Button x:Name="ClockButton" Style="{StaticResource IslandIconButton}" Height="34" Margin="4,0,0,0"

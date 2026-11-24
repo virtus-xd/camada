@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -148,6 +148,7 @@ public partial class IslandWindow : Window
             {
                 EndFlash(immediate: true); // genişleyen ada göstergeyi taşımaz
                 EndScreenshot();
+                Expanding?.Invoke(this, EventArgs.Empty);
             }
 
             AnimateTo(_hover.IsExpanded);
@@ -177,8 +178,24 @@ public partial class IslandWindow : Window
     /// <summary>Paneli klavyeyle açan kısayol (Win+Alt+V) için adayı fare beklemeden genişletir.</summary>
     public void ExpandForKeyboard() => _hover.ExpandNow();
 
+    /// <summary>Ada genişlemeye başlayınca (ör. Wi‑Fi sinyal gücünü tazelemek için; Plan 4.3).</summary>
+    public event EventHandler? Expanding;
+
     /// <summary>Küçük adada mikrofon kapalı işaretini gösterir ya da gizler.</summary>
-    public void ShowMicOff(bool off) => CompactMicOff.Visibility = off ? Visibility.Visible : Visibility.Collapsed;
+    public void ShowMicOff(bool off)
+    {
+        CompactMicOff.Visibility = off ? Visibility.Visible : Visibility.Collapsed;
+        UpdateDateText(DateTime.Now);
+    }
+
+    /// <summary>Küçük adada düşük pil uyarısı (Plan 4.3): "%18"; null gizler.</summary>
+    public void ShowLowBattery(string? text)
+    {
+        CompactBatteryText.Text = text ?? "";
+        CompactBattery.Visibility = text is null ? Visibility.Collapsed : Visibility.Visible;
+        AutomationProperties.SetName(CompactBattery, text is null ? "" : $"Pil düşük: {text}");
+        UpdateDateText(DateTime.Now);
+    }
 
     /// <summary>
     /// Kısa gösterge (spec §7.5): küçük hapın içinde içerik yerine glif + çubuk + metin; son çağrıdan 1,5 sn sonra kaybolur.
@@ -603,7 +620,23 @@ public partial class IslandWindow : Window
         var formatted = new FormattedText(text, CultureInfo.GetCultureInfo("tr-TR"), FlowDirection.LeftToRight,
             new Typeface(CompactDate.FontFamily, CompactDate.FontStyle, CompactDate.FontWeight, CompactDate.FontStretch),
             CompactDate.FontSize, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        return formatted.Width <= IslandLayout.Compact.Width - sidePadding - clockAndGap;
+        return formatted.Width <= IslandLayout.Compact.Width - sidePadding - clockAndGap - IndicatorsWidth();
+    }
+
+    /// <summary>Sağ sütundaki görünür işaretlerin (mikrofon kapalı, düşük pil) kenar boşluklarıyla genişliği.</summary>
+    private double IndicatorsWidth()
+    {
+        double width = 0;
+        foreach (var indicator in new FrameworkElement[] { CompactMicOff, CompactBattery })
+        {
+            if (indicator.Visibility == Visibility.Visible)
+            {
+                indicator.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                width += indicator.DesiredSize.Width; // DesiredSize kenar boşluğunu içerir
+            }
+        }
+
+        return width;
     }
 
     private void RefreshClock()

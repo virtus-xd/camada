@@ -9,6 +9,8 @@ using CamAda.Core.Apps;
 using CamAda.Core.Audio;
 using CamAda.Core.Clipboard;
 using CamAda.Core.Input;
+using CamAda.Core.Network;
+using CamAda.Core.Power;
 using CamAda.Input;
 using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
@@ -17,6 +19,7 @@ using CamAda.Core.Startup;
 using CamAda.Interop;
 using CamAda.Island;
 using CamAda.Media;
+using CamAda.QuickSettings;
 using CamAda.Record;
 using CamAda.Spotify;
 using CamAda.Weather;
@@ -49,6 +52,9 @@ public partial class App : Application
     private GlobalHotkeys? _hotkeys;
     private ClipboardService? _clips;
     private ScreenshotLibrary? _shots;
+    private RadioService? _radios;
+    private NetworkStatusService? _network;
+    private BatteryService? _battery;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -157,6 +163,7 @@ public partial class App : Application
         _hotkeys = new GlobalHotkeys();
         StartAudio();
         StartClipboard();
+        await StartQuickSettingsAsync();
 
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
         _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
@@ -228,6 +235,53 @@ public partial class App : Application
     }
 
     private ClipboardPanel CreateClipboardPanel(bool pasteOnChoose) => new(_clips!, _shots, pasteOnChoose);
+
+    /// <summary>
+    /// Hızlı ayarlar ve pil (Plan 4.3): adadaki Wi‑Fi ve pil simgeleri, küçük adada düşük pil. Telsiz erişimi kurulamazsa
+    /// ada telsizsiz çalışır (Wi‑Fi simgesi yalnız bağlantıyı gösterir).
+    /// </summary>
+    private async Task StartQuickSettingsAsync()
+    {
+        try
+        {
+            _radios = await RadioService.CreateAsync(Dispatcher);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+        {
+            LogCrash(ex);
+        }
+
+        _network = new NetworkStatusService(Dispatcher, _radios);
+        _network.Changed += (_, _) => UpdateNetworkButton();
+        _battery = new BatteryService(Dispatcher);
+        _battery.Changed += (_, _) => UpdateBatteryButton();
+        _island!.Expanding += (_, _) => _network.Refresh();
+        UpdateNetworkButton();
+        UpdateBatteryButton();
+    }
+
+    private void UpdateNetworkButton()
+    {
+        if (_network is null || _island is null)
+        {
+            return;
+        }
+
+        var snapshot = _network.Current;
+        _island.Bar.ShowNetwork(NetworkIcons.For(snapshot), NetworkIcons.AccessibleName(snapshot));
+    }
+
+    private void UpdateBatteryButton()
+    {
+        if (_battery is null || _island is null)
+        {
+            return;
+        }
+
+        var snapshot = _battery.Current;
+        _island.Bar.ShowBattery(_battery.Present ? BatteryText.Icon(snapshot) : null, BatteryText.AccessibleName(snapshot));
+        _island.ShowLowBattery(BatteryText.IsLow(snapshot) ? BatteryText.CompactText(snapshot) : null);
+    }
 
     /// <summary>Yeni ekran görüntüsü dosyası: adada önizleme; Kopyala dosyayı panoya alır, Düzenle aracı açar.</summary>
     private void ShowScreenshotPreview(ScreenshotFile file)
@@ -689,6 +743,9 @@ public partial class App : Application
         _hotkeys?.Dispose();
         _shots?.Dispose();
         _clips?.Dispose();
+        _network?.Dispose();
+        _battery?.Dispose();
+        _radios?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();
