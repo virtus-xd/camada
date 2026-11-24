@@ -42,5 +42,25 @@
                            Foreground="{StaticResource TextSecondaryBrush}" Visibility="Collapsed" />
             </StackPanel>
         </ScrollViewer>
+
+        <!-- Son ekran görüntüleri (tasarım "Ekran görüntüleri"): en yenisi solda, en çok 10 -->
+        <Grid Margin="4,14,0,8">
+            <TextBlock Text="Ekran görüntüleri" FontSize="11.5" FontWeight="Bold" VerticalAlignment="Center"
+                       Foreground="{StaticResource TextSecondaryBrush}" />
+            <Button x:Name="OpenFolderButton" Style="{StaticResource PanelButton}" HorizontalAlignment="Right" Padding="8,3"
+                    FontSize="11.5" Click="OpenFolderButton_Click" AutomationProperties.Name="Klasörü aç">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE838;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="Klasörü aç" Margin="6,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
+        <ScrollViewer x:Name="ShotsScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                      Focusable="False" PreviewMouseWheel="ShotsScroll_PreviewMouseWheel">
+            <StackPanel x:Name="ShotsList" Orientation="Horizontal" />
+        </ScrollViewer>
+        <TextBlock x:Name="NoShotsText" Text="Henüz ekran görüntüsü yok" Margin="4,0,0,4" FontSize="12.5"
+                   Foreground="{StaticResource TextSecondaryBrush}" Visibility="Collapsed" />
     </StackPanel>
 </UserControl>

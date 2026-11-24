@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -22,33 +23,51 @@ public partial class ClipboardPanel : UserControl
     private static readonly FontFamily CodeFont = new("Cascadia Mono, Consolas");
 
     private readonly ClipboardService _clips;
+    private readonly ScreenshotLibrary? _shots;
     private readonly bool _pasteOnChoose;
     private readonly DispatcherTimer _copiedTimer;
     private readonly List<Button> _rows = new();
+    private readonly List<Button> _shotButtons = new();
     private string? _copiedId;
 
-    public ClipboardPanel(ClipboardService clips, bool pasteOnChoose)
+    public ClipboardPanel(ClipboardService clips, ScreenshotLibrary? shots, bool pasteOnChoose)
     {
         InitializeComponent();
         _clips = clips;
+        _shots = shots;
         _pasteOnChoose = pasteOnChoose;
         _copiedTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, (_, _) =>
         {
             _copiedTimer!.Stop();
             _copiedId = null;
             Rebuild(FocusedId(), focusFirst: false);
+            RebuildShots();
         }, Dispatcher);
         _copiedTimer.Stop();
 
         Loaded += (_, _) =>
         {
             _clips.Changed += OnChanged;
+            if (_shots is not null)
+            {
+                _shots.Arrived += OnShotArrived;
+            }
+
             Rebuild(focusId: null, focusFirst: true);
+            RebuildShots();
+            if (_rows.Count == 0 && _shotButtons.Count > 0)
+            {
+                Dispatcher.BeginInvoke(() => Keyboard.Focus(_shotButtons[0]), DispatcherPriority.Input);
+            }
         };
         Unloaded += (_, _) =>
         {
             _copiedTimer.Stop();
             _clips.Changed -= OnChanged;
+            if (_shots is not null)
+            {
+                _shots.Arrived -= OnShotArrived;
+            }
         };
         PreviewKeyDown += OnPreviewKeyDown;
     }
@@ -57,6 +76,119 @@ public partial class ClipboardPanel : UserControl
     public event EventHandler<ClipChoice>? Chosen;
 
     private void OnChanged(object? sender, EventArgs e) => Rebuild(FocusedId(), focusFirst: false);
+
+    private void OnShotArrived(object? sender, ScreenshotFile e) => RebuildShots();
+
+    /// <summary>Şerit: en yeni 10 ekran görüntüsü; tıklama/Enter seçer, sağ tık Düzenle / Klasörde göster.</summary>
+    private void RebuildShots()
+    {
+        var focused = _shotButtons.Find(b => b.IsKeyboardFocused)?.Tag as string;
+        ShotsList.Children.Clear();
+        _shotButtons.Clear();
+        var files = _shots?.Recent() ?? [];
+        foreach (var file in files)
+        {
+            ShotsList.Children.Add(CreateShotButton(file));
+        }
+
+        NoShotsText.Visibility = files.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        OpenFolderButton.Visibility = _shots?.Folder is { } folder && Directory.Exists(folder) ? Visibility.Visible : Visibility.Collapsed;
+        if (_shotButtons.Find(b => Equals(b.Tag, focused)) is { } target)
+        {
+            Dispatcher.BeginInvoke(() => Keyboard.Focus(target), DispatcherPriority.Input);
+        }
+    }
+
+    private Button CreateShotButton(ScreenshotFile file)
+    {
+        var name = Path.GetFileNameWithoutExtension(file.Path);
+        var content = new Grid();
+        content.Children.Add(new Border
+        {
+            Width = 96,
+            Height = 54,
+            CornerRadius = new CornerRadius(8),
+            Background = _shots!.Thumbnail(file) is { } thumbnail
+                ? new ImageBrush(thumbnail) { Stretch = Stretch.UniformToFill }
+                : (Brush)FindResource("PanelItemBrush"),
+        });
+        if (file.Path == _copiedId)
+        {
+            content.Children.Add(new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                Background = new SolidColorBrush(Color.FromArgb(0xB0, 0x14, 0x18, 0x2A)),
+                Child = new TextBlock
+                {
+                    Text = "Kopyalandı",
+                    FontSize = 11.5,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = (Brush)FindResource("AccentBrush"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
+            });
+        }
+
+        var button = new Button
+        {
+            Style = (Style)FindResource("PanelCardButton"),
+            Padding = new Thickness(3),
+            Margin = new Thickness(0, 0, 6, 0),
+            Tag = file.Path,
+            Content = content,
+            ToolTip = name,
+        };
+        AutomationProperties.SetName(button, $"Ekran görüntüsü: {name}");
+        button.Click += (_, _) => ChooseShot(file.Path);
+
+        var edit = new MenuItem { Header = "Düzenle" };
+        edit.Click += (_, _) => ScreenshotLibrary.OpenForEdit(file.Path);
+        var show = new MenuItem { Header = "Klasörde göster" };
+        show.Click += (_, _) => ScreenshotLibrary.ShowInFolder(file.Path);
+        button.ContextMenu = new ContextMenu { Items = { edit, show } };
+
+        _shotButtons.Add(button);
+        return button;
+    }
+
+    private void ChooseShot(string path)
+    {
+        Chosen?.Invoke(this, new ScreenshotChoice(path));
+        if (!_pasteOnChoose)
+        {
+            _ = CopyShotAsync(path);
+        }
+    }
+
+    private async Task CopyShotAsync(string path)
+    {
+        _copiedTimer.Stop();
+        _copiedId = path;
+        if (await _clips.PutAsync(new ScreenshotChoice(path)))
+        {
+            _copiedTimer.Start();
+            RebuildShots();
+        }
+        else
+        {
+            _copiedId = null;
+        }
+    }
+
+    private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_shots?.Folder is { } folder)
+        {
+            ScreenshotLibrary.OpenFolder(folder);
+        }
+    }
+
+    private void ShotsScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        ShotsScroll.ScrollToHorizontalOffset(ShotsScroll.HorizontalOffset - e.Delta / 2.0);
+        e.Handled = true;
+    }
 
     private void Rebuild(string? focusId, bool focusFirst)
     {
@@ -238,9 +370,38 @@ public partial class ClipboardPanel : UserControl
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        var shot = _shotButtons.FindIndex(b => b.IsKeyboardFocused);
+        if (shot >= 0)
+        {
+            switch (e.Key)
+            {
+                case Key.Left:
+                    Keyboard.Focus(_shotButtons[Math.Max(0, shot - 1)]);
+                    e.Handled = true;
+                    break;
+                case Key.Right:
+                    Keyboard.Focus(_shotButtons[Math.Min(_shotButtons.Count - 1, shot + 1)]);
+                    e.Handled = true;
+                    break;
+                case Key.Up when _rows.Count > 0:
+                    Keyboard.Focus(_rows[^1]);
+                    e.Handled = true;
+                    break;
+                case Key.Down or Key.Up:
+                    e.Handled = true;
+                    break;
+            }
+
+            return;
+        }
+
         var index = _rows.FindIndex(r => r.IsKeyboardFocused);
         switch (e.Key)
         {
+            case Key.Down when index == _rows.Count - 1 && _shotButtons.Count > 0:
+                Keyboard.Focus(_shotButtons[0]);
+                e.Handled = true;
+                break;
             case Key.Down when _rows.Count > 0:
                 Keyboard.Focus(_rows[Math.Min(_rows.Count - 1, index + 1)]);
                 e.Handled = true;

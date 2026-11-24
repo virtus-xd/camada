@@ -48,6 +48,7 @@ public partial class App : Application
     private AudioService? _audio;
     private GlobalHotkeys? _hotkeys;
     private ClipboardService? _clips;
+    private ScreenshotLibrary? _shots;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -218,12 +219,25 @@ public partial class App : Application
             return;
         }
 
+        _shots = new ScreenshotLibrary(Dispatcher, _clips, ScreenshotFolder(), LogCrash);
         _island!.Bar.ClipboardClicked += (_, _) =>
             _island.Panels.Toggle("clipboard", () => CreateClipboardPanel(pasteOnChoose: false), ClipboardPanel.PanelWidth);
         RegisterClipboardHotkey();
     }
 
-    private ClipboardPanel CreateClipboardPanel(bool pasteOnChoose) => new(_clips!, pasteOnChoose);
+    private ClipboardPanel CreateClipboardPanel(bool pasteOnChoose) => new(_clips!, _shots, pasteOnChoose);
+
+    /// <summary>Ekran görüntüsü klasörü; Debug derlemesinde CAMADA_SCREENSHOTS ortam değişkeni önceliklidir (deneme).</summary>
+    private static string? ScreenshotFolder()
+    {
+#if DEBUG
+        if (Environment.GetEnvironmentVariable("CAMADA_SCREENSHOTS") is { Length: > 0 } overridden)
+        {
+            return overridden;
+        }
+#endif
+        return ScreenshotLibrary.KnownFolder();
+    }
 
     /// <summary>
     /// Win+Alt+V (ayardan değişir): Pano panelini her yerden açar; seçilen öğe kısayol anında öndeki pencereye yapıştırılır
@@ -627,6 +641,7 @@ public partial class App : Application
         _island?.Close();
         CloseRecord();
         _hotkeys?.Dispose();
+        _shots?.Dispose();
         _clips?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();

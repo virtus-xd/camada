@@ -18,6 +18,9 @@ public sealed record HistoryChoice(string ItemId) : ClipChoice;
 
 public sealed record ScreenshotChoice(string Path) : ClipChoice;
 
+/// <summary>Panoya gelen görsel; ekran alıntısı aracından mı geldiği pano sahibinin süreç adından anlaşılır.</summary>
+public sealed record ClipImageArrival(ClipPayload Payload, bool FromScreenshotTool);
+
 /// <summary>
 /// Pano geçmişinin canlı kaynağı (tasarım "Geçmiş"): Windows pano dinleyicisiyle her kopyayı okur, işaretli (şifre
 /// yöneticisi) kopyaları içeriğe bakmadan eler, geri kalanı <see cref="ClipboardHistory"/>'ye ekler. Pano yalnız baytları
@@ -45,6 +48,7 @@ public sealed class ClipboardService : IDisposable
     private readonly Dictionary<string, ImageSource> _thumbnails = new();
     private int _attempts;
     private int _busyAttempts;
+    private string? _ownerAtUpdate;
     private uint _ownSequence;
     private int _savedVersion;
     private bool _disposed;
@@ -177,6 +181,7 @@ public sealed class ClipboardService : IDisposable
         if (msg == Native.WM_CLIPBOARDUPDATE)
         {
             _attempts = 0;
+            _ownerAtUpdate = Native.ClipboardOwnerProcessName(); // .NET/OLE yazanlarda okuma anında sahip çoktan boşalmış olabilir
             _busyAttempts = 0;
             _settle.Interval = TimeSpan.FromMilliseconds(60);
             _settle.Stop();
@@ -239,7 +244,7 @@ public sealed class ClipboardService : IDisposable
     }
 
     /// <summary>Açık panonun içeriği; işaretli, dosya listesi, boş ya da çok büyükse null.</summary>
-    private static Snapshot? TakeSnapshot()
+    private Snapshot? TakeSnapshot()
     {
         if (Native.IsClipboardFormatAvailable(ExcludeFormat) || Native.IsClipboardFormatAvailable(ViewerIgnoreFormat))
         {
@@ -258,7 +263,7 @@ public sealed class ClipboardService : IDisposable
             return null;
         }
 
-        var owner = Native.ClipboardOwnerProcessName();
+        var owner = Native.ClipboardOwnerProcessName() ?? _ownerAtUpdate;
         var max = ClipboardHistory.MaxItemBytes;
         if (Native.IsClipboardFormatAvailable(Native.CF_UNICODETEXT))
         {
@@ -312,7 +317,30 @@ public sealed class ClipboardService : IDisposable
         }
     }
 
-    private void OnImage(ClipPayload payload, string? owner) => Mutate(() => History.Add(payload, DateTimeOffset.Now));
+    /// <summary>
+    /// Görsel geldi: dinleyici varsa (ekran görüntüsü eşleştirmesi) karar onundur, yoksa doğrudan geçmişe eklenir.
+    /// </summary>
+    public event EventHandler<ClipImageArrival>? ImageArrived;
+
+    /// <summary>Görseli geçmişe ekler (eşleştirmenin "geçmişe ekle" kararı için).</summary>
+    public ClipItem? AddImage(ClipPayload payload)
+    {
+        ClipItem? item = null;
+        Mutate(() => item = History.Add(payload, DateTimeOffset.Now));
+        return item;
+    }
+
+    private void OnImage(ClipPayload payload, string? owner)
+    {
+        if (ImageArrived is { } handler)
+        {
+            handler(this, new ClipImageArrival(payload, owner is "SnippingTool" or "ScreenClippingHost"));
+        }
+        else
+        {
+            AddImage(payload);
+        }
+    }
 
 
     private void Mutate(Action change)
