@@ -83,6 +83,54 @@ public class DockTests
     }
 
     [Fact]
+    public void Control_panel_window_does_not_join_pinned_explorer()
+    {
+        // Denetim Masası explorer.exe'de ama kendi AppUserModelId'siyle; normal Gezgin pencerelerinde kimlik boştur.
+        var entries = DockGrouping.Group([Pin("explorer", "explorer.exe")],
+        [
+            Win("explorer.exe", handle: 1),
+            Win("explorer.exe", aumid: "Microsoft.Windows.ControlPanel", handle: 2),
+        ]);
+
+        Assert.Equal(2, entries.Count);
+        Assert.Equal([(nint)1], entries[0].Windows.Select(w => w.Handle));
+        Assert.Equal("run:Microsoft.Windows.ControlPanel", entries[1].Key);
+    }
+
+    [Fact]
+    public void Explorer_window_with_explorer_id_stays_on_pinned_explorer()
+    {
+        var entries = DockGrouping.Group([Pin("explorer", "explorer.exe")],
+            [Win("explorer.exe", aumid: "Microsoft.Windows.Explorer")]);
+        Assert.Single(Assert.Single(entries).Windows);
+    }
+
+    [Fact]
+    public void Chrome_web_app_window_gets_its_own_button()
+    {
+        // Chromium web uygulamaları (PWA) kendi kimliğini taşır: "<tarayıcı>._crx_<uygulama kimliği>".
+        var entries = DockGrouping.Group([Pin("chrome", "chrome.exe")],
+        [
+            Win("chrome.exe", aumid: "Chrome", handle: 1),
+            Win("chrome.exe", aumid: "Chrome._crx_mjoklplbddabcmpepnokjaffbmgbkkgg", handle: 2),
+            Win("chrome.exe", aumid: "Chrome._crx_mjoklplbddabcmpepnokjaffbmgbkkgg", handle: 3),
+        ]);
+
+        Assert.Equal(2, entries.Count);
+        Assert.Equal([(nint)1], entries[0].Windows.Select(w => w.Handle));
+        Assert.Equal("run:Chrome._crx_mjoklplbddabcmpepnokjaffbmgbkkgg", entries[1].Key);
+        Assert.Equal(2, entries[1].Windows.Count);
+    }
+
+    [Fact]
+    public void Chrome_profile_windows_stay_on_pinned_chrome()
+    {
+        var entries = DockGrouping.Group([Pin("chrome", "chrome.exe")],
+            [Win("chrome.exe", aumid: "Chrome", handle: 1), Win("chrome.exe", aumid: "Chrome.UserData.Profile1", handle: 2)]);
+        Assert.Equal(2, Assert.Single(entries).Windows.Count);
+    }
+
+    [Fact]
     public void Windows_group_under_pinned_app_case_insensitively()
     {
         var entries = DockGrouping.Group([Pin("chrome", "chrome.exe")], [Win("Chrome.exe", handle: 1), Win("chrome.exe", handle: 2)]);

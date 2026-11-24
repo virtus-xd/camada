@@ -19,7 +19,8 @@ public sealed record StartTile(string Name, ImageSource? Icon, Action Open);
 
 /// <summary>
 /// Başlat ve ara paneli: yazmaya hazır arama kutusu, sabitlenmişler, son açılanlar, tüm uygulamalar ve güç işlemleri.
-/// ↑/↓ seçimi taşır, Enter açar, Esc kapatır; açılan her şeyden sonra panel kapanır.
+/// Arama kutusunda ↑/↓ listedeki seçimi taşır (boşken son açılanlar), Enter açar; Tab düğmeler arasında döner,
+/// Enter/Boşluk odaktaki düğmeye basar; Esc kapatır. Açılan her şeyden sonra panel kapanır.
 /// </summary>
 public sealed partial class StartPanel : UserControl
 {
@@ -46,10 +47,25 @@ public sealed partial class StartPanel : UserControl
         Loaded += (_, _) => Dispatcher.BeginInvoke(() => Keyboard.Focus(Query), DispatcherPriority.Input);
     }
 
-    private ListBox? ActiveList =>
+    /// <summary>Arama kutusundayken ↑/↓ ile gezilen liste: sonuçlar, tüm uygulamalar ya da boşken son açılanlar.</summary>
+    private ListBox ActiveList =>
         ResultsList.Visibility == Visibility.Visible ? ResultsList
         : AllAppsView.Visibility == Visibility.Visible ? AllAppsList
-        : null;
+        : RecentList;
+
+    /// <summary>Odak bir düğmedeyken (Tab ile gidilmiş) yazılan harf arama kutusuna gider.</summary>
+    private void Panel_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        if (Query.IsKeyboardFocused || string.IsNullOrEmpty(e.Text) || char.IsControl(e.Text[0]))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        Keyboard.Focus(Query);
+        Query.AppendText(e.Text);
+        Query.CaretIndex = Query.Text.Length;
+    }
 
     private Button CreateTile(StartTile tile)
     {
@@ -79,7 +95,6 @@ public sealed partial class StartPanel : UserControl
         {
             Style = (Style)FindResource("PanelCardButton"),
             Content = content,
-            Focusable = false,
             Margin = new Thickness(0, 0, 6, 0),
             Padding = new Thickness(4, 10, 4, 8),
         };

@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using CamAda.Interop;
 using ManagedShell.Common.Helpers;
 using ManagedShell.Interop;
@@ -20,6 +21,7 @@ public sealed partial class TrayPanel : UserControl
     public const double PanelWidth = 380;
 
     private readonly ListCollectionView _icons;
+    private DispatcherTimer? _closeAfterClick;
 
     public TrayPanel(NotificationArea area)
     {
@@ -39,6 +41,7 @@ public sealed partial class TrayPanel : UserControl
         // değişikliklerini işlemeye devam eder.
         Unloaded += (_, _) =>
         {
+            _closeAfterClick?.Stop();
             ((System.Collections.Specialized.INotifyCollectionChanged)_icons).CollectionChanged -= OnIconsChanged;
             Icons.ItemsSource = null;
             _icons.DetachFromSourceCollection();
@@ -83,6 +86,7 @@ public sealed partial class TrayPanel : UserControl
     private void Icon_MouseDown(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
+        _closeAfterClick?.Stop(); // çift tıklamanın ikinci basışı: kapatmayı ertele
         IconOf(sender)?.IconMouseDown(e.ChangedButton, MouseHelper.GetCursorPositionParam(), Native.DoubleClickTime);
     }
 
@@ -90,6 +94,33 @@ public sealed partial class TrayPanel : UserControl
     {
         e.Handled = true;
         IconOf(sender)?.IconMouseUp(e.ChangedButton, MouseHelper.GetCursorPositionParam(), Native.DoubleClickTime);
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            CloseAfterDoubleClickTime();
+        }
+    }
+
+    /// <summary>
+    /// Sol tık uygulamayı açar; Windows'un taşma paneli gibi panel de kapanır. Uygulama çift tıklamayla açılıyorsa ikinci
+    /// tıklamaya fırsat kalsın diye çift tıklama süresi kadar beklenir. Sağ tıkta panel açık kalır (uygulamanın menüsü).
+    /// </summary>
+    private void CloseAfterDoubleClickTime()
+    {
+        if (_closeAfterClick is null)
+        {
+            _closeAfterClick = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
+            {
+                Interval = TimeSpan.FromMilliseconds(Native.DoubleClickTime + 50),
+            };
+            _closeAfterClick.Tick += (_, _) =>
+            {
+                _closeAfterClick.Stop();
+                (Window.GetWindow(this) as PanelWindow)?.Dismiss();
+            };
+        }
+
+        _closeAfterClick.Stop();
+        _closeAfterClick.Start();
     }
 }
 

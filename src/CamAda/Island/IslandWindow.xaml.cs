@@ -39,6 +39,9 @@ public partial class IslandWindow : Window
     private bool _fullScreen;
     private bool _closed;
 
+    /// <summary>Hapın genişlik animasyonunun en son hedefi (DIP).</summary>
+    private double _widthTarget;
+
     public IslandWindow(StripAppBar strip, AppSettings settings, IslandCommands commands, DockViewModel dock)
     {
         InitializeComponent();
@@ -80,8 +83,9 @@ public partial class IslandWindow : Window
         {
             ExpandedContent.Width = ExpandedTargetWidth - 2;
 
-            // Satır değişince açık ada yeni genişliğe kısa bir geçişle uyar.
-            if (_hover.IsExpanded && !_closed)
+            // Satır değişince açık ada yeni genişliğe kısa bir geçişle uyar. Genişlik aynıysa (ör. yalnız bir pencere
+            // başlığı değişti) süren animasyon (açılmanın esnemesi) yeniden başlatılmaz.
+            if (_hover.IsExpanded && !_closed && ExpandedTargetWidth != _widthTarget)
             {
                 AnimateWidth(ExpandedTargetWidth, TimeSpan.FromSeconds(0.2), new CubicEase { EasingMode = EasingMode.EaseOut });
             }
@@ -228,6 +232,16 @@ public partial class IslandWindow : Window
     /// </summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        // WS_EX_NOACTIVATE yalnız ön plana geçmeyi engeller: bizim bir penceremiz (panel, şerit) öndeyken tıklama adayı
+        // yine etkinleştirirdi. Panel bu etkinleşmenin ortasında odak kaybından kapanınca etkinleşme yarıda kalıyor,
+        // ön plan başka uygulamaya düşüyor ve Windows fare basışını adaya hiç iletmiyordu: panel açıkken adaya yapılan
+        // tıklama kayboluyordu. Ada tıklamayla hiç etkinleşmez; paneller arası geçişi PanelHost yapar.
+        if (msg == Native.WM_MOUSEACTIVATE)
+        {
+            handled = true;
+            return Native.MA_NOACTIVATE;
+        }
+
         if (msg == Native.WM_WINDOWPOSCHANGING && _pinnedPosition is { } pinned)
         {
             var pos = Marshal.PtrToStructure<Native.WINDOWPOS>(lParam);
@@ -247,6 +261,7 @@ public partial class IslandWindow : Window
 
     private void AnimateWidth(double width, TimeSpan duration, IEasingFunction easing)
     {
+        _widthTarget = width;
         if (!SystemParameters.ClientAreaAnimation)
         {
             duration = TimeSpan.Zero;

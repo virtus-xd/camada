@@ -32,8 +32,12 @@ public sealed class DockActions
         {
             _panels.Toggle("overflow", () => new OverflowPanel(overflow, _dock.IconFor, entry =>
             {
-                _panels.Close();
-                Apply(entry, button: null);
+                // Çok pencereli uygulamanın paneli "+N" panelinin yerini alır. Önce "+N" kapatılsaydı imleç adanın
+                // dışında olduğu için ada hemen küçülür, pencere paneli küçük adanın altında kalırdı.
+                if (Apply(entry, button: null) != ClickKind.ShowWindows)
+                {
+                    _panels.Close();
+                }
             }), OverflowPanel.PanelWidth);
             return;
         }
@@ -53,15 +57,24 @@ public sealed class DockActions
         }
     }
 
-    private void Apply(DockEntry entry, Button? button)
+    private ClickKind Apply(DockEntry entry, Button? button)
     {
         var decision = TaskClickAction.Decide(_dock.Fresh(entry));
         switch (decision.Kind)
         {
             case ClickKind.Launch:
-                if (Launch(entry) && button is not null)
+                var launched = Launch(entry);
+                if (button is not null)
                 {
-                    Bounce(button);
+                    // Başlatıldıysa zıplar; exe bulunamadıysa (soluk düğme) "olmaz" diye sallanır.
+                    if (launched)
+                    {
+                        Bounce(button);
+                    }
+                    else
+                    {
+                        Shake(button);
+                    }
                 }
 
                 break;
@@ -82,7 +95,7 @@ public sealed class DockActions
                         Activate(window);
                         _panels.Close();
                     },
-                    close: window => TryShell(() => _dock.Find(window.Handle)?.Close()),
+                    close: window => Interop.Native.RequestClose(window.Handle),
                     launchNew: () =>
                     {
                         _panels.Close();
@@ -90,6 +103,8 @@ public sealed class DockActions
                     }), WindowsPanel.WidthFor(entry.Windows.Count));
                 break;
         }
+
+        return decision.Kind;
     }
 
     private void Activate(RunningWindow window) => TryShell(() => _dock.Find(window.Handle)?.BringToFront());
@@ -131,19 +146,45 @@ public sealed class DockActions
         }
     }
 
-    /// <summary>Başlatılan uygulamanın simgesi 0,5 sn zıplar ("animasyonları azalt" açıksa zıplamaz).</summary>
-    private static void Bounce(Button button)
+    /// <summary>Başlatılamayan uygulamanın simgesi 0,4 sn yana sallanır ("animasyonları azalt" açıksa sallanmaz).</summary>
+    private static void Shake(Button button)
+    {
+        if (AnimatableIcon(button) is not { } shift)
+        {
+            return;
+        }
+
+        var shake = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(0.4) };
+        foreach (var (x, t) in new[] { (-4.0, 0.05), (4.0, 0.12), (-3.0, 0.19), (3.0, 0.26), (-1.5, 0.33), (0.0, 0.4) })
+        {
+            shake.KeyFrames.Add(new LinearDoubleKeyFrame(x, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(t))));
+        }
+
+        shift.BeginAnimation(TranslateTransform.XProperty, shake);
+    }
+
+    /// <summary>Düğmedeki simgeye yeni bir kaydırma dönüşümü takar (şablondaki dönüşüm donmuş olabilir).</summary>
+    private static TranslateTransform? AnimatableIcon(Button button)
     {
         if (!SystemParameters.ClientAreaAnimation
             || button.Content is not Panel content
             || content.Children.OfType<Image>().FirstOrDefault() is not { } icon)
         {
-            return;
+            return null;
         }
 
-        // Şablondaki dönüşüm donmuş olabilir; canlandırmak için yenisi atanır.
         var shift = new TranslateTransform();
         icon.RenderTransform = shift;
+        return shift;
+    }
+
+    /// <summary>Başlatılan uygulamanın simgesi 0,5 sn zıplar ("animasyonları azalt" açıksa zıplamaz).</summary>
+    private static void Bounce(Button button)
+    {
+        if (AnimatableIcon(button) is not { } shift)
+        {
+            return;
+        }
 
         var hop = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(0.5) };
         hop.KeyFrames.Add(new EasingDoubleKeyFrame(-7, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(0.16)),

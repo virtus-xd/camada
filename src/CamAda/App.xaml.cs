@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using CamAda.Core.Apps;
 using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
@@ -114,7 +115,9 @@ public partial class App : Application
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
+        _island.LocationChanged += (_, _) => UpdateTrayHostSizeData(); // ekran ayarı değişince ada yeniden yerleşir
         _island.Show();
+        Dispatcher.BeginInvoke(UpdateTrayHostSizeData, DispatcherPriority.Loaded);
 
         _ = _appIndex.GetItemsAsync(); // ilk aramada beklememek için arka planda hazırla
     }
@@ -148,6 +151,26 @@ public partial class App : Application
             return;
         }
 
+        UpdateTrayHostSizeData(); // genişlemiş hapın yeri
+
+        // Sağ tık menüsü odağı alınca panel kapanmasın (imleç paneldeyken).
+        _island.Panels.Toggle("tray", () => new Panels.TrayPanel(area), Panels.TrayPanel.PanelWidth,
+            keepOpenWhilePointerInside: true);
+    }
+
+    /// <summary>
+    /// Tepsiyi barındırırken uygulamalara "görev çubuğu"nun yerini (ABM_GETTASKBARPOS) adanın hapı olarak bildirir;
+    /// açılır pencerelerini buna göre yerleştirirler. Açılışta ve ada yer değiştirince yapılır, yoksa panel ilk açılana
+    /// kadar ManagedShell'in varsayılanı (üstte tam genişlikte 23 px'lik çubuk) bildirilirdi.
+    /// </summary>
+    private void UpdateTrayHostSizeData()
+    {
+        if (!_hostsTray || _island is null || _shell?.Manager.NotificationArea is not { IsFailed: false } area
+            || PresentationSource.FromVisual(_island.Pill) is null)
+        {
+            return;
+        }
+
         var pill = _island.Pill;
         var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(pill);
         var topLeft = pill.PointToScreen(new Point(0, 0));
@@ -162,10 +185,6 @@ public partial class App : Application
                 Bottom = (int)(topLeft.Y + pill.ActualHeight * dpi.DpiScaleY),
             },
         });
-
-        // Sağ tık menüsü odağı alınca panel kapanmasın (imleç paneldeyken).
-        _island.Panels.Toggle("tray", () => new Panels.TrayPanel(area), Panels.TrayPanel.PanelWidth,
-            keepOpenWhilePointerInside: true);
     }
 
     /// <summary>İlk açılışta (ayarda sabitlenmiş uygulama yoksa) Chrome, Dosya Gezgini, Steam ve Discord'u arar ve kaydeder.</summary>

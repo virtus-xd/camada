@@ -58,9 +58,10 @@
         </Style>
     </UserControl.Resources>
 
-    <DockPanel>
+    <!-- Tab: arama → sabitlenmişler → (Geri) → Tüm uygulamalar → güç düğmeleri → arama. Listeler arama kutusundan oklarla gezilir. -->
+    <StackPanel KeyboardNavigation.TabNavigation="Cycle" PreviewTextInput="Panel_PreviewTextInput">
         <!-- Arama kutusu: panel açılınca odakta -->
-        <Border DockPanel.Dock="Top" CornerRadius="16" Background="{StaticResource PanelItemBrush}" Height="44" Padding="14,0"
+        <Border CornerRadius="16" Background="{StaticResource PanelItemBrush}" Height="44" Padding="14,0"
                 Margin="0,0,0,14">
             <Grid>
                 <Path Data="M10,2 A8,8 0 1 1 9.99,2 M16,16 L22,22" Stroke="{StaticResource TextSecondaryBrush}" StrokeThickness="2"
@@ -77,22 +78,6 @@
             </Grid>
         </Border>
 
-        <!-- Alt satır: Tüm uygulamalar | Kilitle, Uyku, Yeniden başlat, Kapat -->
-        <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0" LastChildFill="False">
-            <Button x:Name="AllAppsButton" Style="{StaticResource PanelButton}" Content="Tüm uygulamalar" Focusable="False"
-                    Click="AllAppsButton_Click" />
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button x:Name="LockButton" Style="{StaticResource PanelButton}" Content="Kilitle" Focusable="False"
-                        Click="LockButton_Click" />
-                <Button x:Name="SleepButton" Style="{StaticResource PanelButton}" Content="Uyku" Margin="6,0,0,0"
-                        Focusable="False" Click="SleepButton_Click" />
-                <Button x:Name="RestartButton" Style="{StaticResource PanelButton}" Content="Yeniden başlat"
-                        Margin="6,0,0,0" Focusable="False" Click="RestartButton_Click" />
-                <Button x:Name="ShutdownButton" Style="{StaticResource PanelButton}" Content="Kapat" Margin="6,0,0,0"
-                        Focusable="False" Click="ShutdownButton_Click" />
-            </StackPanel>
-        </DockPanel>
-
         <!-- İçerik: boşken sabitlenmişler ve son açılanlar; yazınca sonuçlar; ya da tüm uygulamalar -->
         <Grid Height="300">
             <StackPanel x:Name="HomeView">
@@ -107,11 +92,26 @@
                      PreviewMouseLeftButtonUp="List_PreviewMouseLeftButtonUp" />
 
             <DockPanel x:Name="AllAppsView" Visibility="Collapsed">
-                <Button DockPanel.Dock="Top" Style="{StaticResource PanelButton}" Content="← Geri" Focusable="False"
+                <Button DockPanel.Dock="Top" Style="{StaticResource PanelButton}" Content="← Geri"
                         HorizontalAlignment="Left" Margin="0,0,0,8" Click="BackButton_Click" />
                 <ListBox x:Name="AllAppsList" Style="{StaticResource RowList}"
                          PreviewMouseLeftButtonUp="List_PreviewMouseLeftButtonUp" />
             </DockPanel>
         </Grid>
-    </DockPanel>
+
+        <!-- Alt satır: Tüm uygulamalar | Kilitle, Uyku, Yeniden başlat, Kapat -->
+        <DockPanel Margin="0,14,0,0" LastChildFill="False">
+            <Button x:Name="AllAppsButton" Style="{StaticResource PanelButton}" Content="Tüm uygulamalar"
+                    Click="AllAppsButton_Click" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="LockButton" Style="{StaticResource PanelButton}" Content="Kilitle"
+                        Click="LockButton_Click" />
+                <Button x:Name="SleepButton" Style="{StaticResource PanelButton}" Content="Uyku" Margin="6,0,0,0" Click="SleepButton_Click" />
+                <Button x:Name="RestartButton" Style="{StaticResource PanelButton}" Content="Yeniden başlat"
+                        Margin="6,0,0,0" Click="RestartButton_Click" />
+                <Button x:Name="ShutdownButton" Style="{StaticResource PanelButton}" Content="Kapat" Margin="6,0,0,0"
+                        Click="ShutdownButton_Click" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
 </UserControl>

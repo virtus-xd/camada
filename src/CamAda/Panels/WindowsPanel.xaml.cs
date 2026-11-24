@@ -1,14 +1,18 @@
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using CamAda.Core.Apps;
+using CamAda.Interop;
 
 namespace CamAda.Panels;
 
 /// <summary>
 /// Birden fazla penceresi olan uygulamanın paneli (spec §7.3): canlı önizlemeler ve başlıklar; karta tıklama o pencereyi
-/// öne getirir, × pencereyi kapatır, "Yeni pencere" uygulamayı yeniden başlatır.
+/// öne getirir, × pencereyi kapatır, "Yeni pencere" uygulamayı yeniden başlatır. Kartlara sığmayan pencereler altta
+/// başlık satırı olarak listelenir.
 /// </summary>
 public sealed partial class WindowsPanel : UserControl
 {
@@ -21,6 +25,8 @@ public sealed partial class WindowsPanel : UserControl
     private const double Gap = 10;
 
     private readonly Action _launchNew;
+    private readonly List<DispatcherTimer> _closeWatchers = [];
+    private int _windowCount;
 
     public WindowsPanel(DockEntry entry, Action<RunningWindow> activate, Action<RunningWindow> close, Action launchNew)
     {
@@ -28,13 +34,22 @@ public sealed partial class WindowsPanel : UserControl
         _launchNew = launchNew;
 
         AppName.Text = entry.Pinned?.Name ?? Path.GetFileNameWithoutExtension(entry.Windows[0].ProcessName);
-        WindowCount.Text = $"{entry.Windows.Count} pencere";
+        _windowCount = entry.Windows.Count;
+        UpdateWindowCount();
         Cards.Width = ContentWidthFor(entry.Windows.Count) + Gap; // her kartın sağındaki boşluk dahil
 
         foreach (var window in entry.Windows.Take(MaxCards))
         {
             Cards.Children.Add(CreateCard(window, activate, close));
         }
+
+        foreach (var window in entry.Windows.Skip(MaxCards))
+        {
+            MoreWindows.Children.Add(CreateRow(window, activate));
+        }
+
+        MoreWindows.Visibility = MoreWindows.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        Unloaded += (_, _) => _closeWatchers.ForEach(t => t.Stop());
     }
 
     /// <summary>Panelin (çerçeve dahil) genişliği.</summary>
@@ -45,6 +60,8 @@ public sealed partial class WindowsPanel : UserControl
         var columns = Math.Clamp(windowCount, 1, MaxColumns);
         return columns * CardWidth + (columns - 1) * Gap;
     }
+
+    private void UpdateWindowCount() => WindowCount.Text = $"{_windowCount} pencere";
 
     private Button CreateCard(RunningWindow window, Action<RunningWindow> activate, Action<RunningWindow> close)
     {
@@ -84,14 +101,69 @@ public sealed partial class WindowsPanel : UserControl
         {
             e.Handled = true;
             close(window);
-            Cards.Children.Remove(card);
-            if (Cards.Children.Count == 0)
-            {
-                (Window.GetWindow(this) as PanelWindow)?.Dismiss();
-            }
+            card.IsEnabled = false; // kapanana kadar soluk; × ikinci kez basılamaz
+            card.Opacity = 0.45;
+            WatchClose(window.Handle, card);
         };
 
         return card;
+    }
+
+    private Button CreateRow(RunningWindow window, Action<RunningWindow> activate)
+    {
+        var row = new Button
+        {
+            Style = (Style)FindResource("PanelRowButton"),
+            Content = new TextBlock
+            {
+                Text = window.Title,
+                FontSize = 12.5,
+                FontWeight = FontWeights.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            },
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            Width = Cards.Width - Gap,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        AutomationProperties.SetName(row, window.Title);
+        row.Click += (_, _) => activate(window);
+        return row;
+    }
+
+    /// <summary>
+    /// Kart, pencere gerçekten kapanınca kaldırılır. Uygulama kapatmayı reddederse (yönetici penceresi, "Kaydedilsin mi?"
+    /// sorusunda İptal) kart <see cref="PendingCloseRule.GiveUpAfter"/> sonra eski hâline döner.
+    /// </summary>
+    private void WatchClose(nint handle, Button card)
+    {
+        var started = Stopwatch.GetTimestamp();
+        var watcher = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = TimeSpan.FromMilliseconds(150) };
+        watcher.Tick += (_, _) =>
+        {
+            switch (PendingCloseRule.Decide(Native.WindowExists(handle), Stopwatch.GetElapsedTime(started)))
+            {
+                case PendingCloseOutcome.Remove:
+                    watcher.Stop();
+                    Cards.Children.Remove(card);
+                    _windowCount--;
+                    UpdateWindowCount();
+                    if (Cards.Children.Count == 0 && MoreWindows.Children.Count == 0)
+                    {
+                        (Window.GetWindow(this) as PanelWindow)?.Dismiss();
+                    }
+
+                    break;
+
+                case PendingCloseOutcome.Restore:
+                    watcher.Stop();
+                    card.IsEnabled = true;
+                    card.ClearValue(OpacityProperty);
+                    break;
+            }
+        };
+
+        _closeWatchers.Add(watcher);
+        watcher.Start();
     }
 
     private void NewWindowButton_Click(object sender, RoutedEventArgs e) => _launchNew();

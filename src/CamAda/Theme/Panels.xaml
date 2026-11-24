@@ -7,8 +7,20 @@
     <SolidColorBrush x:Key="PanelItemHoverBrush" Color="#24FFFFFF" />
     <SolidColorBrush x:Key="PanelItemPressedBrush" Color="#33FFFFFF" />
 
+    <!-- Klavyeyle (Tab/oklar) odaklanan düğmenin yuvarlak vurgusu; fareyle tıklamada görünmez -->
+    <Style x:Key="PanelFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border CornerRadius="14" BorderThickness="1.5" BorderBrush="{DynamicResource AccentBrush}" Margin="-2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Metinli küçük düğme (ör. "Yeni pencere") -->
     <Style x:Key="PanelButton" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PanelFocusVisual}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="FontSize" Value="12.5" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -39,6 +51,7 @@
 
     <!-- Pencere önizleme kartı ve liste satırı: tüm alan tıklanabilir, solda hizalı içerik -->
     <Style x:Key="PanelCardButton" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PanelFocusVisual}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Padding" Value="8" />

@@ -28,6 +28,7 @@ public sealed class AppIndex
     private readonly Dictionary<string, ImageSource?> _icons = new(StringComparer.OrdinalIgnoreCase);
     private Task<IReadOnlyList<SearchItem>>? _building;
     private IReadOnlyList<SearchItem>? _items;
+    private IReadOnlyDictionary<string, StoreApp> _storeApps = new Dictionary<string, StoreApp>();
     private DateTime _builtAt;
 
     public Task<IReadOnlyList<SearchItem>> GetItemsAsync()
@@ -73,12 +74,20 @@ public sealed class AppIndex
         if (!_icons.TryGetValue(item.Target, out var icon))
         {
             icon = item.Target.StartsWith(AppsFolderPrefix, StringComparison.OrdinalIgnoreCase)
-                ? StoreAppHelper.AppList.GetAppByAumid(item.Target[AppsFolderPrefix.Length..])?.GetIconImageSource(IconSize.Large)
+                ? StoreApp(item.Target[AppsFolderPrefix.Length..])?.GetIconImageSource(IconSize.Large)
                 : IconImageConverter.GetImageFromAssociatedIcon(item.Target, IconSize.Large);
             _icons[item.Target] = icon;
         }
 
         return icon;
+    }
+
+    private StoreApp? StoreApp(string aumid)
+    {
+        lock (_gate)
+        {
+            return _storeApps.GetValueOrDefault(aumid);
+        }
     }
 
     private IReadOnlyList<SearchItem> Build()
@@ -98,11 +107,16 @@ public sealed class AppIndex
             }
         }
 
+        // ManagedShell'in ortak StoreAppHelper.AppList'i arayüz iş parçacığında da okunur (ör. Store uygulaması
+        // pencerelerinin simgeleri); arka planda onu temizleyip doldurmak yerine ayrı bir liste kurulur.
+        var storeApps = new Dictionary<string, StoreApp>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            StoreAppHelper.AppList.FetchApps();
-            foreach (var app in StoreAppHelper.AppList)
+            var list = new StoreAppList();
+            list.FetchApps();
+            foreach (var app in list)
             {
+                storeApps.TryAdd(app.AppUserModelId, app);
                 if (!string.IsNullOrWhiteSpace(app.DisplayName) && !IsExcluded(app.DisplayName) && names.Add(app.DisplayName))
                 {
                     items.Add(new SearchItem(app.DisplayName, SearchKind.App, AppsFolderPrefix + app.AppUserModelId));
@@ -120,6 +134,7 @@ public sealed class AppIndex
         lock (_gate)
         {
             _items = items;
+            _storeApps = storeApps;
             _builtAt = DateTime.UtcNow;
         }
 

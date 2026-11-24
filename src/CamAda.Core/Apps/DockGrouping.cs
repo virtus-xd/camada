@@ -23,7 +23,7 @@ public static class DockGrouping
 
         foreach (var window in windowsInOrder)
         {
-            var pinIndex = IndexOfPinned(pinned, window.ProcessName);
+            var pinIndex = IsSeparateApp(window) ? -1 : IndexOfPinned(pinned, window.ProcessName);
             if (pinIndex < 0 && HelperProcesses.TryGetValue(window.ProcessName, out var mainProcess))
             {
                 pinIndex = IndexOfPinned(pinned, mainProcess);
@@ -56,6 +56,17 @@ public static class DockGrouping
         entries.AddRange(unpinned.Select(g => new DockEntry("run:" + g.Key, null, g.Windows)));
         return entries;
     }
+
+    /// <summary>
+    /// Sabitlenmiş uygulamanın exe'sinde çalışan ama Windows'un ayrı uygulama saydığı pencereler (kendi
+    /// AppUserModelId'leriyle): Chromium web uygulamaları ("Chrome._crx_…") ve explorer.exe'deki Denetim Masası gibi
+    /// pencereler (normal Gezgin penceresinde kimlik boştur). Bunlar sabitlenmemiş gibi kendi kimlikleriyle gruplanır.
+    /// </summary>
+    private static bool IsSeparateApp(RunningWindow window) =>
+        window.AppUserModelId is { } id
+        && (id.Contains("_crx_", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(window.ProcessName, "explorer.exe", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(id, "Microsoft.Windows.Explorer", StringComparison.OrdinalIgnoreCase)));
 
     private static int IndexOfPinned(IReadOnlyList<PinnedApp> pinned, string processName)
     {

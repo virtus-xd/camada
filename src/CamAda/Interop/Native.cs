@@ -9,6 +9,8 @@ internal static partial class Native
     public const long WS_EX_NOACTIVATE = 0x08000000;
     public const int WM_WINDOWPOSCHANGING = 0x0046;
     public const uint SWP_NOMOVE = 0x0002;
+    public const int WM_MOUSEACTIVATE = 0x0021;
+    public const int MA_NOACTIVATE = 3;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct WINDOWPOS
@@ -138,6 +140,31 @@ internal static partial class Native
             HasCaption: (style & WS_CAPTION) == WS_CAPTION,
             ReportedByShell: reportedByShell);
     }
+
+    public static bool WindowExists(nint hwnd) => IsWindow(hwnd);
+
+    /// <summary>
+    /// Pencereye, öne getirmeden kapanma isteği gönderir (görev çubuğu küçük resmindeki × gibi). ManagedShell'in
+    /// ApplicationWindow.Close'u önce SetForegroundWindow çağırır; bu, panelin odağını alıp onu kapatırdı. Uygulama
+    /// "Kaydedilsin mi?" gibi bir soru gösterirse onu öne getirebilsin diye ön plana geçme izni verilir.
+    /// </summary>
+    public static void RequestClose(nint hwnd)
+    {
+        const uint WM_SYSCOMMAND = 0x0112;
+        const nint SC_CLOSE = 0xF060;
+        GetWindowThreadProcessId(hwnd, out var processId);
+        AllowSetForegroundWindow(processId);
+        PostMessage(hwnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindow(nint hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool AllowSetForegroundWindow(int processId);
+
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(nint hwnd, uint msg, nint wParam, nint lParam);
 
     private const int GWL_STYLE = -16;
 

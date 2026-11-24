@@ -15,5 +15,8 @@
 
         <!-- Önizleme kartları (en fazla 3 sütun) -->
         <WrapPanel x:Name="Cards" />
+
+        <!-- Kartlara sığmayan pencereler: yalnız başlık satırı -->
+        <StackPanel x:Name="MoreWindows" Visibility="Collapsed" Margin="0,2,0,0" />
     </StackPanel>
 </UserControl>
