@@ -124,7 +124,7 @@ public partial class App : Application
             },
             IsStartWithWindows: () => _settings.StartWithWindows,
             SetStartWithWindows: SetStartWithWindows,
-            IsRecordHidden: () => !_settings.Record.Enabled,
+            IsRecordHidden: () => _record is null,
             SetRecordHidden: SetRecordHidden), _dock, _media);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
@@ -276,9 +276,18 @@ public partial class App : Application
             return;
         }
 
-        _record = new RecordWindow(_media!, () => _settings.Record);
-        _record.Show();
-        _record.Extras = _spotifyExtras;
+        var record = new RecordWindow(_media!, () => _settings.Record);
+        // Alt+F4 gibi dışarıdan kapanışta da alan boşalır: menü işareti gerçeği gösterir ve "göster" plağı geri getirir.
+        record.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_record, record))
+            {
+                _record = null;
+            }
+        };
+        _record = record;
+        record.Show();
+        record.Extras = _spotifyExtras;
     }
 
     /// <summary>Plak çaları kapatır; pencere medya, ekran ve örtülme olaylarını kapanırken bırakır.</summary>
