@@ -59,6 +59,17 @@ public class SettingsStoreTests : IDisposable
         Assert.Null(r.LabelDiameter);
     }
 
+    [Theory]
+    [InlineData("""{ "SettingsVersion": 2 }""", "Ctrl+Shift+M")]
+    [InlineData("""{ "SettingsVersion": 2, "Hotkeys": { "MicToggle": "Foo" } }""", "Ctrl+Shift+M")]
+    [InlineData("""{ "SettingsVersion": 2, "Hotkeys": null }""", "Ctrl+Shift+M")]
+    [InlineData("""{ "SettingsVersion": 2, "Hotkeys": { "MicToggle": "Alt+F13" } }""", "Alt+F13")]
+    public void Hotkeys_default_and_invalid_falls_back(string json, string expected)
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), json);
+        Assert.Equal(expected, new SettingsStore(_dir).Load().Hotkeys.MicToggle);
+    }
+
     [Fact]
     public void Hidden_record_survives_save_and_load()
     {

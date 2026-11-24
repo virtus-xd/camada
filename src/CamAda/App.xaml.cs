@@ -5,6 +5,8 @@ using System.Windows.Threading;
 using CamAda.Audio;
 using CamAda.Core.Apps;
 using CamAda.Core.Audio;
+using CamAda.Core.Input;
+using CamAda.Input;
 using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
@@ -41,6 +43,7 @@ public partial class App : Application
     private SpotifyClient? _spotify;
     private ISpotifyExtras? _spotifyExtras;
     private AudioService? _audio;
+    private GlobalHotkeys? _hotkeys;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -191,6 +194,38 @@ public partial class App : Application
         _island!.Bar.SoundClicked += (_, _) =>
             _island.Panels.Toggle("sound", () => new Panels.SoundPanel(audio), Panels.SoundPanel.PanelWidth);
         UpdateSoundButton();
+        RegisterMicHotkey(audio);
+    }
+
+    /// <summary>
+    /// Ctrl+Shift+M (ayardan değişir): mikrofonu her yerden kapatıp açar ve adada kısaca gösterir. Kısayolu başka bir
+    /// uygulama almışsa adada bir kez "… kullanılamıyor" görünür (Review Focus 4).
+    /// </summary>
+    private void RegisterMicHotkey(AudioService audio)
+    {
+        var text = _settings.Hotkeys.MicToggle;
+        if (Hotkey.TryParse(text) is not { } hotkey)
+        {
+            return;
+        }
+
+        _hotkeys = new GlobalHotkeys();
+        var registered = _hotkeys.Register(hotkey, () =>
+        {
+            audio.ToggleMic();
+            _island?.Flash(audio.Mic switch
+            {
+                MicState.Off => new FlashContent(SpeakerGlyph.MicOff, null, "Mikrofon kapalı"),
+                MicState.On => new FlashContent(SpeakerGlyph.MicOn, null, "Mikrofon açık"),
+                _ => new FlashContent(SpeakerGlyph.MicOff, null, "Mikrofon bulunamadı"),
+            });
+        });
+
+        if (!registered)
+        {
+            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent(SpeakerGlyph.MicOn, null, $"{text} kullanılamıyor")),
+                DispatcherPriority.ApplicationIdle);
+        }
     }
 
     private void UpdateSoundButton()
@@ -485,6 +520,7 @@ public partial class App : Application
         TryShowTaskbar();
         _island?.Close();
         CloseRecord();
+        _hotkeys?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();

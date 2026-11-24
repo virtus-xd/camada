@@ -51,6 +51,9 @@ public sealed record AppSettings
 
     /// <summary>Kullanıcının Spotify geliştirici uygulamasının Client ID'si (beğen ve sıradaki için). null: bağlı değil.</summary>
     public string? SpotifyClientId { get; init; }
+
+    /// <summary>Genel kısayollar (ör. Ctrl+Shift+M ile mikrofon).</summary>
+    public HotkeySettings Hotkeys { get; init; } = new();
 }
 
 /// <summary>

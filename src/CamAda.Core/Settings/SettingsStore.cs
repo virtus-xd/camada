@@ -103,6 +103,10 @@ public sealed class SettingsStore
             Weather = SanitizeWeather(s.Weather),
             Record = SanitizeRecord(s.Record),
             SpotifyClientId = string.IsNullOrWhiteSpace(s.SpotifyClientId) ? null : s.SpotifyClientId.Trim(),
+            Hotkeys = new HotkeySettings
+            {
+                MicToggle = Input.Hotkey.TryParse(s.Hotkeys?.MicToggle)?.ToString() ?? HotkeySettings.DefaultMicToggle,
+            },
         };
     }
 
