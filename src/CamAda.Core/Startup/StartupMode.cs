@@ -3,8 +3,12 @@ namespace CamAda.Core.Startup;
 /// <summary>Uygulamanın hangi modda başlatıldığı (komut satırı argümanlarından).</summary>
 public abstract record StartupMode
 {
+    /// <summary>Kendini yeniden başlatan örneğin yenisine verdiği argüman.</summary>
+    public const string RestartingArgument = "--restarting";
+
     /// <summary>Normal çalışma: şerit ve ada açılır.</summary>
-    public sealed record Normal : StartupMode;
+    /// <param name="Restarting">Uygulama kendini yeniden başlatıyor: önceki örneğin kapanmasını bekle.</param>
+    public sealed record Normal(bool Restarting = false) : StartupMode;
 
     /// <summary>Bekçi süreci: ana süreç kapanınca gerekirse görev çubuğunu geri getirir.</summary>
     public sealed record Watchdog(int ParentProcessId) : StartupMode;
@@ -28,6 +32,6 @@ public abstract record StartupMode
             }
         }
 
-        return new Normal();
+        return new Normal(Restarting: args.Contains(RestartingArgument));
     }
 }

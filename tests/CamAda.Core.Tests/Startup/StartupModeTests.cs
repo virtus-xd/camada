@@ -25,4 +25,11 @@ public class StartupModeTests
     [Fact]
     public void Unknown_arguments_are_ignored() =>
         Assert.IsType<StartupMode.Normal>(StartupMode.Parse(["--bilinmeyen"]));
+
+    [Fact]
+    public void Restarting_flag_is_normal_mode_that_waits_for_the_previous_instance()
+    {
+        Assert.Equal(new StartupMode.Normal(Restarting: true), StartupMode.Parse([StartupMode.RestartingArgument]));
+        Assert.Equal(new StartupMode.Normal(Restarting: false), StartupMode.Parse([]));
+    }
 }

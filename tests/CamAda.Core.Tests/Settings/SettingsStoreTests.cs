@@ -44,6 +44,31 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Hand_edited_pinned_entries_are_repaired_or_dropped()
+    {
+        // Elle düzenlenmiş dosya: yanlış anahtarlı giriş, null giriş ve eksik alanlı giriş.
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """
+            {
+              "SettingsVersion": 2,
+              "PinnedApps": [
+                { "Id": "x", "Name": "X", "Path": "C:\\x.exe" },
+                null,
+                { "LaunchPath": "C:\\Oyun\\Oyun.exe" }
+              ]
+            }
+            """);
+
+        var pinned = new SettingsStore(_dir).Load().PinnedApps;
+
+        var app = Assert.Single(pinned!);
+        Assert.Equal(@"C:\Oyun\Oyun.exe", app.LaunchPath);
+        Assert.Equal("oyun.exe", app.ProcessName);
+        Assert.Equal("oyun.exe", app.Id);
+        Assert.Equal("Oyun", app.Name);
+        Assert.Equal("", app.Arguments);
+    }
+
+    [Fact]
     public void Save_then_load_round_trips()
     {
         var store = new SettingsStore(_dir);

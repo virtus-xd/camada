@@ -34,6 +34,7 @@ public partial class App : Application
     private SettingsStore _settingsStore = null!;
     private AppSettings _settings = null!;
     private bool _exiting;
+    private bool _hostsTray;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -52,16 +53,16 @@ public partial class App : Application
                 Shutdown();
                 return;
 
-            default:
-                StartNormal();
+            case StartupMode.Normal normal:
+                StartNormal(normal.Restarting);
                 return;
         }
     }
 
-    private void StartNormal()
+    private void StartNormal(bool restarting)
     {
         _singleInstance = new Mutex(initiallyOwned: true, @"Local\CamAda.Main", out var createdNew);
-        if (!createdNew)
+        if (!createdNew && !(restarting && WaitForPreviousInstance(_singleInstance)))
         {
             Shutdown();
             return;
@@ -80,7 +81,8 @@ public partial class App : Application
         EnsurePinnedApps();
         ApplyAutostart(_settings.StartWithWindows);
 
-        _shell = new ShellHost();
+        _hostsTray = _settings.HideWindowsTaskbar;
+        _shell = new ShellHost(_hostsTray);
         _guard = new TaskbarGuard(_shell.Manager.ExplorerHelper, _safety);
 
         DispatcherUnhandledException += (_, e) => OnCrash(e.Exception);
@@ -232,6 +234,46 @@ public partial class App : Application
         {
             _guard!.ShowAndMarkClean();
         }
+
+        // Tepsiyi barındırma yalnız açılışta seçilebilir: görev çubuğu görünürken simgeler Explorer'ın tepsisinde olmalı.
+        if (hidden != _hostsTray)
+        {
+            Restart();
+        }
+    }
+
+    /// <summary>Önceki örnek kapanırken tekil örnek kilidini devralır (yeniden başlatma).</summary>
+    private static bool WaitForPreviousInstance(Mutex mutex)
+    {
+        try
+        {
+            return mutex.WaitOne(TimeSpan.FromSeconds(10));
+        }
+        catch (AbandonedMutexException)
+        {
+            return true; // önceki örnek kilidi bırakmadan çıktı: kilit artık bizde
+        }
+    }
+
+    /// <summary>Yeni örneği başlatır (önceki kapanana kadar bekler) ve bu örneği temiz kapatır.</summary>
+    private void Restart()
+    {
+        if (Environment.ProcessPath is not { } exe)
+        {
+            return;
+        }
+
+        try
+        {
+            DetachedProcess.Start(exe, StartupMode.RestartingArgument);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            Debug.WriteLine($"Yeniden başlatılamadı: {ex}");
+            return;
+        }
+
+        ExitGracefully();
     }
 
     /// <summary>

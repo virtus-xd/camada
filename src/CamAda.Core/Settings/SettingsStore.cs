@@ -97,6 +97,27 @@ public sealed class SettingsStore
             HoverLeaveDelayMs = s.HoverLeaveDelayMs is >= 0 and <= 5000 ? s.HoverLeaveDelayMs : defaults.HoverLeaveDelayMs,
             StripHeight = s.StripHeight is > 0 and <= 200 ? s.StripHeight : defaults.StripHeight,
             GlassMode = Enum.IsDefined(s.GlassMode) ? s.GlassMode : defaults.GlassMode,
+            PinnedApps = s.PinnedApps?.Where(p => p is not null && !string.IsNullOrWhiteSpace(p.LaunchPath))
+                .Select(Repair)
+                .ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Elle eklenmiş sabitlenmiş uygulamada eksik alanları yoldan türetir (ör. yalnız "LaunchPath" yazılmış);
+    /// yolu olmayan ya da boş girişler yukarıda elenir. Aksi hâlde null alanlar adayı her açılışta çökertir.
+    /// </summary>
+    private static Apps.PinnedApp Repair(Apps.PinnedApp app)
+    {
+        var processName = string.IsNullOrWhiteSpace(app.ProcessName)
+            ? Path.GetFileName(app.LaunchPath).ToLowerInvariant()
+            : app.ProcessName;
+        return app with
+        {
+            ProcessName = processName,
+            Id = string.IsNullOrWhiteSpace(app.Id) ? processName : app.Id,
+            Name = string.IsNullOrWhiteSpace(app.Name) ? Path.GetFileNameWithoutExtension(app.LaunchPath) : app.Name,
+            Arguments = app.Arguments ?? string.Empty,
         };
     }
 

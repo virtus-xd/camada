@@ -3,6 +3,15 @@ namespace CamAda.Core.Apps;
 public static class DockGrouping
 {
     /// <summary>
+    /// Penceresini ana exe yerine yardımcı bir süreçte açan uygulamalar: yardımcının pencereleri ana uygulamanın
+    /// sabitlenmiş düğmesine bağlanır (yeni Steam istemcisinin penceresi steamwebhelper.exe'dedir).
+    /// </summary>
+    private static readonly Dictionary<string, string> HelperProcesses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["steamwebhelper.exe"] = "steam.exe",
+    };
+
+    /// <summary>
     /// Önce sabitlenmişler (ayar sırasıyla, açık olmasalar da), sonra sabitlenmemiş açık uygulamalar ilk görülme sırasıyla.
     /// Pencereler sabitlenmiş uygulamaya exe adıyla (büyük/küçük harf duyarsız) bağlanır; sabitlenmemişler
     /// AppUserModelId varsa ona, yoksa exe adına göre gruplanır.
@@ -15,6 +24,11 @@ public static class DockGrouping
         foreach (var window in windowsInOrder)
         {
             var pinIndex = IndexOfPinned(pinned, window.ProcessName);
+            if (pinIndex < 0 && HelperProcesses.TryGetValue(window.ProcessName, out var mainProcess))
+            {
+                pinIndex = IndexOfPinned(pinned, mainProcess);
+            }
+
             if (pinIndex >= 0)
             {
                 pinnedWindows[pinIndex].Add(window);

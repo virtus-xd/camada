@@ -73,6 +73,16 @@ public class DockTests
     }
 
     [Fact]
+    public void Steam_web_helper_windows_group_under_pinned_steam()
+    {
+        // Yeni Steam istemcisinde ana pencereyi steamwebhelper.exe açar.
+        var entries = DockGrouping.Group([Pin("steam", "steam.exe")], [Win("steamwebhelper.exe", handle: 1)]);
+        var steam = Assert.Single(entries);
+        Assert.Equal("pin:steam", steam.Key);
+        Assert.Single(steam.Windows);
+    }
+
+    [Fact]
     public void Windows_group_under_pinned_app_case_insensitively()
     {
         var entries = DockGrouping.Group([Pin("chrome", "chrome.exe")], [Win("Chrome.exe", handle: 1), Win("chrome.exe", handle: 2)]);

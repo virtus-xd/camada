@@ -7,11 +7,15 @@ public sealed class ShellHost : IDisposable
 {
     private bool _disposed;
 
-    public ShellHost()
+    /// <param name="hostTray">
+    /// Bildirim alanını ada barındırsın mı. Yalnız Windows görev çubuğu gizliyken açılır: barındırırken Explorer'ın
+    /// tepsisi yeni simgeleri almaz, görünür görev çubuğu eksik simgeler gösterirdi.
+    /// </param>
+    public ShellHost(bool hostTray)
     {
         var config = ShellManager.DefaultShellConfig;
-        config.EnableTrayService = true;
-        config.AutoStartTrayService = true;
+        config.EnableTrayService = hostTray;
+        config.AutoStartTrayService = hostTray;
         config.PinnedNotifyIcons = []; // hiçbir simge sabit değil: hepsi "Arka planda çalışanlar" panelinde
         config.EnableTasksService = true; // FullScreenHelper tam ekranı algılamak için TasksService ister.
         config.TaskIconSize = ManagedShell.Common.Enums.IconSize.Large; // adadaki 26 DIP simgeler %125'te keskin kalsın

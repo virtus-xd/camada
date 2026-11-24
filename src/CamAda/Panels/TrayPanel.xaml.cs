@@ -31,10 +31,22 @@ public sealed partial class TrayPanel : UserControl
             IsLiveFiltering = true,
         };
         _icons.LiveFilteringProperties.Add(nameof(NotifyIcon.IsHidden));
-        ((System.Collections.Specialized.INotifyCollectionChanged)_icons).CollectionChanged += (_, _) => UpdateEmptyText();
+        ((System.Collections.Specialized.INotifyCollectionChanged)_icons).CollectionChanged += OnIconsChanged;
         Icons.ItemsSource = _icons;
         UpdateEmptyText();
+
+        // Görünüm tepsinin kalıcı koleksiyonuna bağlıdır; ayrılmazsa kapanan her panel bellekte kalır ve tepsi
+        // değişikliklerini işlemeye devam eder.
+        Unloaded += (_, _) =>
+        {
+            ((System.Collections.Specialized.INotifyCollectionChanged)_icons).CollectionChanged -= OnIconsChanged;
+            Icons.ItemsSource = null;
+            _icons.DetachFromSourceCollection();
+        };
     }
+
+    private void OnIconsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) =>
+        UpdateEmptyText();
 
     private void UpdateEmptyText() =>
         EmptyText.Visibility = _icons.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
