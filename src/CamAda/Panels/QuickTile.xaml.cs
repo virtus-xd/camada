@@ -107,6 +107,19 @@ public partial class QuickTile : UserControl
 
     public void FocusMain() => MainPart.Focus();
 
+    /// <summary>Liste sayfasından dönünce odak okta olsun (yoksa ana bölümde).</summary>
+    public void FocusDetails()
+    {
+        if (HasDetails)
+        {
+            DetailsPart.Focus();
+        }
+        else
+        {
+            MainPart.Focus();
+        }
+    }
+
     private void EndNote()
     {
         _noteTimer.Stop();

@@ -3,6 +3,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using CamAda.Core.Bluetooth;
 using CamAda.Core.Network;
@@ -35,6 +36,8 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
 
         WifiTile.Glyph = QuickGlyphs.WifiFull;
         WifiTile.Title = "Wi‑Fi";
+        WifiTile.HasDetails = services.Wifi is not null;
+        WifiTile.DetailsRequested += (_, _) => ShowPage(QuickPage.Wifi);
         BluetoothTile.Glyph = QuickGlyphs.Bluetooth;
         BluetoothTile.Title = "Bluetooth";
         FocusTile.Glyph = QuickGlyphs.Focus;
@@ -90,14 +93,38 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
 
     public void ShowPage(QuickPage page)
     {
+        var previous = Page;
         Page = page;
+        DetailPage.Content = page switch
+        {
+            QuickPage.Wifi when _services.Wifi is { } wifi => new WifiListView(_services, wifi, () => ShowPage(QuickPage.Main)),
+            _ => null,
+        };
         MainPage.Visibility = page == QuickPage.Main ? Visibility.Visible : Visibility.Collapsed;
         DetailPage.Visibility = page == QuickPage.Main ? Visibility.Collapsed : Visibility.Visible;
+        Slide(page == QuickPage.Main ? MainPage : DetailPage, fromRight: page != QuickPage.Main);
         if (page == QuickPage.Main)
         {
-            DetailPage.Content = null;
             Refresh();
+            var tile = previous == QuickPage.Bluetooth ? BluetoothTile : WifiTile;
+            Dispatcher.BeginInvoke(tile.FocusDetails, DispatcherPriority.Input);
         }
+    }
+
+    /// <summary>Sayfa geçişi: 0,18 sn yatay kayma ve belirme; "Animasyonları azalt" açıksa anında.</summary>
+    private static void Slide(FrameworkElement page, bool fromRight)
+    {
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            return;
+        }
+
+        var duration = TimeSpan.FromSeconds(0.18);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var shift = new TranslateTransform();
+        page.RenderTransform = shift;
+        shift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(fromRight ? 24 : -24, 0, duration) { EasingFunction = ease });
+        page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = ease });
     }
 
     public bool HandleEscape()

@@ -283,9 +283,29 @@ public partial class App : Application
             Launcher = CreateQuickLauncher(),
             Radios = IsAbsentForTest("radios") ? null : _radios,
             Brightness = _brightness,
+            Wifi = await CreateWifiAsync(),
         };
         _island.Bar.WifiClicked += (_, _) => OpenQuickSettings();
         _island.Bar.BatteryClicked += (_, _) => OpenQuickSettings();
+    }
+
+    /// <summary>Wi‑Fi listesi; adaptör yoksa ya da kurulamazsa null (kutucukta liste oku görünmez).</summary>
+    private static async Task<WifiService?> CreateWifiAsync()
+    {
+        if (IsAbsentForTest("wifi"))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await WifiService.CreateAsync();
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+        {
+            LogCrash(ex);
+            return null;
+        }
     }
 
     /// <summary>Wi‑Fi ve pil simgesi aynı paneli açar; ikisinden birine yeniden basmak kapatır.</summary>

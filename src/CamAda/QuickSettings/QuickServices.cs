@@ -1,4 +1,4 @@
-namespace CamAda.QuickSettings;
+﻿namespace CamAda.QuickSettings;
 
 /// <summary>Hızlı ayarlar panelinin kullandığı servisler (Plan 4.3). Null olanlar bu bilgisayarda kurulamadı.</summary>
 public sealed class QuickServices
@@ -14,4 +14,6 @@ public sealed class QuickServices
     public RadioService? Radios { get; init; }
 
     public BrightnessService? Brightness { get; init; }
+
+    public WifiService? Wifi { get; init; }
 }
