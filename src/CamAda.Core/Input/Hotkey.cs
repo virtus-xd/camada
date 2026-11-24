@@ -17,12 +17,13 @@ public enum HotkeyModifiers
 /// </summary>
 public sealed record Hotkey(HotkeyModifiers Modifiers, int VirtualKey)
 {
+    /// <summary>Yazım sırası Windows'unki gibi: Win, Ctrl, Alt, Shift (ör. "Win+Alt+V", "Ctrl+Shift+M").</summary>
     private static readonly (string Name, HotkeyModifiers Flag)[] ModifierNames =
     [
+        ("Win", HotkeyModifiers.Win),
         ("Ctrl", HotkeyModifiers.Control),
         ("Alt", HotkeyModifiers.Alt),
         ("Shift", HotkeyModifiers.Shift),
-        ("Win", HotkeyModifiers.Win),
     ];
 
     public static Hotkey? TryParse(string? text)

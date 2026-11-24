@@ -106,6 +106,7 @@ public sealed class SettingsStore
             Hotkeys = new HotkeySettings
             {
                 MicToggle = Input.Hotkey.TryParse(s.Hotkeys?.MicToggle)?.ToString() ?? HotkeySettings.DefaultMicToggle,
+                ClipboardOpen = Input.Hotkey.TryParse(s.Hotkeys?.ClipboardOpen)?.ToString() ?? HotkeySettings.DefaultClipboardOpen,
             },
         };
     }

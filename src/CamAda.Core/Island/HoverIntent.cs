@@ -57,6 +57,23 @@ public sealed class HoverIntent : IDisposable
         }
     }
 
+    /// <summary>Gecikmesiz genişler (ör. pano kısayolu paneli klavyeyle açtı); zaten genişse bir şey yapmaz.</summary>
+    public void ExpandNow()
+    {
+        lock (_gate)
+        {
+            CancelPending();
+            if (_expanded)
+            {
+                return;
+            }
+
+            _expanded = true;
+        }
+
+        ExpandedChanged?.Invoke(this, true);
+    }
+
     public void SetPanelOpen(bool open)
     {
         var collapsed = false;

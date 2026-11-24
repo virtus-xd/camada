@@ -70,6 +70,17 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal(expected, new SettingsStore(_dir).Load().Hotkeys.MicToggle);
     }
 
+    [Theory]
+    [InlineData("""{ "SettingsVersion": 2 }""", "Win+Alt+V")]
+    [InlineData("""{ "SettingsVersion": 2, "Hotkeys": { "ClipboardOpen": "Foo" } }""", "Win+Alt+V")]
+    [InlineData("""{ "SettingsVersion": 2, "Hotkeys": null }""", "Win+Alt+V")]
+    [InlineData("""{ "SettingsVersion": 2, "Hotkeys": { "ClipboardOpen": "Ctrl+Shift+V" } }""", "Ctrl+Shift+V")]
+    public void Clipboard_hotkey_default_and_invalid_falls_back(string json, string expected)
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), json);
+        Assert.Equal(expected, new SettingsStore(_dir).Load().Hotkeys.ClipboardOpen);
+    }
+
     [Fact]
     public void Hidden_record_survives_save_and_load()
     {

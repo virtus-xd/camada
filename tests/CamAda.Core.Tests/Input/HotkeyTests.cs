@@ -24,4 +24,7 @@ public class HotkeyTests
 
     [Fact]
     public void ToString_is_canonical() => Assert.Equal("Ctrl+Shift+M", Hotkey.TryParse("shift+ctrl+m")!.ToString());
+
+    [Fact]
+    public void Win_comes_first() => Assert.Equal("Win+Alt+V", Hotkey.TryParse("alt+win+v")!.ToString());
 }

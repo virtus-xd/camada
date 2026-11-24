@@ -165,6 +165,9 @@ public partial class IslandWindow : Window
     /// <summary>Genişlemiş satır (Başlat, Ara, uygulamalar, ^ olayları için).</summary>
     public IslandBar Bar => ExpandedContent;
 
+    /// <summary>Paneli klavyeyle açan kısayol (Win+Alt+V) için adayı fare beklemeden genişletir.</summary>
+    public void ExpandForKeyboard() => _hover.ExpandNow();
+
     /// <summary>Küçük adada mikrofon kapalı işaretini gösterir ya da gizler.</summary>
     public void ShowMicOff(bool off) => CompactMicOff.Visibility = off ? Visibility.Visible : Visibility.Collapsed;
 

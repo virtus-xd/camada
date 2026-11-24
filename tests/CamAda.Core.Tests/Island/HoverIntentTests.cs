@@ -59,6 +59,29 @@ public class HoverIntentTests
     }
 
     [Fact]
+    public void ExpandNow_expands_immediately_and_closing_panel_outside_collapses()
+    {
+        var h = Make();
+        h.ExpandNow();
+        Assert.True(h.IsExpanded);
+        Assert.Equal(new[] { true }, _events);
+
+        h.SetPanelOpen(true); Ms(5000);
+        Assert.True(h.IsExpanded);
+        h.SetPanelOpen(false);
+        Assert.False(h.IsExpanded);
+        Assert.Equal(new[] { true, false }, _events);
+    }
+
+    [Fact]
+    public void ExpandNow_when_already_expanded_raises_nothing()
+    {
+        var h = Make(); h.PointerEntered(); Ms(120);
+        h.ExpandNow();
+        Assert.Equal(new[] { true }, _events);
+    }
+
+    [Fact]
     public void Closing_panel_while_pointer_inside_stays_expanded()
     {
         var h = Make(); h.PointerEntered(); Ms(120); h.SetPanelOpen(true); h.SetPanelOpen(false); Ms(5000);

@@ -7,6 +7,7 @@ using CamAda.Clips;
 using CamAda.Panels;
 using CamAda.Core.Apps;
 using CamAda.Core.Audio;
+using CamAda.Core.Clipboard;
 using CamAda.Core.Input;
 using CamAda.Input;
 using CamAda.Core.Diagnostics;
@@ -152,6 +153,7 @@ public partial class App : Application
             ShowRecord();
         }
 
+        _hotkeys = new GlobalHotkeys();
         StartAudio();
         StartClipboard();
 
@@ -218,9 +220,89 @@ public partial class App : Application
 
         _island!.Bar.ClipboardClicked += (_, _) =>
             _island.Panels.Toggle("clipboard", () => CreateClipboardPanel(pasteOnChoose: false), ClipboardPanel.PanelWidth);
+        RegisterClipboardHotkey();
     }
 
     private ClipboardPanel CreateClipboardPanel(bool pasteOnChoose) => new(_clips!, pasteOnChoose);
+
+    /// <summary>
+    /// Win+Alt+V (ayardan değişir): Pano panelini her yerden açar; seçilen öğe kısayol anında öndeki pencereye yapıştırılır
+    /// (tasarım "Win+Alt+V ve yapıştırma"). Kısayolu başka bir uygulama almışsa adada bir kez "… kullanılamıyor" görünür.
+    /// </summary>
+    private void RegisterClipboardHotkey()
+    {
+        var text = _settings.Hotkeys.ClipboardOpen;
+        if (Hotkey.TryParse(text) is not { } hotkey || _hotkeys is null)
+        {
+            return;
+        }
+
+        if (!_hotkeys.Register(hotkey, OnClipboardHotkey))
+        {
+            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent("\uE77F", null, $"{text} kullanılamıyor")),
+                DispatcherPriority.ApplicationIdle);
+        }
+    }
+
+    private void OnClipboardHotkey()
+    {
+        if (_island is null || _clips is null)
+        {
+            return;
+        }
+
+        if (_island.Panels.IsOpenWith("clipboard"))
+        {
+            _island.Panels.Close();
+            return;
+        }
+
+        var target = PasteBack.CaptureForeground();
+        var pasteOnChoose = PasteRule.Decide(openedByHotkey: true, PasteBack.Describe(target, Environment.ProcessId))
+                            != PasteOutcome.CopyOnly;
+        var panel = CreateClipboardPanel(pasteOnChoose);
+        var chosen = false;
+        if (pasteOnChoose)
+        {
+            panel.Chosen += (_, choice) =>
+            {
+                chosen = true;
+                _ = PasteChoiceAsync(choice, target);
+            };
+
+            // Esc ya da kısayolla seçimsiz kapanınca odağı önceki pencereye geri ver; kullanıcı başka bir pencereye
+            // tıkladıysa ona dokunma.
+            panel.Unloaded += (_, _) =>
+            {
+                var foreground = Native.GetForegroundWindow();
+                if (!chosen && (foreground == 0 || Native.ProcessIdOf(foreground) == Environment.ProcessId))
+                {
+                    Native.SetForegroundWindow(target);
+                }
+            };
+        }
+
+        _island.Panels.Show("clipboard", panel, ClipboardPanel.PanelWidth);
+        _island.ExpandForKeyboard();
+    }
+
+    private async Task PasteChoiceAsync(ClipChoice choice, nint target)
+    {
+        var copied = await _clips!.PutAsync(choice);
+        _island?.Panels.Close();
+        if (!copied)
+        {
+            return;
+        }
+
+        var outcome = PasteRule.Decide(openedByHotkey: true, PasteBack.Describe(target, Environment.ProcessId));
+        if (outcome == PasteOutcome.Paste && await PasteBack.PasteIntoAsync(target))
+        {
+            return;
+        }
+
+        _island?.Flash(new FlashContent("\uE8C8", null, "Kopyalandı — Ctrl+V ile yapıştır"));
+    }
 
     /// <summary>
     /// Ctrl+Shift+M (ayardan değişir): mikrofonu her yerden kapatıp açar ve adada kısaca gösterir. Kısayolu başka bir
@@ -234,8 +316,7 @@ public partial class App : Application
             return;
         }
 
-        _hotkeys = new GlobalHotkeys();
-        var registered = _hotkeys.Register(hotkey, () =>
+        var registered = _hotkeys!.Register(hotkey, () =>
         {
             audio.ToggleMic();
             _island?.Flash(audio.Mic switch

@@ -21,6 +21,9 @@ public sealed class PanelHost
 
     public bool IsOpen => _current is not null;
 
+    /// <summary><paramref name="key"/> ile açılmış panel şu an açık mı.</summary>
+    public bool IsOpenWith(object key) => _current is not null && Equals(_currentKey, key);
+
     /// <summary><paramref name="key"/> ile açık bir panel varsa kapatır, yoksa yenisini açar.</summary>
     public void Toggle(object key, Func<FrameworkElement> content, double width, bool keepOpenWhilePointerInside = false)
     {
