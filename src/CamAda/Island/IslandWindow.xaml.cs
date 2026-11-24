@@ -49,6 +49,7 @@ public partial class IslandWindow : Window
         ExpandedContent.AppsSource = _dock.Items;
         ExpandedContent.Width = ExpandedTargetWidth - 2;
 
+        _fullScreen = _strip.IsFullScreenActive;
         _strip.FullScreenChanged += OnFullScreenChanged;
         _clockTimer.Tick += (_, _) => RefreshClock();
         SourceInitialized += OnSourceInitialized;

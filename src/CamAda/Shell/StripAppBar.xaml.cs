@@ -1,3 +1,8 @@
+using System.Collections.Specialized;
+using System.Windows.Threading;
+using CamAda.Core.Glass;
+using CamAda.Core.Island;
+using CamAda.Interop;
 using ManagedShell.AppBar;
 
 namespace CamAda.Shell;
@@ -8,6 +13,11 @@ namespace CamAda.Shell;
 /// </summary>
 public partial class StripAppBar : AppBarWindow
 {
+    private readonly DispatcherTimer _fullScreenRecheck = new(DispatcherPriority.Background)
+    {
+        Interval = TimeSpan.FromMilliseconds(250),
+    };
+
     public StripAppBar(ShellHost host, double height)
         : base(
             host.Manager.AppBarManager,
@@ -19,9 +29,20 @@ public partial class StripAppBar : AppBarWindow
             height)
     {
         InitializeComponent();
+
+        _fullScreenHelper.FullScreenApps.CollectionChanged += OnFullScreenAppsChanged;
+        _fullScreenRecheck.Tick += (_, _) => UpdateFullScreen();
+        Closed += (_, _) =>
+        {
+            _fullScreenRecheck.Stop();
+            _fullScreenHelper.FullScreenApps.CollectionChanged -= OnFullScreenAppsChanged;
+        };
+        UpdateFullScreen();
     }
 
     public bool IsFullScreenActive { get; private set; }
+
+    public event EventHandler<bool>? FullScreenChanged;
 
     /// <summary>
     /// Explorer yeniden başlayınca ("TaskbarCreated") eski AppBar kaydı kaybolur. ManagedShell bunu Explorer'la birlikte
@@ -30,7 +51,7 @@ public partial class StripAppBar : AppBarWindow
     /// </summary>
     protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == Interop.Native.TaskbarCreatedMessage && !AllowClose)
+        if (msg == Native.TaskbarCreatedMessage && !AllowClose)
         {
             Dispatcher.BeginInvoke(() =>
             {
@@ -43,25 +64,30 @@ public partial class StripAppBar : AppBarWindow
         return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
     }
 
-    public event EventHandler<bool>? FullScreenChanged;
+    private void OnFullScreenAppsChanged(object? sender, NotifyCollectionChangedEventArgs e) => UpdateFullScreen();
 
-    protected override void OnFullScreenEnter(FullScreenApp app)
+    /// <summary>
+    /// ManagedShell'in listesi yalnız adaydır; son kararı <see cref="FullScreenRule"/> verir. Görev çubuğu gizliyken
+    /// büyütülmüş VS Code/Chrome listeye "tam ekran" diye girer ama adayı gizlememelidir. Liste yalnız pencere
+    /// etkinleşince güncellendiğinden, listede pencere varken karar 250 ms'de bir yenilenir (ör. büyütülmüş Chrome'da
+    /// video tam ekrana geçince ya da tam ekran pencere küçültülünce liste değişmez).
+    /// </summary>
+    private void UpdateFullScreen()
     {
-        base.OnFullScreenEnter(app);
-        if (!Topmost && !IsFullScreenActive)
-        {
-            IsFullScreenActive = true;
-            FullScreenChanged?.Invoke(this, true);
-        }
-    }
+        var apps = _fullScreenHelper.FullScreenApps;
+        var active = apps.Any(app =>
+            (app.screen.DeviceName == Screen.DeviceName || app.screen.IsVirtualScreen)
+            && FullScreenRule.IsFullScreen(Native.SampleFullScreenCandidate(
+                app.hWnd,
+                new RectD(app.screen.Bounds.Left, app.screen.Bounds.Top, app.screen.Bounds.Width, app.screen.Bounds.Height),
+                app.fromTasksService)));
 
-    protected override void OnFullScreenLeave()
-    {
-        base.OnFullScreenLeave();
-        if (IsFullScreenActive)
+        _fullScreenRecheck.IsEnabled = apps.Count > 0;
+
+        if (active != IsFullScreenActive)
         {
-            IsFullScreenActive = false;
-            FullScreenChanged?.Invoke(this, false);
+            IsFullScreenActive = active;
+            FullScreenChanged?.Invoke(this, active);
         }
     }
 }

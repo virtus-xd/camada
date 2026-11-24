@@ -106,6 +106,53 @@ internal static partial class Native
         return samples;
     }
 
+    /// <summary>
+    /// Tam ekran adayı bir pencerenin anlık özeti. Etkin dikdörtgen ManagedShell'deki gibidir: başlık + kalın kenarlı
+    /// ya da kenarlıklı açılır pencerede istemci alanı, diğerlerinde pencere dikdörtgeni (fiziksel piksel).
+    /// </summary>
+    public static Core.Island.FullScreenCandidate SampleFullScreenCandidate(nint hwnd, Core.Glass.RectD screenBounds,
+        bool reportedByShell)
+    {
+        const long WS_CAPTION = 0x00C00000, WS_THICKFRAME = 0x00040000, WS_POPUP = 0x80000000, WS_BORDER = 0x00800000;
+        var style = (long)GetWindowLongPtr(hwnd, GWL_STYLE) & 0xFFFFFFFF;
+
+        RECT rect;
+        if ((style & (WS_CAPTION | WS_THICKFRAME)) == (WS_CAPTION | WS_THICKFRAME)
+            || (style & (WS_POPUP | WS_THICKFRAME)) == (WS_POPUP | WS_THICKFRAME)
+            || (style & (WS_POPUP | WS_BORDER)) == (WS_POPUP | WS_BORDER))
+        {
+            GetClientRect(hwnd, out rect);
+            MapWindowPoints(hwnd, 0, ref rect, 2);
+        }
+        else
+        {
+            GetWindowRect(hwnd, out rect);
+        }
+
+        return new Core.Island.FullScreenCandidate(
+            new Core.Glass.RectD(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top),
+            screenBounds,
+            Visible: IsWindowVisible(hwnd),
+            Minimized: IsIconic(hwnd),
+            Maximized: IsZoomed(hwnd),
+            HasCaption: (style & WS_CAPTION) == WS_CAPTION,
+            ReportedByShell: reportedByShell);
+    }
+
+    private const int GWL_STYLE = -16;
+
+    [DllImport("user32.dll")]
+    private static extern bool GetClientRect(nint hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    private static extern int MapWindowPoints(nint from, nint to, ref RECT points, int count);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(nint hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsZoomed(nint hwnd);
+
     public static (int X, int Y) GetCursorPosition()
     {
         GetCursorPos(out var point);
