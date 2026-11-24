@@ -114,8 +114,12 @@
                       Stroke="{StaticResource TextBrush}" StrokeThickness="2.2"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
             </Button>
-            <TextBlock x:Name="TimeText" Margin="10,0,6,0" VerticalAlignment="Center"
-                       FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
+            <!-- Saat: tıklayınca Takvim paneli (spec §7.4 "Takvim") -->
+            <Button x:Name="ClockButton" Style="{StaticResource IslandIconButton}" Height="34" Margin="4,0,0,0"
+                    AutomationProperties.Name="Saat ve takvim" Click="ClockButton_Click">
+                <TextBlock x:Name="TimeText" Margin="8,0" VerticalAlignment="Center"
+                           FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
+            </Button>
         </StackPanel>
     </DockPanel>
 </UserControl>

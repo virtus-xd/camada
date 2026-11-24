@@ -92,6 +92,8 @@ public partial class IslandWindow : Window
         ExpandedContent.AppMiddleClicked += (_, e) => actions.MiddleClick(e.Item, e.Button);
         ExpandedContent.MusicClicked += (_, _) =>
             _panels.Toggle("music", () => MusicPanel.Create(_media, MusicExtras, MusicFooter?.Invoke()), MusicPanel.Width);
+        ExpandedContent.ClockClicked += (_, _) =>
+            _panels.Toggle("calendar", () => new CalendarPanel(DateOnly.FromDateTime(DateTime.Now)), CalendarPanel.PanelWidth);
 
         _dock.Changed += (_, _) =>
         {

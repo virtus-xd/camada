@@ -20,6 +20,7 @@ public partial class IslandBar : UserControl
     public event EventHandler? SearchClicked;
     public event EventHandler? TrayClicked;
     public event EventHandler? MusicClicked;
+    public event EventHandler? ClockClicked;
 
     /// <summary>Müzik bölümünü günceller: parça varsa dönen mini plak ve şarkı adı, yoksa soluk nota ve "Spotify".</summary>
     public void ShowMusic(NowPlaying? track, ImageSource? cover)
@@ -59,6 +60,8 @@ public partial class IslandBar : UserControl
     private void SearchButton_Click(object sender, RoutedEventArgs e) => SearchClicked?.Invoke(this, EventArgs.Empty);
 
     private void TrayButton_Click(object sender, RoutedEventArgs e) => TrayClicked?.Invoke(this, EventArgs.Empty);
+
+    private void ClockButton_Click(object sender, RoutedEventArgs e) => ClockClicked?.Invoke(this, EventArgs.Empty);
 
     private void App_Click(object sender, RoutedEventArgs e)
     {
