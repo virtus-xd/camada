@@ -89,7 +89,7 @@ Hepsi adanın altında, ortalı açılır; dışarı tıklayınca kapanır. Tek 
 - **Başlat ve ara** (Başlat ya da Ara): arama kutusu; boşken sabitlenmiş uygulamalar, son açılan dosyalar, Tüm uygulamalar, Kilitle/Uyku/Yeniden başlat/Kapat. Yazınca uygulamalar, ayarlar, dosyalar ve en altta "Web'de ara" sonuçları; Enter ilk sonucu açar, ok tuşlarıyla gezilir.
 - **Pencereler**: 7.3'te anlatıldığı gibi.
 - **Arka planda çalışanlar** (^): tepsi simgeleri ızgarası. Sol tık uygulamanın kendi davranışı, sağ tık uygulamanın kendi menüsü.
-- **Pano**: son kopyalananlar (metin, bağlantı, görüntü, kod). Tıklayınca yeniden panoya alınır ve "Kopyalandı" görünür; sabitleme; "Sabitlenmeyenleri sil". Ctrl+Shift+V her yerden açar. Şifre yöneticilerinin geçmişe kaydedilmemesini işaretlediği kopyalar saklanmaz. Ayrıca son ekran görüntüleri burada bir şeritte görünür (bkz. 11, bizim kararımız).
+- **Pano**: son kopyalananlar (metin, bağlantı, görüntü, kod). Tıklayınca yeniden panoya alınır ve "Kopyalandı" görünür; sabitleme; "Sabitlenmeyenleri sil". Win+Alt+V her yerden açar; kısayolla açılınca seçilen öğe önceki pencereye yapıştırılır (ayrıntılar: `2026-11-24-pano-ve-ekran-goruntuleri-design.md`). Şifre yöneticilerinin geçmişe kaydedilmemesini işaretlediği kopyalar saklanmaz. Ayrıca son ekran görüntüleri burada bir şeritte görünür (bkz. 11, bizim kararımız).
 - **Hızlı ayarlar** (Wi‑Fi simgesi): Wi‑Fi, Bluetooth, Odak, Gece ışığı, Koyu tema, Uçak modu kutucukları; Parlaklık kaydırıcısı; Ekran görüntüsü, Kilitle, Uyku, Görev Yöneticisi düğmeleri.
 - **Ses ve mikrofon** (hoparlör simgesi): ana ses; çıkış cihazı seçimi (ör. Kulaklık / Hoparlör / Monitör, sistemdeki gerçek cihazlar); uygulama bazında ses (o an ses çıkaran uygulamalar); mikrofonu kapat/aç (tüm uygulamalar için varsayılan kayıt cihazı). Ctrl+Shift+M her yerden mikrofonu kapatıp açar.
 - **Müzik** (müzik bölümü): kapak, şarkı, sanatçı, ilerleme, önceki/oynat-duraklat/sonraki; Premium olduğu için beğen ve sıradaki şarkılar.
@@ -198,7 +198,7 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 - Plağın pencerelerin arkasında durması (kullanıcı bu soruyu cevapsız bıraktı; önerimiz uygulandı).
 - Dönen kapağın Spotify Web API yerine Windows medya oturumundan alınması.
 - Ekran görüntüleri galerisi: Ada v2'de ayrı bir sekmesi kalmadığı için son ekran görüntüleri Pano panelinde bir şerit olarak gösterilecek; yeni ekran görüntüsünde kısa önizleme açılacak.
-- Kısayollar: Ctrl+Shift+M (mikrofon), Ctrl+Shift+V (pano). Win+V'ye dokunulmuyor.
+- Kısayollar: Ctrl+Shift+M (mikrofon), ~~Ctrl+Shift+V~~ → **Win+Alt+V** (pano; kullanıcı kararı 24.11.2026, Ctrl+Shift+V Chrome'un biçimsiz yapıştırmasını bozacağı için). Win+V'ye dokunulmuyor.
 - Açılma/kapanma gecikmeleri: 0,12 sn / 0,35 sn.
 - ~~Üst şerit ~56 px~~ → kullanıcı "akıllı gizlenme"yi seçti (§7.6). Bir pencerenin adanın yerini kaplayıp kaplamadığı, z-sırasında o noktayı içeren ilk normal pencereye bakılarak 250 ms'de bir kontrol edilir; araç pencereleri, tıklama geçiren katmanlar, başlıksız ve gizli (cloaked) pencereler sayılmaz.
 - Ayarlar v1'de JSON dosyasından.
