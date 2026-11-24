@@ -167,7 +167,6 @@ public partial class App : Application
         _hotkeys = new GlobalHotkeys();
         StartAudio();
         StartClipboard();
-        await StartQuickSettingsAsync();
 
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
         _weather.Changed += (_, _) => _island?.ShowWeather(_weather.Current);
@@ -175,6 +174,9 @@ public partial class App : Application
         _ = Dispatcher.BeginInvoke(UpdateTrayHostSizeData, DispatcherPriority.Loaded);
 
         _ = _appIndex.GetItemsAsync(); // ilk aramada beklememek için arka planda hazırla
+
+        // En sonda: WinRT erişim istekleri yavaşsa bile hava durumu, tepsi ve arama beklemesin (son inceleme).
+        await StartQuickSettingsAsync();
     }
 
     /// <summary>

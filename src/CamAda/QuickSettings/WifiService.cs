@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using CamAda.Core.Network;
 using Windows.Devices.WiFi;
 using Windows.Networking.Connectivity;
@@ -24,42 +24,75 @@ public enum WifiConnectOutcome
 /// </summary>
 public sealed class WifiService
 {
-    private readonly WiFiAdapter? _adapter;
     private readonly Dictionary<string, WiFiAvailableNetwork> _networks = new(StringComparer.Ordinal);
+    private WiFiAdapter? _adapter;
 
-    private WifiService(WiFiAdapter? adapter, bool accessDenied)
+    private WifiService(WiFiAdapter? adapter)
     {
         _adapter = adapter;
-        AccessDenied = accessDenied;
     }
 
-    /// <summary>Windows ağ adlarını vermiyor (Wi‑Fi erişimi reddedildi; çoğu zaman konum izni kapalı).</summary>
-    public bool AccessDenied { get; }
-
-    /// <summary>Wi‑Fi adaptörü yoksa null.</summary>
+    /// <summary>
+    /// Wi‑Fi adaptörü olmayan bilgisayarda null. Windows erişimi şimdilik vermiyorsa (konum izni) servis yine kurulur;
+    /// adaptör her taramada yeniden istenir, izin sonradan açılınca liste kendiliğinden gelir.
+    /// </summary>
     public static async Task<WifiService?> CreateAsync()
     {
         if (await WiFiAdapter.RequestAccessAsync() != WiFiAccessStatus.Allowed)
         {
-            return new WifiService(null, accessDenied: true);
+            return new WifiService(null);
         }
 
         var adapters = await WiFiAdapter.FindAllAdaptersAsync();
-        return adapters.Count == 0 ? null : new WifiService(adapters[0], accessDenied: false);
+        return adapters.Count == 0 ? null : new WifiService(adapters[0]);
     }
 
     public async Task<WifiScan> ScanAsync(CancellationToken cancellation)
     {
-        if (_adapter is null)
+        try
         {
+            if (!await EnsureAdapterAsync())
+            {
+                return new WifiScan([], LocationBlocked: true);
+            }
+
+            return await ScanCoreAsync(_adapter!, cancellation);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _adapter = null; // Windows ağ bilgisini vermiyor (konum izni); bir dahaki taramada yeniden istenir
             return new WifiScan([], LocationBlocked: true);
         }
+        catch (COMException)
+        {
+            _adapter = null; // adaptör yeniden numaralanmış olabilir (uyku, sürücü); bir dahaki taramada yeniden bulunur
+            throw;
+        }
+    }
 
-        await _adapter.ScanAsync().AsTask(cancellation);
+    private async Task<bool> EnsureAdapterAsync()
+    {
+        if (_adapter is not null)
+        {
+            return true;
+        }
+
+        if (await WiFiAdapter.RequestAccessAsync() != WiFiAccessStatus.Allowed)
+        {
+            return false;
+        }
+
+        _adapter = (await WiFiAdapter.FindAllAdaptersAsync()).FirstOrDefault();
+        return _adapter is not null;
+    }
+
+    private async Task<WifiScan> ScanCoreAsync(WiFiAdapter adapter, CancellationToken cancellation)
+    {
+        await adapter.ScanAsync().AsTask(cancellation);
         var seen = new List<WifiNetworkSeen>();
         var total = 0;
         _networks.Clear();
-        foreach (var network in _adapter.NetworkReport.AvailableNetworks)
+        foreach (var network in adapter.NetworkReport.AvailableNetworks)
         {
             total++;
             if (string.IsNullOrWhiteSpace(network.Ssid))
@@ -83,7 +116,7 @@ public sealed class WifiService
             .ToHashSet(StringComparer.Ordinal);
 
         WifiNetworkSeen? connected = null;
-        var profile = await _adapter.NetworkAdapter.GetConnectedProfileAsync().AsTask(cancellation);
+        var profile = await adapter.NetworkAdapter.GetConnectedProfileAsync().AsTask(cancellation);
         if (profile?.IsWlanConnectionProfile == true && profile.WlanConnectionProfileDetails.GetConnectedSsid() is { Length: > 0 } ssid)
         {
             var security = seen.FirstOrDefault(s => s.Ssid == ssid)?.Security ?? WifiSecurity.Password;
@@ -124,5 +157,15 @@ public sealed class WifiService
         }
     }
 
-    public void Disconnect() => _adapter?.Disconnect();
+    public void Disconnect()
+    {
+        try
+        {
+            _adapter?.Disconnect();
+        }
+        catch (Exception ex) when (ex is COMException or UnauthorizedAccessException)
+        {
+            _adapter = null;
+        }
+    }
 }

@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using Windows.Devices.Radios;
 
@@ -11,8 +11,8 @@ namespace CamAda.QuickSettings;
 public sealed class RadioService : IDisposable
 {
     private readonly Dispatcher _dispatcher;
-    private readonly Radio? _wifi;
-    private readonly Radio? _bluetooth;
+    private Radio? _wifi;
+    private Radio? _bluetooth;
     private bool _disposed;
 
     private RadioService(Dispatcher dispatcher, Radio? wifi, Radio? bluetooth)
@@ -37,6 +37,51 @@ public sealed class RadioService : IDisposable
         return new RadioService(dispatcher,
             radios.FirstOrDefault(r => r.Kind == RadioKind.WiFi),
             radios.FirstOrDefault(r => r.Kind == RadioKind.Bluetooth));
+    }
+
+    /// <summary>
+    /// Telsizleri yeniden arar (panel açılınca): adaptör açılışta henüz yoksa ya da uykudan sonra yeniden numaralandıysa
+    /// kutucuk CamAda yeniden başlamadan düzelir.
+    /// </summary>
+    public async Task RefreshAsync()
+    {
+        IReadOnlyList<Radio> radios;
+        try
+        {
+            if (await Radio.RequestAccessAsync() != RadioAccessStatus.Allowed)
+            {
+                return;
+            }
+
+            radios = await Radio.GetRadiosAsync();
+        }
+        catch (Exception ex) when (ex is COMException or UnauthorizedAccessException)
+        {
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        var before = (HasWifi, WifiOn, HasBluetooth, BluetoothOn);
+        foreach (var radio in Radios)
+        {
+            radio.StateChanged -= OnStateChanged;
+        }
+
+        _wifi = radios.FirstOrDefault(r => r.Kind == RadioKind.WiFi);
+        _bluetooth = radios.FirstOrDefault(r => r.Kind == RadioKind.Bluetooth);
+        foreach (var radio in Radios)
+        {
+            radio.StateChanged += OnStateChanged;
+        }
+
+        if (before != (HasWifi, WifiOn, HasBluetooth, BluetoothOn))
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public bool HasWifi => _wifi is not null;

@@ -56,6 +56,17 @@ public class NetworkIconsTests
         Assert.Equal("Ağ bağlantısı yok", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None, adapter: false)));
     }
 
+    // Son inceleme: konum izni kapalıyken Windows ağ adını vermez; bağlıyken "Bağlı değil" demek gerçeğe aykırı.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Hidden_ssid_still_reads_as_connected(string? ssid)
+    {
+        var snapshot = Snap(NetworkLink.Wifi, NetworkReach.Internet, ssid: ssid);
+        Assert.Equal("Bağlı", NetworkIcons.WifiTileSubtitle(snapshot));
+        Assert.Equal("Wi‑Fi: bağlı, internet var", NetworkIcons.AccessibleName(snapshot));
+    }
+
     [Fact]
     public void Wifi_tile_subtitle()
     {

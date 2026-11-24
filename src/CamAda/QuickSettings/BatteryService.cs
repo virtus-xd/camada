@@ -1,4 +1,4 @@
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
 using CamAda.Core.Power;
 using Windows.System.Power;
 
@@ -25,11 +25,18 @@ public sealed class BatteryService : IDisposable
         }
 #endif
         Current = Read();
-        _listening = true;
-        PowerManager.BatteryStatusChanged += OnChanged;
-        PowerManager.PowerSupplyStatusChanged += OnChanged;
-        PowerManager.RemainingChargePercentChanged += OnChanged;
-        PowerManager.RemainingDischargeTimeChanged += OnChanged;
+        try
+        {
+            PowerManager.BatteryStatusChanged += OnChanged;
+            PowerManager.PowerSupplyStatusChanged += OnChanged;
+            PowerManager.RemainingChargePercentChanged += OnChanged;
+            PowerManager.RemainingDischargeTimeChanged += OnChanged;
+            _listening = true;
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+        {
+            // Pil olayları yoksa ilk okuma gösterilir.
+        }
     }
 
     public BatterySnapshot Current { get; private set; }
@@ -67,6 +74,19 @@ public sealed class BatteryService : IDisposable
     });
 
     private static BatterySnapshot Read()
+    {
+        try
+        {
+            return ReadUnsafe();
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException
+                                       or UnauthorizedAccessException)
+        {
+            return new BatterySnapshot(0, BatteryCharge.NotPresent, false, null); // pil simgesi gizlenir
+        }
+    }
+
+    private static BatterySnapshot ReadUnsafe()
     {
         var charge = PowerManager.BatteryStatus switch
         {

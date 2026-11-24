@@ -50,7 +50,7 @@ public static class NetworkIcons
         return s.Link switch
         {
             NetworkLink.Ethernet => $"Ethernet, {internet}",
-            NetworkLink.Wifi => $"Wi‑Fi: {s.Ssid}, {internet}",
+            NetworkLink.Wifi => $"Wi‑Fi: {(string.IsNullOrEmpty(s.Ssid) ? "bağlı" : s.Ssid)}, {internet}",
             _ when !s.HasWifiAdapter => "Ağ bağlantısı yok",
             _ when !s.WifiRadioOn => "Wi‑Fi kapalı",
             _ => "Wi‑Fi: bağlı değil",
@@ -60,7 +60,7 @@ public static class NetworkIcons
     public static string WifiTileSubtitle(NetworkSnapshot s) =>
         !s.HasWifiAdapter ? "Yok"
         : !s.WifiRadioOn ? "Kapalı"
-        : s.Link == NetworkLink.Wifi && !string.IsNullOrEmpty(s.Ssid) ? s.Ssid
+        : s.Link == NetworkLink.Wifi ? (string.IsNullOrEmpty(s.Ssid) ? "Bağlı" : s.Ssid) // ad konum izni yüzünden gizli olabilir
         : "Bağlı değil";
 
     /// <summary>Windows'un 0–<paramref name="max"/> çubuğunu adanın 1–4 çubuğuna çevirir (yukarı yuvarlar).</summary>

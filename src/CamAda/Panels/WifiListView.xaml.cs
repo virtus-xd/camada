@@ -76,6 +76,8 @@ public partial class WifiListView : UserControl
         }
         else
         {
+            _expanded = null; // açık satır kalırsa telsiz geri gelince taramalar hep atlanırdı (son inceleme)
+            ClearPasswords();
             Show([]);
         }
     }

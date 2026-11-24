@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using CamAda.Core.Theme;
 using Microsoft.Win32;
@@ -73,8 +73,15 @@ public sealed class ThemeService : IDisposable
 
     private static bool Read()
     {
-        using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
-        return ThemeRule.IsDark(key?.GetValue("AppsUseLightTheme") as int?);
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
+            return ThemeRule.IsDark(key?.GetValue("AppsUseLightTheme") as int?);
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

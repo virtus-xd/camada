@@ -1,4 +1,4 @@
-using System.Management;
+﻿using System.Management;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using CamAda.Core.Display;
@@ -33,6 +33,8 @@ public sealed class BrightnessService : IDisposable
     private readonly Dictionary<string, DispatcherTimer> _trailing = new();
     private readonly Dictionary<string, (nint Handle, uint Min, uint Max)> _external = new();
     private readonly List<MonitorApi.PHYSICAL_MONITOR[]> _ownedHandles = [];
+    private readonly LatestValuePump _internalWriter;
+    private ManagementObject? _internalMethods; // yalnız _internalWriter'ın sıralı yazımlarında kullanılır
     private ManagementEventWatcher? _watcher;
     private bool _disposed;
 
@@ -41,18 +43,27 @@ public sealed class BrightnessService : IDisposable
         _dispatcher = dispatcher;
         _time = time;
         _echo = new EchoFilter(time, TimeSpan.FromSeconds(1.5));
-        try
+        _internalWriter = new LatestValuePump(level => Task.Run(() => WriteInternal(level)));
+
+        // WMI aboneliği açılışta yavaş olabilir (ya da WMI takılı olabilir): arayüz iş parçacığını bekletmesin.
+        var watcher = new ManagementEventWatcher(new ManagementScope(@"root\WMI"),
+            new EventQuery("SELECT * FROM WmiMonitorBrightnessEvent"));
+        watcher.EventArrived += OnBrightnessEvent;
+        _watcher = watcher;
+        _ = Task.Run(() =>
         {
-            _watcher = new ManagementEventWatcher(new ManagementScope(@"root\WMI"),
-                new EventQuery("SELECT * FROM WmiMonitorBrightnessEvent"));
-            _watcher.EventArrived += OnBrightnessEvent;
-            _watcher.Start();
-        }
-        catch (Exception ex) when (ex is ManagementException or COMException or UnauthorizedAccessException)
-        {
-            _watcher?.Dispose();
-            _watcher = null; // dahili parlaklık desteklenmiyor: gösterge yok, panel yine çalışır
-        }
+            try
+            {
+                if (!_disposed)
+                {
+                    watcher.Start();
+                }
+            }
+            catch (Exception ex) when (ex is ManagementException or COMException or UnauthorizedAccessException)
+            {
+                // Dahili parlaklık olayı yok: adada gösterge çıkmaz, panel yine çalışır.
+            }
+        });
     }
 
     /// <summary>Son <see cref="RefreshAsync"/> ile okunan ekranlar (dahili önce).</summary>
@@ -158,7 +169,7 @@ public sealed class BrightnessService : IDisposable
                 _echo.Sent(level);
             }
 
-            _ = Task.Run(() => WriteInternal(level));
+            _internalWriter.Post(level); // tek yazıcı: eski bir yazım hiçbir zaman sona kalmaz
             return;
         }
 
@@ -232,25 +243,35 @@ public sealed class BrightnessService : IDisposable
         return null;
     }
 
-    private static void WriteInternal(int level)
+    /// <summary>Yalnız <see cref="_internalWriter"/> çağırır (sırayla, hiç üst üste binmeden).</summary>
+    private void WriteInternal(int level)
     {
         try
         {
-            using var methods = new ManagementClass(@"root\WMI", "WmiMonitorBrightnessMethods", null);
-            foreach (ManagementObject instance in methods.GetInstances())
-            {
-                using (instance)
-                {
-                    if (instance["Active"] is true)
-                    {
-                        instance.InvokeMethod("WmiSetBrightness", [(uint)1, (byte)level]);
-                    }
-                }
-            }
+            _internalMethods ??= FindActiveMethods();
+            _internalMethods?.InvokeMethod("WmiSetBrightness", [(uint)1, (byte)level]);
         }
         catch (Exception ex) when (ex is ManagementException or COMException or UnauthorizedAccessException)
         {
+            _internalMethods?.Dispose();
+            _internalMethods = null; // bir dahaki yazımda yeniden bulunur
         }
+    }
+
+    private static ManagementObject? FindActiveMethods()
+    {
+        using var methods = new ManagementClass(@"root\WMI", "WmiMonitorBrightnessMethods", null);
+        foreach (ManagementObject instance in methods.GetInstances())
+        {
+            if (instance["Active"] is true)
+            {
+                return instance;
+            }
+
+            instance.Dispose();
+        }
+
+        return null;
     }
 
     /// <summary>DDC/CI'ya yanıt veren harici ekranlar; dahili ekranın WMI örneğiyle eşleşen atlanır.</summary>

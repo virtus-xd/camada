@@ -56,6 +56,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
             if (_services.Radios is { } radios)
             {
                 radios.Changed += OnServiceChanged;
+                _ = radios.RefreshAsync();
             }
 
             if (_services.Bluetooth is { } bluetoothDevices)

@@ -527,4 +527,5 @@ Plan 4.2 main'de (255a43e). Bu plan `plan-4-3-hizli-ayarlar` dalında yürütül
 4. Fişi çek: pil simgesinde şimşek kayboluyor mu, panelde kalan süre görünüyor mu? Pil %20'nin altına düşünce küçük adada uyarı çıkıyor mu?
 5. Ekran görüntüsü (alıntı aracı açılıyor, sonra adada önizleme), Kilitle, Uyku ve Görev Yöneticisi düğmeleri.
 6. Harici monitör bağlıyken parlaklık satırı (monitör DDC/CI destekliyorsa).
-7. Odak: 30 dakikalık oturum başlıyor mu, Saat uygulamasında görünüyor mu, bildirimler susuyor mu?
+7. Odak: kutucuk Windows'un "Odaklanma" sayfasını açıyor mu? (Windows, Odak'ı başlatmayı yalnız izinli uygulamalara açıyor; kutucuk bu yüzden ayar sayfasına götürür.)
+8. Pildeyken ekran kendiliğinden karardığında ya da yeniden aydınlandığında adada parlaklık göstergesi çıkıyor mu? Çıkıyorsa ve rahatsız ediyorsa söyle (Windows bu değişiklikleri Fn tuşlarıyla aynı olayla bildiriyor).
