@@ -333,7 +333,9 @@ public partial class App : Application
             panel.Unloaded += (_, _) =>
             {
                 var foreground = Native.GetForegroundWindow();
-                if (!chosen && (foreground == 0 || Native.ProcessIdOf(foreground) == Environment.ProcessId))
+                var otherPanelOpened = _island.Panels.IsOpen && !_island.Panels.IsOpenWith("clipboard");
+                if (!chosen && !otherPanelOpened
+                    && (foreground == 0 || Native.ProcessIdOf(foreground) == Environment.ProcessId))
                 {
                     Native.SetForegroundWindow(target);
                 }

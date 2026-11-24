@@ -4,14 +4,33 @@ namespace CamAda.Core.Clipboard;
 
 /// <summary>
 /// Sabitlenen pano öğelerinin kaydı (tasarım "Saklama"): <c>pinned.json</c> (metin ve biçimleri) + görseller için
-/// <c>&lt;id&gt;.png</c>. Sabitlenmemiş öğeler buraya hiç gelmez. G/Ç hataları çağırana bırakılır.
+/// <c>&lt;id&gt;.png</c>. Sabitlenmemiş öğeler buraya hiç gelmez. Kayıt okunamazsa (kilitli dosya) bu oturumda yazılmaz:
+/// yoksa bir sonraki kaydetme okunamayan sabitlileri silerdi. Üst bilgisi geçersiz görsel atlanır.
 /// </summary>
 public sealed class PinnedClipStore(string directory)
 {
     private const string IndexName = "pinned.json";
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
+    /// <summary>Son <see cref="Load"/> başarılıysa (ya da hiç çağrılmadıysa) true; değilse <see cref="Save"/> bir şey yapmaz.</summary>
+    public bool CanSave { get; private set; } = true;
+
     public IReadOnlyList<ClipItem> Load()
+    {
+        try
+        {
+            var items = LoadCore();
+            CanSave = true;
+            return items;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            CanSave = false;
+            return [];
+        }
+    }
+
+    private IReadOnlyList<ClipItem> LoadCore()
     {
         var index = Path.Combine(directory, IndexName);
         if (!File.Exists(index))
@@ -41,7 +60,13 @@ public sealed class PinnedClipStore(string directory)
                     continue;
                 }
 
-                payload = ClipPayload.FromImage(File.ReadAllBytes(path), e.Width, e.Height, e.PixelHash ?? e.Id);
+                var png = File.ReadAllBytes(path);
+                if (ImageHeader.PngSize(png) is null)
+                {
+                    continue; // bozuk dosya: açmaya çalışmak kabuğu çökertir
+                }
+
+                payload = ClipPayload.FromImage(png, e.Width, e.Height, e.PixelHash ?? e.Id);
             }
             else if (e.Text is { } text)
             {
@@ -60,6 +85,11 @@ public sealed class PinnedClipStore(string directory)
 
     public void Save(IReadOnlyList<ClipItem> pinned)
     {
+        if (!CanSave)
+        {
+            return;
+        }
+
         Directory.CreateDirectory(directory);
         var entries = new List<Entry>();
         var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -52,15 +52,18 @@ internal static partial class Native
     [LibraryImport("kernel32.dll")]
     public static partial nuint GlobalSize(nint handle);
 
-    [LibraryImport("user32.dll", EntryPoint = "SendMessageTimeoutW")]
+    [LibraryImport("user32.dll", EntryPoint = "SendMessageTimeoutW", SetLastError = true)]
     private static partial nint SendMessageTimeout(nint hwnd, uint msg, nint wParam, nint lParam, uint flags, uint timeoutMs, out nint result);
 
     /// <summary>
     /// Pencerenin iş parçacığı <paramref name="timeoutMs"/> içinde mesaj işliyor mu (WM_NULL). Pano sahibi meşgulken
-    /// panoyu açıp "sonra hazırlanacak" veriyi istemek iki tarafı da kilitler ve sahibin kopyasını bozar.
+    /// panoyu açıp "sonra hazırlanacak" veriyi istemek iki tarafı da kilitler ve sahibin kopyasını bozar. Yönetici olarak
+    /// çalışan bir pencereye mesajı Windows (UIPI) engeller ve "erişim reddedildi" döner: o zaman yoklanamaz, meşgul
+    /// sayılmaz (yoksa yönetici pencerelerinden hiçbir kopya geçmişe girmezdi).
     /// </summary>
     public static bool IsResponsive(nint hwnd, uint timeoutMs) =>
-        SendMessageTimeout(hwnd, 0 /* WM_NULL */, 0, 0, 0x0002 /* SMTO_ABORTIFHUNG */, timeoutMs, out _) != 0;
+        SendMessageTimeout(hwnd, 0 /* WM_NULL */, 0, 0, 0x0002 /* SMTO_ABORTIFHUNG */, timeoutMs, out _) != 0
+        || Marshal.GetLastPInvokeError() == 5 /* ERROR_ACCESS_DENIED */;
 
     /// <summary>Açık panodaki bir biçimin baytları; yoksa ya da <paramref name="maxBytes"/>'ı aşıyorsa null.</summary>
     public static byte[]? ReadClipboardBytes(uint format, long maxBytes, out bool tooBig)

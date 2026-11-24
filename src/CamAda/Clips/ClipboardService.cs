@@ -109,7 +109,16 @@ public sealed class ClipboardService : IDisposable
 
         if (!_thumbnails.TryGetValue(hash, out var thumbnail))
         {
-            thumbnail = Decode(png, decodeWidth: 80);
+            try
+            {
+                thumbnail = Decode(png, decodeWidth: 80);
+            }
+            catch (Exception ex) when (ex is NotSupportedException or FileFormatException or ArgumentException or IOException
+                                           or COMException)
+            {
+                return null;
+            }
+
             _thumbnails[hash] = thumbnail;
         }
 
@@ -129,7 +138,8 @@ public sealed class ClipboardService : IDisposable
                 _ => null,
             };
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or FileFormatException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or FileFormatException
+                                       or ArgumentException or COMException)
         {
             _log(ex);
             return false;
@@ -246,14 +256,12 @@ public sealed class ClipboardService : IDisposable
     /// <summary>Açık panonun içeriği; işaretli, dosya listesi, boş ya da çok büyükse null.</summary>
     private Snapshot? TakeSnapshot()
     {
-        if (Native.IsClipboardFormatAvailable(ExcludeFormat) || Native.IsClipboardFormatAvailable(ViewerIgnoreFormat))
-        {
-            return null;
-        }
-
-        if (Native.IsClipboardFormatAvailable(CanIncludeFormat)
-            && Native.ReadClipboardBytes(CanIncludeFormat, 64, out _) is { Length: >= 4 } flag
-            && BitConverter.ToInt32(flag, 0) == 0)
+        var canIncludePresent = Native.IsClipboardFormatAvailable(CanIncludeFormat);
+        if (ClipboardPolicy.IsExcluded(
+                Native.IsClipboardFormatAvailable(ExcludeFormat),
+                Native.IsClipboardFormatAvailable(ViewerIgnoreFormat),
+                canIncludePresent,
+                canIncludePresent ? Native.ReadClipboardBytes(CanIncludeFormat, 64, out _) : null))
         {
             return null;
         }
@@ -276,6 +284,11 @@ public sealed class ClipboardService : IDisposable
             var text = bytes is null ? null : TrimAtNul(Encoding.Unicode.GetString(bytes));
             if (!string.IsNullOrWhiteSpace(text))
             {
+                if (!ClipboardPolicy.ShouldReadRichFormats(bytes!.LongLength))
+                {
+                    return new Snapshot(text, null, null, null, null, owner);
+                }
+
                 var html = Native.ReadClipboardBytes(HtmlFormat, max, out _) is { } h ? TrimAtNul(Encoding.UTF8.GetString(h)) : null;
                 var rtf = Native.ReadClipboardBytes(RtfFormat, max, out _) is { } r ? TrimAtNul(Encoding.Latin1.GetString(r)) : null;
                 return new Snapshot(text, html, rtf, null, null, owner);

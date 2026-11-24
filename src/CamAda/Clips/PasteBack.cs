@@ -27,13 +27,15 @@ internal static class PasteBack
     /// <summary>Hedefi öne alır, tuşların bırakılmasını bekler ve Ctrl+V gönderir. Gönderildiyse true.</summary>
     public static async Task<bool> PasteIntoAsync(nint hwnd)
     {
+        // Alt/Win öne alma sırasında bırakılsa bile maske gitsin (yoksa hedef menü moduna girip Ctrl+V'yi yutar).
+        var heldAtStart = Native.AltOrWinDown();
         Native.SetForegroundWindow(hwnd);
         if (!await WaitUntilAsync(() => Native.GetForegroundWindow() == hwnd, TimeSpan.FromMilliseconds(500)))
         {
             return false;
         }
 
-        if (Native.AltOrWinDown())
+        if (heldAtStart || Native.AltOrWinDown())
         {
             Native.SendMaskKey(); // bırakılan Alt hedefi menü moduna sokmasın (yoksa Ctrl+V yutulur)
         }

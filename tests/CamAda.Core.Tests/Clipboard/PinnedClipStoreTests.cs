@@ -31,7 +31,7 @@ public class PinnedClipStoreTests : IDisposable
     [Fact]
     public void Image_bytes_round_trip()
     {
-        byte[] png = [0x89, 0x50, 0x4E, 0x47, 1, 2, 3];
+        var png = ValidPng();
         var item = new ClipItem("g1", ClipKind.Image, ClipPayload.FromImage(png, 100, 60, "hash"), T0, true);
         new PinnedClipStore(Folder).Save([item]);
 
@@ -70,4 +70,49 @@ public class PinnedClipStoreTests : IDisposable
 
     [Fact]
     public void Missing_folder_loads_empty() => Assert.Empty(new PinnedClipStore(Folder).Load());
+
+    // Son inceleme, küçük 3 (yükseltildi): bozuk PNG her panel açılışında kabuğu çökertiyordu.
+    [Fact]
+    public void Corrupt_image_is_skipped()
+    {
+        var store = new PinnedClipStore(Folder);
+        var image = new ClipItem("g1", ClipKind.Image, ClipPayload.FromImage(ValidPng(), 2, 2, "h"), T0, true);
+        var text = new ClipItem("t1", ClipKind.Text, ClipPayload.FromText("kalsın"), T0, true);
+        store.Save([image, text]);
+        File.WriteAllBytes(Path.Combine(Folder, "g1.png"), [1, 2, 3, 4]);
+
+        Assert.Equal("t1", Assert.Single(new PinnedClipStore(Folder).Load()).Id);
+    }
+
+    // Son inceleme, küçük 2 (yükseltildi): okunamayan kayıt sonraki kaydetmede tüm sabitlileri siliyordu.
+    [Fact]
+    public void Failed_load_blocks_saving_so_pins_are_not_lost()
+    {
+        var first = new PinnedClipStore(Folder);
+        first.Save([new ClipItem("g1", ClipKind.Image, ClipPayload.FromImage(ValidPng(), 2, 2, "h"), T0, true)]);
+        var json = File.ReadAllText(Path.Combine(Folder, "pinned.json"));
+
+        var store = new PinnedClipStore(Folder);
+        using (new FileStream(Path.Combine(Folder, "g1.png"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.Empty(store.Load());
+        }
+
+        Assert.False(store.CanSave);
+        store.Save([new ClipItem("t1", ClipKind.Text, ClipPayload.FromText("yeni"), T0, true)]);
+        Assert.True(File.Exists(Path.Combine(Folder, "g1.png")));
+        Assert.Equal(json, File.ReadAllText(Path.Combine(Folder, "pinned.json")));
+    }
+
+    /// <summary>Üst bilgisi geçerli küçük bir PNG (yalnız imza + IHDR yeter; içerik çözülmez).</summary>
+    private static byte[] ValidPng()
+    {
+        var bytes = new byte[33];
+        byte[] signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        signature.CopyTo(bytes, 0);
+        "IHDR"u8.ToArray().CopyTo(bytes, 12);
+        bytes[19] = 2;
+        bytes[23] = 2;
+        return bytes;
+    }
 }
