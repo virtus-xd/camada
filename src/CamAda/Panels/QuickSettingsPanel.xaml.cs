@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -40,6 +40,8 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         WifiTile.DetailsRequested += (_, _) => ShowPage(QuickPage.Wifi);
         BluetoothTile.Glyph = QuickGlyphs.Bluetooth;
         BluetoothTile.Title = "Bluetooth";
+        BluetoothTile.HasDetails = services.Bluetooth is not null;
+        BluetoothTile.DetailsRequested += (_, _) => ShowPage(QuickPage.Bluetooth);
         FocusTile.Glyph = QuickGlyphs.Focus;
         FocusTile.Title = "Odak";
         FocusTile.Subtitle = "Ayarlarda aç";
@@ -54,6 +56,12 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
             if (_services.Radios is { } radios)
             {
                 radios.Changed += OnServiceChanged;
+            }
+
+            if (_services.Bluetooth is { } bluetoothDevices)
+            {
+                bluetoothDevices.Start(); // kutucuktaki "Buds2 bağlı" için; liste sayfası ayrıca Start/Stop eder
+                bluetoothDevices.Changed += OnServiceChanged;
             }
 
             if (_services.Brightness is { } brightness)
@@ -79,6 +87,12 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
             {
                 brightness.InternalChanged -= OnBrightnessChanged;
             }
+
+            if (_services.Bluetooth is { } bluetoothDevices)
+            {
+                bluetoothDevices.Changed -= OnServiceChanged;
+                bluetoothDevices.Stop();
+            }
         };
     }
 
@@ -98,6 +112,8 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         DetailPage.Content = page switch
         {
             QuickPage.Wifi when _services.Wifi is { } wifi => new WifiListView(_services, wifi, () => ShowPage(QuickPage.Main)),
+            QuickPage.Bluetooth when _services.Bluetooth is { } bluetooth =>
+                new BluetoothListView(_services, bluetooth, () => ShowPage(QuickPage.Main)),
             _ => null,
         };
         MainPage.Visibility = page == QuickPage.Main ? Visibility.Visible : Visibility.Collapsed;
@@ -266,7 +282,8 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
 
         BluetoothTile.IsAvailable = radios?.HasBluetooth == true;
         BluetoothTile.IsOn = radios?.BluetoothOn == true;
-        BluetoothTile.Subtitle = BluetoothKinds.TileSubtitle(radios?.HasBluetooth == true, radios?.BluetoothOn == true, []);
+        var connected = _services.Bluetooth?.Devices.Where(d => d.Connected).Select(d => d.Name).ToList() ?? [];
+        BluetoothTile.Subtitle = BluetoothKinds.TileSubtitle(radios?.HasBluetooth == true, radios?.BluetoothOn == true, connected);
 
         ThemeTile.IsOn = _services.Theme.IsDark;
         ThemeTile.Subtitle = _services.Theme.IsDark ? "Açık" : "Kapalı";

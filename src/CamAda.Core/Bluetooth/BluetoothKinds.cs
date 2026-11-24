@@ -37,6 +37,10 @@ public static class BluetoothKinds
         };
     }
 
+    /// <summary>Windows'un ayrı verdiği ana (5 bit) ve alt (6 bit) sınıftan; sınıf koduna çevirip aynı kuralı uygular.</summary>
+    public static BluetoothDeviceKind FromMajorMinor(uint major, uint minor) =>
+        FromClassOfDevice(((major & 0x1F) << 8) | ((minor & 0x3F) << 2));
+
     /// <summary>LE cihazın görünüm değeri: kategori <c>appearance &gt;&gt; 6</c> (0x0F HID, 0x21 ve 0x25 ses).</summary>
     public static BluetoothDeviceKind FromLeAppearance(ushort appearance)
     {

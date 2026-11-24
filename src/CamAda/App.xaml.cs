@@ -57,6 +57,7 @@ public partial class App : Application
     private BatteryService? _battery;
     private ThemeService? _theme;
     private BrightnessService? _brightness;
+    private BluetoothService? _bluetooth;
     private QuickServices? _quick;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
@@ -284,6 +285,7 @@ public partial class App : Application
             Radios = IsAbsentForTest("radios") ? null : _radios,
             Brightness = _brightness,
             Wifi = await CreateWifiAsync(),
+            Bluetooth = _bluetooth = IsAbsentForTest("bluetooth") ? null : new BluetoothService(Dispatcher),
         };
         _island.Bar.WifiClicked += (_, _) => OpenQuickSettings();
         _island.Bar.BatteryClicked += (_, _) => OpenQuickSettings();
@@ -821,6 +823,7 @@ public partial class App : Application
         _radios?.Dispose();
         _theme?.Dispose();
         _brightness?.Dispose();
+        _bluetooth?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();

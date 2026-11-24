@@ -18,6 +18,18 @@ public class BluetoothKindsTests
     public void Class_of_device(uint cod, BluetoothDeviceKind expected) =>
         Assert.Equal(expected, BluetoothKinds.FromClassOfDevice(cod));
 
+    // Windows'un eşleşmiş cihaz özellikleri (System.Devices.Aep.Bluetooth.Cod.Major/Minor), 24.11 ölçümü:
+    // Buds2 4/1, Wireless Controller 5/2.
+    [Theory]
+    [InlineData(4u, 1u, BluetoothDeviceKind.Audio)]
+    [InlineData(5u, 2u, BluetoothDeviceKind.Gamepad)]
+    [InlineData(5u, 0x20u, BluetoothDeviceKind.Mouse)]
+    [InlineData(5u, 0x10u, BluetoothDeviceKind.Keyboard)]
+    [InlineData(2u, 3u, BluetoothDeviceKind.Phone)]
+    [InlineData(0u, 0u, BluetoothDeviceKind.Other)]
+    public void Major_and_minor_class(uint major, uint minor, BluetoothDeviceKind expected) =>
+        Assert.Equal(expected, BluetoothKinds.FromMajorMinor(major, minor));
+
     [Theory]
     [InlineData((ushort)0x03C1, BluetoothDeviceKind.Keyboard)]
     [InlineData((ushort)0x03C2, BluetoothDeviceKind.Mouse)]

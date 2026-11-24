@@ -16,4 +16,6 @@ public sealed class QuickServices
     public BrightnessService? Brightness { get; init; }
 
     public WifiService? Wifi { get; init; }
+
+    public BluetoothService? Bluetooth { get; init; }
 }
