@@ -49,6 +49,33 @@
         </Setter>
     </Style>
 
+    <!-- Dikkat isteyen durumdaki düğme (ör. mikrofon kapalıyken "Mikrofonu aç"): vurgu zemini, koyu metin -->
+    <Style x:Key="PanelAccentButton" TargetType="Button" BasedOn="{StaticResource PanelButton}">
+        <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{DynamicResource AccentBrush}" CornerRadius="12"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#FFD29A" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#FFD29A" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#F0B068" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Pencere önizleme kartı ve liste satırı: tüm alan tıklanabilir, solda hizalı içerik -->
     <Style x:Key="PanelCardButton" TargetType="Button">
         <Setter Property="FocusVisualStyle" Value="{StaticResource PanelFocusVisual}" />

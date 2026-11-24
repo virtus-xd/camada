@@ -25,8 +25,11 @@ public sealed class AudioService : IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly MMDeviceEnumerator _enumerator = new();
     private readonly DeviceNotifications _notifications;
+    private readonly Dictionary<int, (string Exe, string Description, string? Path)> _processes = new();
     private MMDevice? _output;
     private AudioEndpointVolume? _outputVolume;
+    private MMDevice? _micConsole;
+    private MMDevice? _micCommunications;
     private bool _disposed;
 
     public AudioService(Dispatcher dispatcher)
@@ -35,7 +38,74 @@ public sealed class AudioService : IDisposable
         _notifications = new DeviceNotifications(this);
         _enumerator.RegisterEndpointNotificationCallback(_notifications);
         AttachOutput();
+        AttachMic();
     }
+
+    /// <summary>Varsayılan kayıt cihazının sessiz durumu ya da cihazın kendisi değişti (UI iş parçacığında).</summary>
+    public event EventHandler? MicChanged;
+
+    /// <summary>Konsol rolündeki varsayılan kayıt cihazının durumu.</summary>
+    public MicState Mic => MicStates.From(_micConsole is not null, Read(() => _micConsole?.AudioEndpointVolume.Mute ?? false, false));
+
+    public string? MicName => Read(() => _micConsole?.FriendlyName, null);
+
+    /// <summary>
+    /// Mikrofonu kapatır/açar: hedef, konsol varsayılanının şimdiki durumunun tersi; iletişim varsayılanı farklı bir
+    /// cihazsa ona da uygulanır (Global Constraints). Kayıt cihazı yoksa bir şey yapmaz.
+    /// </summary>
+    public void ToggleMic()
+    {
+        if (_micConsole is not { } console)
+        {
+            return;
+        }
+
+        var target = !Read(() => console.AudioEndpointVolume.Mute, false);
+        Write(() => console.AudioEndpointVolume.Mute = target);
+        if (_micCommunications is { } communications)
+        {
+            Write(() => communications.AudioEndpointVolume.Mute = target);
+        }
+    }
+
+    /// <summary>Varsayılan çıkışta o an ses çıkaran uygulamalar (Ses paneli açıkken saniyede bir okunur).</summary>
+    public IReadOnlyList<AppVolumeRow> Apps() => Read<IReadOnlyList<AppVolumeRow>>(() =>
+    {
+        if (_output is null)
+        {
+            return [];
+        }
+
+        var samples = new List<SessionSample>();
+        ForEachSession(session =>
+        {
+            var pid = (int)session.GetProcessID;
+            var process = ProcessInfo(pid);
+            var name = session.DisplayName;
+            if (string.IsNullOrWhiteSpace(name) || name.StartsWith('@')) // "@%SystemRoot%\…" kaynak dizgileri
+            {
+                name = process.Description;
+            }
+
+            samples.Add(new SessionSample(pid, process.Exe, name, session.SimpleAudioVolume.Volume,
+                session.SimpleAudioVolume.Mute, session.State == AudioSessionState.AudioSessionStateActive,
+                session.IsSystemSoundsSession));
+        });
+        return AppVolumeGrouping.Group(samples);
+    }, []);
+
+    /// <summary>Satırdaki tüm süreçlerin oturumlarına aynı düzeyi uygular.</summary>
+    public void SetAppVolume(AppVolumeRow row, float volume) => Write(() => ForEachSession(session =>
+    {
+        if (row.ProcessIds.Contains((int)session.GetProcessID) && !session.IsSystemSoundsSession)
+        {
+            session.SimpleAudioVolume.Volume = Math.Clamp(volume, 0f, 1f);
+        }
+    }));
+
+    /// <summary>Satırdaki uygulamanın exe yolu (simgesi için); bulunamazsa null.</summary>
+    public string? ExePathFor(AppVolumeRow row) =>
+        row.ProcessIds.Select(pid => _processes.TryGetValue(pid, out var p) ? p.Path : null).FirstOrDefault(p => p is not null);
 
     /// <summary>Varsayılan çıkışın ses düzeyi değişti (UI iş parçacığında).</summary>
     public event EventHandler<MasterVolumeChange>? MasterChanged;
@@ -94,8 +164,121 @@ public sealed class AudioService : IDisposable
         _disposed = true;
         Write(() => _enumerator.UnregisterEndpointNotificationCallback(_notifications));
         DetachOutput();
+        DetachMic();
         _enumerator.Dispose();
     }
+
+    /// <summary>Varsayılan çıkışın oturumlarını gezer; her oturum sarmalayıcısı iş bitince bırakılır.</summary>
+    private void ForEachSession(Action<AudioSessionControl> visit)
+    {
+        if (_output is null)
+        {
+            return;
+        }
+
+        var manager = _output.AudioSessionManager;
+        manager.RefreshSessions();
+        var sessions = manager.Sessions;
+        for (var i = 0; i < sessions.Count; i++)
+        {
+            using var session = sessions[i];
+            visit(session);
+        }
+    }
+
+    /// <summary>Sürecin exe adı, açıklaması ve yolu; yükseltilmiş süreçte yol okunamazsa süreç adı.</summary>
+    private (string Exe, string Description, string? Path) ProcessInfo(int pid)
+    {
+        if (_processes.TryGetValue(pid, out var known))
+        {
+            return known;
+        }
+
+        (string, string, string?) info = ("", "", null);
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            string? path = null;
+            try
+            {
+                path = process.MainModule?.FileName;
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                // yükseltilmiş ya da korumalı süreç: yol yok, süreç adı kullanılır
+            }
+
+            var exe = path is not null ? System.IO.Path.GetFileName(path) : process.ProcessName + ".exe";
+            var description = path is not null ? FileVersionInfo.GetVersionInfo(path).FileDescription ?? "" : "";
+            info = (exe, description, path);
+        }
+        catch (ArgumentException)
+        {
+            // süreç bu arada kapandı
+        }
+
+        if (pid != 0)
+        {
+            _processes[pid] = info;
+        }
+
+        return info;
+    }
+
+    /// <summary>Konsol ve (farklıysa) iletişim rolündeki varsayılan kayıt cihazlarını bağlar.</summary>
+    private void AttachMic()
+    {
+        DetachMic();
+        Write(() =>
+        {
+            if (_enumerator.HasDefaultAudioEndpoint(DataFlow.Capture, Role.Console))
+            {
+                _micConsole = _enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Console);
+                _micConsole.AudioEndpointVolume.OnVolumeNotification += OnMicVolume;
+            }
+
+            if (_enumerator.HasDefaultAudioEndpoint(DataFlow.Capture, Role.Communications))
+            {
+                var communications = _enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
+                if (communications.ID == _micConsole?.ID)
+                {
+                    communications.Dispose();
+                }
+                else
+                {
+                    _micCommunications = communications;
+                    _micCommunications.AudioEndpointVolume.OnVolumeNotification += OnMicVolume;
+                }
+            }
+        });
+    }
+
+    private void DetachMic()
+    {
+        foreach (var device in new[] { _micConsole, _micCommunications })
+        {
+            if (device is not null)
+            {
+                Write(() =>
+                {
+                    device.AudioEndpointVolume.OnVolumeNotification -= OnMicVolume;
+                    device.Dispose();
+                });
+            }
+        }
+
+        _micConsole = null;
+        _micCommunications = null;
+    }
+
+    /// <summary>Core Audio iş parçacığından gelir.</summary>
+    private void OnMicVolume(AudioVolumeNotificationData data) => _dispatcher.BeginInvoke(() =>
+    {
+        if (!_disposed)
+        {
+            MicChanged?.Invoke(this, EventArgs.Empty);
+        }
+    });
 
     /// <summary>Varsayılan çıkışı (multimedya rolü) bağlar; önceki cihazın aboneliği bırakılır.</summary>
     private void AttachOutput()
@@ -146,7 +329,10 @@ public sealed class AudioService : IDisposable
         });
     }
 
-    /// <summary>Cihaz bildirimi (başka iş parçacığından): UI'da yeniden bağlanır ve olay yayımlanır.</summary>
+    /// <summary>
+    /// Cihaz bildirimi (başka iş parçacığından): UI'da yeniden bağlanır ve olaylar yayımlanır. Kayıt cihazları her
+    /// bildirimde yeniden bağlanır (takılıp çıkarılan USB mikrofon, değişen varsayılan).
+    /// </summary>
     private void OnDevicesChanged(bool defaultOutputChanged) => _dispatcher.BeginInvoke(() =>
     {
         if (_disposed)
@@ -160,6 +346,8 @@ public sealed class AudioService : IDisposable
             MasterChanged?.Invoke(this, new MasterVolumeChange(Volume, Muted, FromCamAda: true));
         }
 
+        AttachMic();
+        MicChanged?.Invoke(this, EventArgs.Empty);
         DevicesChanged?.Invoke(this, EventArgs.Empty);
     });
 

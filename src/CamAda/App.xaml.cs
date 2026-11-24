@@ -177,6 +177,7 @@ public partial class App : Application
         _audio = audio;
         audio.MasterChanged += (_, _) => UpdateSoundButton();
         audio.DevicesChanged += (_, _) => UpdateSoundButton();
+        audio.MicChanged += (_, _) => UpdateSoundButton();
         _island!.Bar.SoundClicked += (_, _) =>
             _island.Panels.Toggle("sound", () => new Panels.SoundPanel(audio), Panels.SoundPanel.PanelWidth);
         UpdateSoundButton();
@@ -189,7 +190,9 @@ public partial class App : Application
             return;
         }
 
-        _island.Bar.ShowSound(SpeakerLevels.For(_audio.Volume, _audio.Muted || !_audio.HasOutput), micMuted: false);
+        var micOff = _audio.Mic == MicState.Off;
+        _island.Bar.ShowSound(SpeakerLevels.For(_audio.Volume, _audio.Muted || !_audio.HasOutput), micOff);
+        _island.ShowMicOff(micOff);
     }
 
     /// <summary>Başlat ve Ara aynı paneli açar (yazmaya hazır arama kutusuyla).</summary>

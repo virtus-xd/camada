@@ -151,6 +151,9 @@ public partial class IslandWindow : Window
     /// <summary>Genişlemiş satır (Başlat, Ara, uygulamalar, ^ olayları için).</summary>
     public IslandBar Bar => ExpandedContent;
 
+    /// <summary>Küçük adada mikrofon kapalı işaretini gösterir ya da gizler.</summary>
+    public void ShowMicOff(bool off) => CompactMicOff.Visibility = off ? Visibility.Visible : Visibility.Collapsed;
+
     /// <summary>Müzik panelindeki beğen ve "Sıradaki" kaynağı (Spotify'a bağlanınca).</summary>
     public ISpotifyExtras? MusicExtras { get; set; }
 

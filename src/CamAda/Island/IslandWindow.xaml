@@ -87,6 +87,11 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Mikrofon kapalıyken kırmızımsı işaret (spec §7.1) -->
+                        <TextBlock x:Name="CompactMicOff" Text="&#xEC54;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="13" Foreground="{StaticResource WarningBrush}" Margin="0,0,10,0"
+                                   VerticalAlignment="Center" Visibility="Collapsed"
+                                   AutomationProperties.Name="Mikrofon kapalı" />
                         <media:EqualizerBars x:Name="CompactEqualizer" Margin="0,0,10,0" VerticalAlignment="Center" Opacity="0" />
                         <TextBlock x:Name="CompactTime" VerticalAlignment="Center"
                                    FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />

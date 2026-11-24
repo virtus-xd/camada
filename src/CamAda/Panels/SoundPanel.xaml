@@ -35,5 +35,28 @@
         <StackPanel x:Name="OutputList" />
         <TextBlock x:Name="NoOutputText" Text="Ses çıkış cihazı bulunamadı." Margin="4,0,0,4" FontSize="12.5"
                    Foreground="{StaticResource TextSecondaryBrush}" Visibility="Collapsed" />
+
+        <!-- O an ses çıkaran uygulamalar (panel açıkken saniyede bir tazelenir) -->
+        <TextBlock Text="Uygulamalar" Style="{StaticResource SectionTitle}" Margin="4,12,0,6" />
+        <StackPanel x:Name="AppList" />
+        <TextBlock x:Name="NoAppsText" Text="Şu an ses çıkaran uygulama yok." Margin="4,0,0,4" FontSize="12.5"
+                   Foreground="{StaticResource TextSecondaryBrush}" />
+
+        <!-- Varsayılan kayıt cihazı -->
+        <TextBlock Text="Mikrofon" Style="{StaticResource SectionTitle}" Margin="4,12,0,6" />
+        <Grid x:Name="MicRow" Margin="4,0,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="MicGlyph" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                       VerticalAlignment="Center" />
+            <TextBlock x:Name="MicNameText" Grid.Column="1" Margin="10,0,8,0" FontSize="12.5" FontWeight="SemiBold"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Button x:Name="MicButton" Grid.Column="2" Click="MicButton_Click" />
+        </Grid>
+        <TextBlock x:Name="NoMicText" Text="Mikrofon bulunamadı." Margin="4,0,0,4" FontSize="12.5"
+                   Foreground="{StaticResource TextSecondaryBrush}" Visibility="Collapsed" />
     </StackPanel>
 </UserControl>
