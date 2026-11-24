@@ -5,7 +5,10 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Windows.Media.Animation;
 using CamAda.Core.Glass;
+using CamAda.Core.Island;
+using CamAda.Glass;
 using CamAda.Core.Media;
 using CamAda.Core.Record;
 using CamAda.Core.Settings;
@@ -24,6 +27,7 @@ namespace CamAda.Record;
 public sealed partial class RecordWindow : Window
 {
     private static readonly TimeSpan VisibilityPoll = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan CardFade = TimeSpan.FromSeconds(0.15);
 
     private readonly NowPlayingService _media;
     private readonly Func<RecordSettings> _settings;
@@ -31,7 +35,13 @@ public sealed partial class RecordWindow : Window
     private readonly Action<TimeSpan> _onFrame;
     private readonly DispatcherTimer _visibilityTimer;
     private readonly int _ownProcessId = Environment.ProcessId;
+    private readonly RecordCard _card;
+    private readonly TranslateTransform _cardSlide = new();
+    private readonly HoverIntent _hover = new(TimeProvider.System, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(300));
+    private readonly WallpaperSource _wallpaper;
+    private WallpaperGlass? _glass;
     private RecordGeometry _geometry;
+    private bool _cardOpen;
     private bool _covered;
     private bool _rendering;
     private bool _closed;
@@ -74,6 +84,20 @@ public sealed partial class RecordWindow : Window
         Disc.GotKeyboardFocus += (_, _) => FocusRing.Visibility = Visibility.Visible;
         Disc.LostKeyboardFocus += (_, _) => FocusRing.Visibility = Visibility.Collapsed;
 
+        _card = new RecordCard(media) { Visibility = Visibility.Hidden, Opacity = 0, RenderTransform = _cardSlide };
+        Root.Children.Add(_card);
+        _wallpaper = new WallpaperSource(Dispatcher);
+
+        // Plak, köprü ve kart tek bir "üstünde" niyetini besler: plaktan karta geçerken kart kapanmaz (spec §7.8).
+        foreach (var element in new UIElement[] { Disc, CardBridge, _card })
+        {
+            element.MouseEnter += (_, _) => _hover.PointerEntered();
+            element.MouseLeave += (_, _) => _hover.PointerExited();
+        }
+
+        _hover.ExpandedChanged += (_, _) => Dispatcher.BeginInvoke(UpdateCard);
+        Root.IsKeyboardFocusWithinChanged += (_, _) => UpdateCard(); // plak klavye odağı alınca kart açılır
+
         UpdateMedia();
     }
 
@@ -82,8 +106,12 @@ public sealed partial class RecordWindow : Window
 
     public event EventHandler? VisibilityChanged;
 
-    /// <summary>Plağın müzik kartına iletilecek Spotify ekleri (Görev 7–8).</summary>
-    public ISpotifyExtras? Extras { get; set; }
+    /// <summary>Plağın müzik kartına iletilecek Spotify ekleri (beğen, sıradaki).</summary>
+    public ISpotifyExtras? Extras
+    {
+        get => _card.Extras;
+        set => _card.Extras = value;
+    }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
@@ -92,6 +120,8 @@ public sealed partial class RecordWindow : Window
         Native.OwnByDesktop(handle);                               // Win+D'de masaüstüyle birlikte görünür kalır
         HwndSource.FromHwnd(handle)?.AddHook(WndProc);
         Place();
+        _glass = new WallpaperGlass(_wallpaper, _card.TintLayer); // kart masaüstünün üstünde: duvar kağıdı camı
+        _glass.Attach(this, _card);
     }
 
     /// <summary>Ana ekranın fiziksel sınırlarını DIP'e çevirip <see cref="RecordLayout"/> ile yerleşir.</summary>
@@ -113,6 +143,65 @@ public sealed partial class RecordWindow : Window
         Canvas.SetTop(Disc, _geometry.Disc.Y);
         Disc.Width = Disc.Height = _geometry.Disc.Width;
         Visual.Configure(_geometry.Disc.Width, settings.EffectiveLabelDiameter, dpi.DpiScaleX);
+
+        var card = _geometry.Card;
+        foreach (var element in new FrameworkElement[] { _card, CardShadow })
+        {
+            Canvas.SetLeft(element, card.X);
+            Canvas.SetTop(element, card.Y);
+            element.Width = card.Width;
+            element.Height = card.Height;
+        }
+
+        var bridgeLeft = _geometry.VisibleDisc.X + _geometry.VisibleDisc.Width - 1;
+        Canvas.SetLeft(CardBridge, bridgeLeft);
+        Canvas.SetTop(CardBridge, card.Y);
+        CardBridge.Width = card.X - bridgeLeft + 1;
+        CardBridge.Height = card.Height;
+    }
+
+    /// <summary>
+    /// Fare plağın, köprünün ya da kartın üstündeyken (0,1 sn gecikmeyle) ya da odak plak veya karttayken kart açıktır;
+    /// ikisinden de çıkınca 0,3 sn sonra kapanır. Açılırken 0,15 sn'de belirip 8 DIP sağa kayar; "animasyonları azalt"ta anında.
+    /// </summary>
+    private void UpdateCard()
+    {
+        var open = !_closed && (_hover.IsExpanded || Root.IsKeyboardFocusWithin);
+        if (open == _cardOpen)
+        {
+            return;
+        }
+
+        _cardOpen = open;
+        var animate = SystemParameters.ClientAreaAnimation;
+        var duration = animate ? CardFade : TimeSpan.Zero;
+        if (open)
+        {
+            foreach (var element in new UIElement[] { _card, CardShadow, CardBridge })
+            {
+                element.Visibility = Visibility.Visible;
+            }
+
+            _card.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
+            CardShadow.BeginAnimation(OpacityProperty, new DoubleAnimation(1, duration));
+            _cardSlide.BeginAnimation(TranslateTransform.XProperty, animate ? new DoubleAnimation(-8, 0, duration) : null);
+            _ = Extras?.RefreshAsync();
+            return;
+        }
+
+        var fade = new DoubleAnimation(0, duration);
+        fade.Completed += (_, _) =>
+        {
+            if (!_cardOpen)
+            {
+                foreach (var element in new UIElement[] { _card, CardShadow, CardBridge })
+                {
+                    element.Visibility = Visibility.Hidden;
+                }
+            }
+        };
+        _card.BeginAnimation(OpacityProperty, fade);
+        CardShadow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, duration));
     }
 
     /// <summary>Pencere her zaman z-sırasının en altında kalır: tıklanınca ya da etkinleşince bile pencerelerin önüne geçmez.</summary>
@@ -211,5 +300,8 @@ public sealed partial class RecordWindow : Window
         UpdateAnimation();
         _media.Changed -= OnMediaChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        _hover.Dispose();
+        _glass?.Dispose();
+        _wallpaper.Dispose();
     }
 }

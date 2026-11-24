@@ -55,7 +55,11 @@ public sealed partial class NowPlayingCard : UserControl
             Unsubscribe(_extras);
             _progressTimer.Stop();
         };
-        IsVisibleChanged += (_, _) => UpdateProgressTimer();
+        IsVisibleChanged += (_, _) =>
+        {
+            UpdateProgress(); // gizliyken ilerleme güncellenmez: görünür olunca hemen tazele
+            UpdateProgressTimer();
+        };
         ProgressTrack.SizeChanged += (_, _) => UpdateProgress(); // ilk yerleşimde çubuğun genişliği henüz 0
     }
 
