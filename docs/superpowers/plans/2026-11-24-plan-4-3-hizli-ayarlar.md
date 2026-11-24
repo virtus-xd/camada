@@ -511,7 +511,13 @@ Plan 4.2 main'de (255a43e). Bu plan `plan-4-3-hizli-ayarlar` dalında yürütül
 
 ## Spike sonuçları
 
-(Görev 1 Step 1–2 doldurur: Odak oturumu başlatılabiliyor mu ve gerekirse hangi ayar adresi açıldı; Bluetooth ses zinciri kuruldu mu, Buds2 bağlandı mı.)
+- **Odak (24.11):** `FocusSessionManager.IsSupported = True`, ama `TryStartFocusSession` ve `DeactivateFocus` `UnauthorizedAccessException 0x80070005` ile reddediliyor: "Feature com.microsoft.windows.focussessionmanager.1 is not available". Bu, Microsoft'un yalnız izin verdiği uygulamalara açtığı bir özellik (Limited Access Feature). `IsFocusActive` hata vermiyor, ama Odak açıkken doğru okunduğu doğrulanamadı. **Sonuç:** Odak kutucuğu yedek plana geçer. Durum göstermez; paneli kapatıp `ms-settings:focus` adresini açar. Bu adres "Odaklanma" sayfasını açıyor ("Odaklanma oturumunu başlat", "Oturum Süresi 30 dk"); `ms-settings:quiethours` da aynı sayfayı açıyor.
+- **Bluetooth ses komutu (24.11):**
+  - Bluetooth açıldı; "Kulaklıklar (Buds2)" ucu `UNPLUGGED` (8) durumunda, kapsayıcı kimliği `8efabee3-…`.
+  - Zincirin her adımı `S_OK` döndü: `GetDevice` → `Activate(IDeviceTopology)` → `GetConnector(0)` → `GetConnectedTo` → `IPart.GetTopologyObject` → `GetDeviceId` (`{2}.\\?\bthenum#{0000110b-…}…\src`) → `GetDevice(filtre)` → `Activate(IKsControl)` → `KsProperty(ONESHOT_RECONNECT)`.
+  - Buds2 kapalı ya da kutusunda olduğu için 10 sn içinde bağlanmadı (uç durumu 8 kaldı).
+  - Varsayılan ses cihazları değişmedi; Bluetooth özgün durumuna (Kapalı) döndü.
+  - **Sonuç:** Bağlan/Ayır düğmesi kullanılır (`CanSendAudioCommands = true`). Gerçek bağlanma kullanıcının elle deneme listesinde.
 
 ## Kullanıcının elle denemesi (son)
 
