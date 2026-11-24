@@ -1,5 +1,8 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.Windows.Threading;
 using CamAda.Core.Bluetooth;
 using CamAda.Core.Network;
@@ -22,6 +25,8 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
     private const string FocusSettings = "ms-settings:focus";
 
     private readonly QuickServices _services;
+    private readonly Dictionary<string, (Slider Slider, TextBlock Percent)> _brightnessRows = new();
+    private bool _updatingBrightness;
 
     public QuickSettingsPanel(QuickServices services)
     {
@@ -48,6 +53,12 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
                 radios.Changed += OnServiceChanged;
             }
 
+            if (_services.Brightness is { } brightness)
+            {
+                brightness.InternalChanged += OnBrightnessChanged;
+                _ = LoadBrightnessAsync(brightness);
+            }
+
             Refresh();
             Dispatcher.BeginInvoke(WifiTile.FocusMain, DispatcherPriority.Input);
         };
@@ -59,6 +70,11 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
             if (_services.Radios is { } radios)
             {
                 radios.Changed -= OnServiceChanged;
+            }
+
+            if (_services.Brightness is { } brightness)
+            {
+                brightness.InternalChanged -= OnBrightnessChanged;
             }
         };
     }
@@ -96,6 +112,115 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
     }
 
     private void OnServiceChanged(object? sender, EventArgs e) => Refresh();
+
+    /// <summary>Her ekran için bir satır: ☀ + kaydırıcı + yüzde; birden fazla ekranda satırın üstünde ekran adı.</summary>
+    private async Task LoadBrightnessAsync(BrightnessService brightness)
+    {
+        await brightness.RefreshAsync();
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        BrightnessRows.Children.Clear();
+        _brightnessRows.Clear();
+        var displays = brightness.Displays;
+        foreach (var display in displays)
+        {
+            if (displays.Count > 1)
+            {
+                BrightnessRows.Children.Add(new TextBlock
+                {
+                    Text = display.Name,
+                    FontSize = 11.5,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                    Margin = new Thickness(4, BrightnessRows.Children.Count == 0 ? 0 : 8, 0, 4),
+                });
+            }
+
+            BrightnessRows.Children.Add(CreateBrightnessRow(brightness, display));
+        }
+
+        BrightnessRows.Visibility = displays.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private Grid CreateBrightnessRow(BrightnessService brightness, BrightnessDisplay display)
+    {
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+        var glyph = new TextBlock
+        {
+            Text = QuickGlyphs.Brightness,
+            FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+            FontSize = 15,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var slider = new Slider
+        {
+            Style = (Style)FindResource("PanelSlider"),
+            Minimum = 0,
+            Maximum = 100,
+            SmallChange = 1,
+            LargeChange = 10,
+            Margin = new Thickness(16, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        AutomationProperties.SetName(slider, $"{display.Name} parlaklığı");
+        var percent = new TextBlock
+        {
+            FontSize = 12.5,
+            FontWeight = FontWeights.Bold,
+            TextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Typography.SetNumeralAlignment(percent, FontNumeralAlignment.Tabular);
+        Grid.SetColumn(slider, 1);
+        Grid.SetColumn(percent, 2);
+        row.Children.Add(glyph);
+        row.Children.Add(slider);
+        row.Children.Add(percent);
+
+        var id = display.Id;
+        _updatingBrightness = true;
+        slider.Value = display.Level;
+        _updatingBrightness = false;
+        percent.Text = $"%{display.Level}";
+        slider.ValueChanged += (_, e) =>
+        {
+            var level = (int)Math.Round(e.NewValue);
+            percent.Text = $"%{level}";
+            if (!_updatingBrightness)
+            {
+                brightness.Set(id, level);
+            }
+        };
+
+        _brightnessRows[id] = (slider, percent);
+        return row;
+    }
+
+    /// <summary>
+    /// Fn tuşları ya da Windows: kaydırıcı fareyle sürüklenmiyorsa yeni değeri gösterir (Review Focus 3). Klavye odağı
+    /// kaydırıcıda kalsa da güncellenir; yoksa bir kez tıklanan kaydırıcı panel açık kaldıkça Fn tuşlarını izlemezdi.
+    /// Kendi gönderdiğimiz değerin yankısı zaten kaydırıcıdadır.
+    /// </summary>
+    private void OnBrightnessChanged(object? sender, BrightnessChange change)
+    {
+        if (change.FromCamAda || !_brightnessRows.TryGetValue(BrightnessService.InternalId, out var row)
+            || row.Slider.IsMouseCaptureWithin)
+        {
+            return;
+        }
+
+        _updatingBrightness = true;
+        row.Slider.Value = change.Level;
+        _updatingBrightness = false;
+        row.Percent.Text = $"%{change.Level}";
+    }
 
     private void Refresh()
     {

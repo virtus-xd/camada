@@ -2,34 +2,31 @@ namespace CamAda.Core.Display;
 
 /// <summary>
 /// CamAda'nın kendi gönderdiği değerin Windows'tan olay olarak geri gelmesini ayırt eder (ör. parlaklık): süre içinde
-/// gönderilmiş aynı değer yankıdır; her gönderim bir kez eşleşir.
+/// gönderilmiş aynı değer yankıdır. Windows bir gönderim için birden çok, sırası karışık olay verebildiğinden eşleşme
+/// tüketilmez; süre o değerin en son gönderiminden sayılır.
 /// </summary>
 public sealed class EchoFilter(TimeProvider time, TimeSpan window)
 {
-    private readonly List<(int Value, DateTimeOffset At)> _sent = [];
+    private readonly Dictionary<int, DateTimeOffset> _lastSent = new();
 
     public void Sent(int value)
     {
         Prune();
-        _sent.Add((value, time.GetUtcNow()));
+        _lastSent[value] = time.GetUtcNow();
     }
 
     public bool IsEcho(int value)
     {
         Prune();
-        var index = _sent.FindIndex(s => s.Value == value);
-        if (index < 0)
-        {
-            return false;
-        }
-
-        _sent.RemoveAt(index);
-        return true;
+        return _lastSent.ContainsKey(value);
     }
 
     private void Prune()
     {
         var now = time.GetUtcNow();
-        _sent.RemoveAll(s => now - s.At > window);
+        foreach (var expired in _lastSent.Where(s => now - s.Value > window).Select(s => s.Key).ToList())
+        {
+            _lastSent.Remove(expired);
+        }
     }
 }

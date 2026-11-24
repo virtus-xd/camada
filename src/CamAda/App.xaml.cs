@@ -56,6 +56,7 @@ public partial class App : Application
     private NetworkStatusService? _network;
     private BatteryService? _battery;
     private ThemeService? _theme;
+    private BrightnessService? _brightness;
     private QuickServices? _quick;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
@@ -262,6 +263,18 @@ public partial class App : Application
         UpdateBatteryButton();
 
         _theme = new ThemeService(Dispatcher);
+        if (!IsAbsentForTest("brightness"))
+        {
+            _brightness = new BrightnessService(Dispatcher, TimeProvider.System);
+            _brightness.InternalChanged += (_, change) =>
+            {
+                if (!change.FromCamAda) // CamAda'nın kaydırıcısıyla değişince panel zaten gösteriyor
+                {
+                    _island?.Flash(new FlashContent(QuickGlyphs.Brightness, change.Level / 100.0, $"%{change.Level}"));
+                }
+            };
+        }
+
         _quick = new QuickServices
         {
             Network = _network,
@@ -269,6 +282,7 @@ public partial class App : Application
             Theme = _theme,
             Launcher = CreateQuickLauncher(),
             Radios = IsAbsentForTest("radios") ? null : _radios,
+            Brightness = _brightness,
         };
         _island.Bar.WifiClicked += (_, _) => OpenQuickSettings();
         _island.Bar.BatteryClicked += (_, _) => OpenQuickSettings();
@@ -786,6 +800,7 @@ public partial class App : Application
         _battery?.Dispose();
         _radios?.Dispose();
         _theme?.Dispose();
+        _brightness?.Dispose();
         _audio?.Dispose();
         _weather?.Dispose();
         _media?.Dispose();

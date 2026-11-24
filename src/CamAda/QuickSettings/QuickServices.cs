@@ -12,4 +12,6 @@ public sealed class QuickServices
     public required IQuickLauncher Launcher { get; init; }
 
     public RadioService? Radios { get; init; }
+
+    public BrightnessService? Brightness { get; init; }
 }

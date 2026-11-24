@@ -9,14 +9,29 @@ public class EchoFilterTests
 
     private EchoFilter Create() => new(_time, TimeSpan.FromSeconds(1.5));
 
+    // Windows her WmiSetBrightness için gecikmeli ikinci bir olay da gönderiyor, sırası karışık (24.11 ölçümü:
+    // 10, 40, 90 gönderilince olaylar 10, 40, 90, 10, 90). Süre içindeki kopyaların hepsi yankıdır.
     [Fact]
-    public void Matching_recent_send_is_echo_once()
+    public void Matching_recent_send_stays_echo_within_window()
     {
         var filter = Create();
         filter.Sent(40);
         _time.Advance(TimeSpan.FromSeconds(0.5));
         Assert.True(filter.IsEcho(40));
-        Assert.False(filter.IsEcho(40));
+        Assert.True(filter.IsEcho(40));
+    }
+
+    [Fact]
+    public void Late_duplicate_of_an_earlier_send_is_echo()
+    {
+        var filter = Create();
+        filter.Sent(10);
+        filter.Sent(40);
+        filter.Sent(90);
+        Assert.True(filter.IsEcho(90));
+        _time.Advance(TimeSpan.FromMilliseconds(300));
+        Assert.True(filter.IsEcho(10));
+        Assert.True(filter.IsEcho(90));
     }
 
     [Fact]
@@ -37,13 +52,13 @@ public class EchoFilterTests
     }
 
     [Fact]
-    public void Each_send_matches_once()
+    public void Window_counts_from_the_latest_send_of_a_value()
     {
         var filter = Create();
         filter.Sent(30);
-        filter.Sent(40);
+        _time.Advance(TimeSpan.FromSeconds(1));
+        filter.Sent(30);
+        _time.Advance(TimeSpan.FromSeconds(1));
         Assert.True(filter.IsEcho(30));
-        Assert.True(filter.IsEcho(40));
-        Assert.False(filter.IsEcho(30));
     }
 }
