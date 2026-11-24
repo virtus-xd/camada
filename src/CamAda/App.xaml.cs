@@ -170,7 +170,7 @@ public partial class App : Application
         {
             audio = new AudioService(Dispatcher);
         }
-        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidCastException)
+        catch (Exception ex) when (CoreAudioErrors.IsRecoverable(ex))
         {
             LogCrash(ex);
             _island?.Bar.ShowSound(SpeakerLevel.Muted, micMuted: false);

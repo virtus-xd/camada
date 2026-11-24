@@ -25,7 +25,7 @@ public sealed class AudioService : IDisposable
     private readonly Dispatcher _dispatcher;
     private readonly MMDeviceEnumerator _enumerator = new();
     private readonly DeviceNotifications _notifications;
-    private readonly Dictionary<int, (string Exe, string Description, string? Path)> _processes = new();
+    private readonly ProcessInfoCache _processes = new(ProcessInfoReader.Read);
     private MMDevice? _output;
     private AudioEndpointVolume? _outputVolume;
     private MMDevice? _micConsole;
@@ -77,10 +77,21 @@ public sealed class AudioService : IDisposable
         }
 
         var samples = new List<SessionSample>();
+        var pids = new HashSet<int>();
         ForEachSession(session =>
         {
+            if (session.IsSystemSoundsSession)
+            {
+                return; // Sistem sesleri gösterilmez; süreci (Idle, 0) aranmaz
+            }
+
             var pid = (int)session.GetProcessID;
-            var process = ProcessInfo(pid);
+            pids.Add(pid);
+            if (_processes.Get(pid) is not { } process)
+            {
+                return; // süreç bu arada kapandı
+            }
+
             var name = session.DisplayName;
             if (string.IsNullOrWhiteSpace(name) || name.StartsWith('@')) // "@%SystemRoot%\…" kaynak dizgileri
             {
@@ -89,8 +100,9 @@ public sealed class AudioService : IDisposable
 
             samples.Add(new SessionSample(pid, process.Exe, name, session.SimpleAudioVolume.Volume,
                 session.SimpleAudioVolume.Mute, session.State == AudioSessionState.AudioSessionStateActive,
-                session.IsSystemSoundsSession));
+                IsSystemSounds: false));
         });
+        _processes.Retain(pids); // oturumu kalmayan süreçler unutulur (Windows kimlikleri yeniden kullanır)
         return AppVolumeGrouping.Group(samples);
     }, []);
 
@@ -105,7 +117,7 @@ public sealed class AudioService : IDisposable
 
     /// <summary>Satırdaki uygulamanın exe yolu (simgesi için); bulunamazsa null.</summary>
     public string? ExePathFor(AppVolumeRow row) =>
-        row.ProcessIds.Select(pid => _processes.TryGetValue(pid, out var p) ? p.Path : null).FirstOrDefault(p => p is not null);
+        row.ProcessIds.Select(pid => _processes.Get(pid)?.Path).FirstOrDefault(p => p is not null);
 
     /// <summary>Varsayılan çıkışın ses düzeyi değişti (UI iş parçacığında).</summary>
     public event EventHandler<MasterVolumeChange>? MasterChanged;
@@ -186,44 +198,6 @@ public sealed class AudioService : IDisposable
         }
     }
 
-    /// <summary>Sürecin exe adı, açıklaması ve yolu; yükseltilmiş süreçte yol okunamazsa süreç adı.</summary>
-    private (string Exe, string Description, string? Path) ProcessInfo(int pid)
-    {
-        if (_processes.TryGetValue(pid, out var known))
-        {
-            return known;
-        }
-
-        (string, string, string?) info = ("", "", null);
-        try
-        {
-            using var process = Process.GetProcessById(pid);
-            string? path = null;
-            try
-            {
-                path = process.MainModule?.FileName;
-            }
-            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-            {
-                // yükseltilmiş ya da korumalı süreç: yol yok, süreç adı kullanılır
-            }
-
-            var exe = path is not null ? System.IO.Path.GetFileName(path) : process.ProcessName + ".exe";
-            var description = path is not null ? FileVersionInfo.GetVersionInfo(path).FileDescription ?? "" : "";
-            info = (exe, description, path);
-        }
-        catch (ArgumentException)
-        {
-            // süreç bu arada kapandı
-        }
-
-        if (pid != 0)
-        {
-            _processes[pid] = info;
-        }
-
-        return info;
-    }
 
     /// <summary>Konsol ve (farklıysa) iletişim rolündeki varsayılan kayıt cihazlarını bağlar.</summary>
     private void AttachMic()
@@ -357,7 +331,7 @@ public sealed class AudioService : IDisposable
         {
             return read();
         }
-        catch (COMException ex)
+        catch (Exception ex) when (CoreAudioErrors.IsRecoverable(ex))
         {
             Debug.WriteLine($"Core Audio okunamadı: {ex.Message}");
             return fallback;
@@ -370,7 +344,7 @@ public sealed class AudioService : IDisposable
         {
             write();
         }
-        catch (COMException ex)
+        catch (Exception ex) when (CoreAudioErrors.IsRecoverable(ex))
         {
             Debug.WriteLine($"Core Audio yazılamadı: {ex.Message}");
         }
