@@ -12,10 +12,17 @@ namespace CamAda.Clips;
 /// </summary>
 internal static class ClipImages
 {
-    private const long MaxPixels = 100_000_000;
+    /// <summary>8K ekran (7680×4320) sığar; boyut, pikseller açılmadan üst bilgiden denetlenir (sıkıştırma bombası).</summary>
+    private const long MaxPixels = 36_000_000;
 
     public static ClipPayload? Prepare(byte[]? png, byte[]? dib)
     {
+        var declared = png is not null ? ImageHeader.PngSize(png) : dib is not null ? ImageHeader.DibSize(dib) : null;
+        if (ImageHeader.PixelCount(declared) > MaxPixels)
+        {
+            return null;
+        }
+
         BitmapSource source;
         if (png is not null)
         {

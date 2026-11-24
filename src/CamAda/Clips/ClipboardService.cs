@@ -300,7 +300,7 @@ public sealed class ClipboardService : IDisposable
             payload = await Task.Run(() => ClipImages.Prepare(snapshot.Png, snapshot.Dib));
         }
         catch (Exception ex) when (ex is NotSupportedException or FileFormatException or ArgumentException or OverflowException
-                                       or IOException or COMException)
+                                       or IOException or COMException or OutOfMemoryException)
         {
             _log(ex);
             return;
