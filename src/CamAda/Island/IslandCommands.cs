@@ -10,6 +10,8 @@ namespace CamAda.Island;
 /// <param name="SetGlassMode">Cam görünümünü ayarlara kaydeder.</param>
 /// <param name="IsStartWithWindows">Oturum açılınca başlama açık mı.</param>
 /// <param name="SetStartWithWindows">Ayarı kaydeder ve Run anahtarını yazar ya da siler.</param>
+/// <param name="IsRecordHidden">Masaüstü plağı şu an gizli mi.</param>
+/// <param name="SetRecordHidden">Ayarı kaydeder ve plağı kapatır ya da yeniden kurar.</param>
 public sealed record IslandCommands(
     Func<bool> IsTaskbarHidden,
     Action<bool> SetTaskbarHidden,
@@ -17,4 +19,6 @@ public sealed record IslandCommands(
     Func<GlassMode> GetGlassMode,
     Action<GlassMode> SetGlassMode,
     Func<bool> IsStartWithWindows,
-    Action<bool> SetStartWithWindows);
+    Action<bool> SetStartWithWindows,
+    Func<bool> IsRecordHidden,
+    Action<bool> SetRecordHidden);

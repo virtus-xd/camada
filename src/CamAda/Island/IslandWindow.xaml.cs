@@ -109,6 +109,7 @@ public partial class IslandWindow : Window
         {
             HideTaskbarItem.IsChecked = _commands.IsTaskbarHidden();
             StartWithWindowsItem.IsChecked = _commands.IsStartWithWindows();
+            HideRecordItem.IsChecked = _commands.IsRecordHidden();
             GlassWallpaperItem.IsChecked = _glassMode == GlassMode.Wallpaper;
             GlassAcrylicItem.IsChecked = _glassMode == GlassMode.Acrylic;
             GlassSolidItem.IsChecked = _glassMode == GlassMode.Solid;
@@ -450,6 +451,9 @@ public partial class IslandWindow : Window
 
     private void StartWithWindowsItem_Click(object sender, RoutedEventArgs e) =>
         _commands.SetStartWithWindows(StartWithWindowsItem.IsChecked);
+
+    private void HideRecordItem_Click(object sender, RoutedEventArgs e) =>
+        _commands.SetRecordHidden(HideRecordItem.IsChecked);
 
     private void ExitItem_Click(object sender, RoutedEventArgs e) => _commands.Exit();
 

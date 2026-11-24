@@ -37,6 +37,7 @@ public partial class App : Application
     private WeatherService? _weather;
     private RecordWindow? _record;
     private SpotifyClient? _spotify;
+    private ISpotifyExtras? _spotifyExtras;
     private readonly Panels.AppIndex _appIndex = new();
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -122,27 +123,24 @@ public partial class App : Application
                 _settingsStore.Save(_settings);
             },
             IsStartWithWindows: () => _settings.StartWithWindows,
-            SetStartWithWindows: SetStartWithWindows), _dock, _media);
+            SetStartWithWindows: SetStartWithWindows,
+            IsRecordHidden: () => !_settings.Record.Enabled,
+            SetRecordHidden: SetRecordHidden), _dock, _media);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
         _island.LocationChanged += (_, _) => UpdateTrayHostSizeData(); // ekran ayarı değişince ada yeniden yerleşir
         _island.Show();
 
-        if (_settings.Record.Enabled)
-        {
-            _record = new RecordWindow(_media!, () => _settings.Record);
-            _record.Show();
-        }
-
         // Beğen ve sıradaki şarkılar (Spotify Web API): bağlı değilken istek atılmaz, kart ve panel bu denetimleri gizler.
         _spotify = new SpotifyClient(() => _settings.SpotifyClientId, new SpotifyTokenStore(LocalDir), TimeProvider.System);
-        var extras = new SpotifyExtras(_spotify, _media!, Dispatcher);
-        _island.MusicExtras = extras;
+        _spotifyExtras = new SpotifyExtras(_spotify, _media!, Dispatcher);
+        _island.MusicExtras = _spotifyExtras;
         _island.MusicFooter = () => _spotify.IsConnected ? null : new SpotifyConnectView(_spotify, SaveSpotifyClientId);
-        if (_record is not null)
+
+        if (_settings.Record.Enabled)
         {
-            _record.Extras = extras;
+            ShowRecord();
         }
 
         _weather = new WeatherService(() => _settings.Weather, SaveWeatherLocation, Dispatcher);
@@ -252,6 +250,42 @@ public partial class App : Application
     {
         _settings = _settings with { Weather = location };
         _settingsStore.Save(_settings);
+    }
+
+    /// <summary>Adanın menüsünden: ayarı kaydeder; gizlerken plak kapanır (hiç iş yapmaz), gösterirken yeniden kurulur.</summary>
+    private void SetRecordHidden(bool hidden)
+    {
+        _settings = _settings with { Record = _settings.Record with { Enabled = !hidden } };
+        _settingsStore.Save(_settings);
+
+        if (hidden)
+        {
+            CloseRecord();
+        }
+        else
+        {
+            ShowRecord();
+        }
+    }
+
+    /// <summary>Plak çaları kurar ve gösterir (zaten açıksa dokunmaz). Açılıştaki sırayla: önce göster, sonra Spotify ekleri.</summary>
+    private void ShowRecord()
+    {
+        if (_record is not null)
+        {
+            return;
+        }
+
+        _record = new RecordWindow(_media!, () => _settings.Record);
+        _record.Show();
+        _record.Extras = _spotifyExtras;
+    }
+
+    /// <summary>Plak çaları kapatır; pencere medya, ekran ve örtülme olaylarını kapanırken bırakır.</summary>
+    private void CloseRecord()
+    {
+        _record?.Close();
+        _record = null;
     }
 
     private void SetStartWithWindows(bool enabled)
@@ -387,7 +421,7 @@ public partial class App : Application
         _exiting = true;
         TryShowTaskbar();
         _island?.Close();
-        _record?.Close();
+        CloseRecord();
         _weather?.Dispose();
         _media?.Dispose();
         _dock?.Dispose();

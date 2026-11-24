@@ -60,6 +60,18 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Hidden_record_survives_save_and_load()
+    {
+        var store = new SettingsStore(_dir);
+        var s = store.Load();
+        store.Save(s with { Record = s.Record with { Enabled = false, Diameter = 400 } });
+
+        var r = new SettingsStore(_dir).Load().Record;
+        Assert.False(r.Enabled);
+        Assert.Equal(400, r.Diameter); // gizlemek diğer plak ayarlarını sıfırlamaz
+    }
+
+    [Fact]
     public void Null_record_falls_back_to_defaults()
     {
         File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "Record": null }""");

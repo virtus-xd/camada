@@ -45,6 +45,8 @@
                               Click="HideTaskbarItem_Click" />
                     <MenuItem x:Name="StartWithWindowsItem" Header="Windows açılınca başlat" IsCheckable="True"
                               Click="StartWithWindowsItem_Click" />
+                    <MenuItem x:Name="HideRecordItem" Header="Plağı gizle" IsCheckable="True"
+                              Click="HideRecordItem_Click" />
                     <MenuItem Header="Cam görünümü">
                         <MenuItem x:Name="GlassWallpaperItem" Header="Duvar kağıdı" Click="GlassItem_Click" Tag="Wallpaper" />
                         <!-- Akrilik, WPF katmanlı penceresinde hap şekline kırpılamadığı için gizli (spec §9) -->
