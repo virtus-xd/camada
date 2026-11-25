@@ -67,7 +67,7 @@ public static class AdaTools
             ("soru", "STRING", "aranacak soru, Türkçe")),
         Fn(WhatsAppMesaj, "WhatsApp'ta rehberdeki bir kişiyle sohbeti mesaj hazır yazılmış olarak açar; göndermek kullanıcıdadır.",
             ("kisi", "STRING", "kişinin adı"), ("mesaj", "STRING", "mesaj metni")),
-        Fn(EkranGoruntusu, "Ekran alıntısı aracını açar (Win+Shift+S gibi)."),
+        Fn(EkranGoruntusu, "Tüm ekranın görüntüsünü hemen alır, Ekran Görüntüleri klasörüne kaydeder ve panoya kopyalar."),
         Fn(Kilitle, "Bilgisayarı kilitler."),
         Fn(Uyku, "Bilgisayarı uyku moduna alır."),
         Fn(BilgisayariKapat,

@@ -45,4 +45,13 @@ public class AdaToolsTests
         Assert.Contains("YALNIZ zamanla değişen", Description(AdaTools.GuncelBilgi));
         Assert.Contains("ASLA", Description(AdaTools.TarayicidaGoogleAc));
     }
+
+    [Fact]
+    public void Screenshot_is_taken_at_once_not_through_the_tool()
+    {
+        var description = (string)Declarations().Single(d => (string?)d["name"] == AdaTools.EkranGoruntusu)["description"]!;
+        Assert.Contains("hemen", description);
+        Assert.Contains("panoya", description);
+        Assert.DoesNotContain("aracını açar", description);
+    }
 }
