@@ -83,8 +83,9 @@ internal sealed class WakeWordListener : IDisposable
                 return false;
             }
 
+            var capture = new PlainMic(device); // açılamazsa atar; akış yarım kalmasın diye önce
             _stream = _spotter.CreateStream();
-            _capture = new PlainMic(device);
+            _capture = capture;
             _capture.Samples += OnSamples;
             _capture.Failed += message => Failed?.Invoke(message);
             _capture.Start();

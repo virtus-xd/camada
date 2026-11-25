@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using CamAda.Assistant;
 using CamAda.Audio;
 using CamAda.Clips;
 using CamAda.Panels;
@@ -60,6 +61,8 @@ public partial class App : Application
     private BluetoothService? _bluetooth;
     private QuickServices? _quick;
     private readonly Panels.AppIndex _appIndex = new();
+    private Assistant.AdaAssistant? _ada;
+    private bool _adaHotkeyRegistered;
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
@@ -189,7 +192,102 @@ public partial class App : Application
 
         // En sonda: WinRT erişim istekleri yavaşsa bile hava durumu, tepsi ve arama beklemesin (son inceleme).
         await StartQuickSettingsAsync();
+        StartAssistant();
     }
+
+    /// <summary>
+    /// Sesli asistan Ada (Plan 5): servisler hazır olunca kurulur. Kapalıysa (varsayılan) ne dinler ne kısayol alır; açıksa
+    /// "Hey Ada" dinler ve Win+Alt+A ile tetiklenir. Kilitte ve uykuda oturum kapanır, uyandırma durur.
+    /// </summary>
+    private void StartAssistant()
+    {
+        if (_exiting || _island is null)
+        {
+            return;
+        }
+
+        var keys = new GeminiKeyStore(LocalDir);
+        keys.ImportLegacy(Path.Combine(LocalDir, "gemini-anahtar.txt"));
+        var memory = new MemoryFile(LocalDir, TimeProvider.System);
+        var tools = new AdaToolContext(_audio, _brightness, _radios, _media, _spotify, _appIndex, _quick?.Launcher ?? CreateQuickLauncher(),
+            PowerActions.Create(), AdaOpenWindows, memory, new CurrentInfoClient(keys.Load, () => _settings.Assistant.LookupModel),
+            () => _settings.Assistant, EndSessionAfterSpeech: () => { }, LookupUsed: _ => { });
+        _ada = new AdaAssistant(Dispatcher, new AdaDependencies(() => _settings.Assistant, keys, tools, memory, new UsageFile(LocalDir),
+            Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord"), LogCrash, _audio));
+        _ada.Notice += (_, text) => _island?.Flash(new FlashContent("", null, text));
+        _ada.StateChanged += (_, state) => Debug.WriteLine($"Ada: {state}");
+        _strip!.FullScreenChanged += (_, fullScreen) => _ada?.SetFullScreen(fullScreen);
+        _ada.SetFullScreen(_strip.IsFullScreenActive);
+        Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitchForAda;
+        Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeForAda;
+        if (_settings.Assistant.Enabled)
+        {
+            EnsureAssistantHotkey();
+            _ada.Start();
+        }
+    }
+
+    /// <summary>Ada kısayolu (ayardan; varsayılan Win+Alt+A) bir kez alınır; alınamazsa adada bir kez söylenir.</summary>
+    private void EnsureAssistantHotkey()
+    {
+        if (_adaHotkeyRegistered || _hotkeys is null)
+        {
+            return;
+        }
+
+        var text = _settings.Assistant.Hotkey;
+        if (Hotkey.TryParse(text) is not { } hotkey)
+        {
+            return;
+        }
+
+        _adaHotkeyRegistered = _hotkeys.Register(hotkey, () =>
+        {
+            if (_settings.Assistant.Enabled)
+            {
+                _ada?.Trigger();
+            }
+        });
+        if (!_adaHotkeyRegistered)
+        {
+            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent("", null, $"{text} kullanılamıyor")),
+                DispatcherPriority.ApplicationIdle);
+        }
+    }
+
+    /// <summary>ManagedShell görev listesindeki pencereler; uygulama adı başlıktan değil AUMID'den ya da exe açıklamasından.</summary>
+    private IReadOnlyList<OpenWindow> AdaOpenWindows()
+    {
+        var apps = _appIndex.GetItemsAsync() is { IsCompletedSuccessfully: true } built ? built.Result : [];
+        return _shell?.Manager.Tasks?.GroupedWindows?.Cast<ManagedShell.WindowsTasks.ApplicationWindow>()
+            .Select(w => new OpenWindow(w.Handle, OpenWindowNames.AppName(w.AppUserModelID, w.WinFileName, apps),
+                Path.GetFileNameWithoutExtension(w.WinFileName ?? ""), w.Title ?? ""))
+            .ToList() ?? [];
+    }
+
+    private void OnSessionSwitchForAda(object? sender, Microsoft.Win32.SessionSwitchEventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
+        {
+            _ada?.Stop();
+        }
+        else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock && _settings.Assistant.Enabled)
+        {
+            _ada?.Start();
+        }
+    });
+
+    private void OnPowerModeForAda(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e) => Dispatcher.BeginInvoke(() =>
+    {
+        if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
+        {
+            _ada?.Stop();
+        }
+        else if (e.Mode == Microsoft.Win32.PowerModes.Resume && _settings.Assistant.Enabled)
+        {
+            _ada?.Start(); // uyandırma yeniden kurulur (mikrofon uykuda kopmuş olabilir)
+        }
+    });
 
     /// <summary>
     /// Ses servisi (spec §7.4 "Ses ve mikrofon"): ses düğmesi, Ses paneli. Core Audio kurulamazsa (ör. ses hizmeti
@@ -874,6 +972,9 @@ public partial class App : Application
 
         _exiting = true;
         TryShowTaskbar();
+        Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitchForAda;
+        Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeForAda;
+        _ada?.Dispose();
         _island?.Close();
         CloseRecord();
         _hotkeys?.Dispose();

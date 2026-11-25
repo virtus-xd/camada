@@ -41,6 +41,12 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-oturum-sina"))
+        {
+            await SessionAsync();
+            return true;
+        }
+
         if (args.Contains("--ada-baglanti-sina"))
         {
             await ConnectionAsync();

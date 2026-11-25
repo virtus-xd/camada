@@ -25,7 +25,7 @@ internal sealed class AdaSpeaker : IDisposable
 
     public AdaSpeaker(MMDevice device)
     {
-        Device = device;
+        DeviceId = device.ID;
         _buffer = new BufferedWaveProvider(new WaveFormat(24000, 16, 1))
         {
             BufferDuration = TimeSpan.FromMinutes(3),
@@ -59,7 +59,11 @@ internal sealed class AdaSpeaker : IDisposable
         _player.Play();
     }
 
-    public MMDevice Device { get; }
+    /// <summary>
+    /// Çaldığı cihazın kimliği. Cihaz nesnesinin kendisi tutulmaz: NAudio'nun MMDevice'ı oluşturulduğu COM dairesinden
+    /// çıkamıyor (E_NOINTERFACE); Ada hoparlörü arka planda (MTA) kurar ve atar.
+    /// </summary>
+    public string DeviceId { get; }
 
     /// <summary>Çalınmayı bekleyen ses var mı.</summary>
     public bool IsPlaying => _buffer.BufferedBytes > 0;

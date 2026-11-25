@@ -58,6 +58,11 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
             socket.Dispose();
             throw new AssistantException(status == 0 ? AssistantError.Network : LiveErrors.FromHttp(status, null), "Gemini'ye bağlanılamadı.");
         }
+        catch (OperationCanceledException)
+        {
+            socket.Dispose(); // bağlanırken kapatıldı: yarım bağlantı açık kalmasın
+            throw;
+        }
 
         var client = new GeminiLiveClient(socket);
         client._receiving = Task.Run(client.ReceiveLoopAsync);
