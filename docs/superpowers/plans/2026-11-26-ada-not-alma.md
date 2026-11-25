@@ -23,10 +23,12 @@
   `"hata: not alınıyor; söylenenler not olarak yazılır"`.
 - Pano yalnız yedekte kullanılır. Not Defteri önde değilse ya da yönetici olarak çalışıyorsa metin hiçbir pencereye yazılmaz;
   notun tamamı panoya konur.
-- Ada dosyayı kaydetmez.
+- Not dosyası `Belgeler\Ada Notları\Not dd.MM.yyyy HH.mm.txt` (çakışırsa " (2)"…); tuş ve Ctrl+S yalnız başlığında bu dosyanın
+  adı olan ön Not Defteri penceresine gider. Not her bitişte kaydedilir (26.11 tasarım değişikliği).
+- Not Defteri'ne dokunan denemeler önce `…\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState`'i yedekler, yalnız kendi
+  geçici dosyalarına yazar, Ctrl+A/Delete göndermez; kaydedip Ctrl+W ile yalnız kendi sekmesini kapatır ve dosyayı siler.
 - Debug denemeleri gerçek mikrofonu Live'a açmaz; oturum denemeleri yalnız `CAMADA_ADA_FAKE_ROOM` ile yapılır.
-- Denemeler açtıkları Not Defteri sekmesini temizleyip kapatır: Ctrl+A, Delete, Ctrl+W. Hiçbir deneme ESC göndermez ya da ekrana
-  tıklamaz.
+- Hiçbir deneme ESC göndermez ya da ekrana tıklamaz.
 - Gemini anahtarı hiçbir günlüğe yazılmaz.
 - Testler: `dotnet test tests/CamAda.Core.Tests`; `dotnet build src/CamAda -c Release` 0 uyarı.
 
@@ -159,11 +161,16 @@ git commit -m "feat: Ada not kipi kuralları ve not işlevleri (Core)"
 - Produces:
   - `Native.TypeText(string text) -> bool`. Her UTF-16 birimi `KEYEVENTF_UNICODE` (0x0004) ile basılıp bırakılır, `'\n'` →
     VK_RETURN, `'\r'` atlanır. Tümü gönderildiyse true.
+  - `NoteSession.FileNameFor(DateTime now) -> string` (Core): `"Not 26.11.2026 01.07.txt"` biçimi.
+  - `Native.TitleOf(nint hwnd) -> string`.
   - `internal static class NotepadWriter`:
-    - `Task<bool> OpenNewAsync()`: `notepad.exe` başlatır ve en çok 3 sn bekler. Ön pencere bir Not Defteri penceresi olunca
-      true. Öne gelmezse bir kez `SendMaskKey` + `SetForegroundWindow` dener.
-    - `Task<bool> TryTypeAsync(string text)`: ön pencere Not Defteri değilse ya da yöneticiyse false. Değiştirici tuşlar
-      bırakılana kadar en çok 1 sn bekler, bırakılmazsa false. Sonra `TypeText`.
+    - `static string NotesFolder`: `Belgeler\Ada Notları`.
+    - `Task<string?> OpenNewAsync(string folder, DateTime now)`: klasörde boş not dosyası oluşturur (çakışırsa " (2)"…),
+      `notepad.exe "<yol>"` başlatır. En çok 5 sn içinde başlığında dosya adı olan Not Defteri penceresi öne gelince dosya adını
+      döner, gelmezse null. 1,5 sn'de gelmezse bir kez `SendMaskKey` + `SetForegroundWindow` dener.
+    - `Task<bool> TryTypeAsync(string fileName, string text)`: ön pencere başlığında `fileName` olan, yönetici olmayan Not Defteri
+      değilse false. Değiştirici tuşlar bırakılana kadar en çok 1 sn bekler, bırakılmazsa false. Sonra yazar.
+    - `Task<bool> TrySaveAsync(string fileName)`: aynı denetimle Ctrl+S.
     - `static bool IsNotepad(nint hwnd)`: sürecin adı `Notepad` (büyük/küçük harf yok sayılır).
     - `static nint LastOpened`: `OpenNewAsync`'in öne getirdiği pencere (deneme geri okuma ve temizlik için).
 
@@ -173,11 +180,13 @@ git commit -m "feat: Ada not kipi kuralları ve not işlevleri (Core)"
 1. Denemenin kendi WPF penceresi (TextBox) öne alınır. `Native.TypeText("Çay ğüşıöç İ\nikinci satır")` gönderilir.
    `TextBox.Text` (satır sonları `\n`'e çevrilmiş) beklenenle aynıysa `"yazma: tamam"`, değilse fark yazılır.
 2. Kendi penceresi öndeyken `NotepadWriter.TryTypeAsync("x")` çağrılır; false bekleniyor (Not Defteri değil). Sonuç yazılır.
-3. Gerçek Not Defteri:
-   - Açılır: `OpenNewAsync`; sonuç ve ön pencerenin Not Defteri olup olmadığı yazılır.
-   - Yazılır: `TryTypeAsync("CamAda deneme ğüş\nsatır 2")`.
-   - Geri okunur: UI Automation ile (ön pencerenin `ControlType.Document` öğesi, `TextPattern.DocumentRange.GetText(-1)`).
-   - Kapatılır: Ctrl+A, Delete, Ctrl+W gönderilir; kapandığı yazılır.
+3. Gerçek Not Defteri (önce Not Defteri durumu yedeklenir):
+   - Açılır: `OpenNewAsync(<geçici klasör>, now)`; sonuç ve ön pencere başlığı yazılır.
+   - Başka adla yazma reddedilir: `TryTypeAsync("baska.txt", "x")` false olmalı.
+   - Yazılır: `TryTypeAsync(ad, "CamAda deneme ğüş\nsatır 2")`.
+   - Geri okunur: UI Automation ile (`ControlType.Document`, `TextPattern.DocumentRange.GetText(-1)`) ve beklenenle karşılaştırılır.
+   - Kaydedilir: `TrySaveAsync(ad)`; dosyanın diskteki içeriği karşılaştırılır.
+   - Kapatılır: başlık hâlâ kendi dosyasıysa Ctrl+W; geçici dosya silinir.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -192,8 +201,9 @@ Expected:
 - `yazma: tamam`
 - Kendi penceresine yazma reddedildi.
 - Not Defteri öne geldi=True.
-- Geri okunan metin `CamAda deneme ğüş` ve `satır 2` içeriyor.
-- Sekme kapandı.
+- Başka adla yazma reddedildi.
+- Geri okunan ve kaydedilen metin `CamAda deneme ğüş` / `satır 2` (iki satır, bozulmamış).
+- Kendi sekmesi kapandı, kullanıcının sekme sayısı değişmedi.
 
 Öne gelme False çıkarsa (Review Focus 1) bunu ledger'a yaz. Yedek yol Görev 3'te zaten bağlı; ama bu durumda kullanıcı her notta
 panoya düşer, kullanıcıya bildirilecek bir bulgudur.
@@ -227,12 +237,15 @@ Oda sesi `roomNote.wav` (scratchpad `room.py`):
 Run: `--ada-oda-sina --oturum=1 --sure=60 --not-oku` ve `CAMADA_ADA_FAKE_ROOM=roomNote.wav`.
 Deneme başta ve sonda ana ses düzeyini yazar.
 
+Not Defteri'ne dokunmadan önce LocalState yedeklenir; oda denemesi notu gerçek `Ada Notları`na yazar, deneme sonunda o
+dosyayı ve sekmesini (başlık denetimiyle Ctrl+W) temizler.
+
 Expected (bugünkü kodla FAIL):
-- Not Defteri'nde iki satır: "Buy milk and bread tomorrow. Also turn the volume down." ve "Call mom in the evening.".
+- Not Defteri'nde ve kaydedilen dosyada iki satır: "Buy milk and bread tomorrow. Also turn the volume down." ve "Call mom in the evening.".
 - Ses düzeyi değişmedi.
 - Not sırasında `Speaking` durumu yok.
 - Sonda bir `Speaking` ("Not aldım").
-- Sekme temizlenip kapandı.
+- Kendi sekmesi kapandı, dosya silindi.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -242,9 +255,10 @@ Expected: model `not_al`'ı çağırır ama "hata: böyle bir işlev yok" döner
 
 - **`DispatchAsync`:** `Notes.Active && !NoteSession.Allows(name)` → `"hata: not alınıyor; söylenenler not olarak yazılır"`.
 - **`not_al(metin)`:**
-  - `NotepadWriter.OpenNewAsync()` false → `"hata: Not Defteri açılamadı"`.
+  - `NotepadWriter.OpenNewAsync(NotepadWriter.NotesFolder, DateTime.Now)` null → `"hata: Not Defteri açılamadı"`; dosya adı
+    yürütücüde tutulur.
   - Açıldı ve metin boş → `Notes.Start()`, sonuç `"tamam: not defteri açık; kullanıcıya yalnız 'Dinliyorum' de ve bekle"`.
-  - Metin verildi → `Start` + yaz + `Finish`, sonuç `"tamam: not yazıldı; yalnız 'Not aldım' de"`. Yazma ve yedek yolu
+  - Metin verildi → `Start` + yaz + bitir (kaydet), sonuç `"tamam: not yazıldı; yalnız 'Not aldım' de"`. Yazma ve yedek yolu
     `not_yaz` ile aynı.
   - Boş metin `ToolArgs.Text`'in `Missing` sonucu; hata sayılmaz.
 - **`not_yaz(metin)`:**
@@ -253,7 +267,8 @@ Expected: model `not_al`'ı çağırır ama "hata: böyle bir işlev yok" döner
   - `TryTypeAsync` false → notun tamamı `System.Windows.Clipboard.SetText` ile panoya, `Notes.Finish()`, sonuç
     `"hata: Not Defteri önde değildi; notun tamamı panoya kopyalandı"`. Pano meşgulse (COMException) sonuç
     `"hata: Not Defteri önde değildi; not yazılamadı"`.
-- **`not_bitir`:** `Notes.Finish()` → `"tamam: not bitti; yalnız 'Not aldım' de"`.
+- **`not_bitir`:** `FinishNoteAsync()` → `"tamam: not bitti; yalnız 'Not aldım' de"`.
+- **`public Task<bool> FinishNoteAsync()`:** `Notes.Finish()` true ise `TrySaveAsync(dosya adı)`; bitti mi döner.
 - **`ResetConfirmations`:** ayrıca `Notes.Reset()`.
 
 - [ ] **Step 4: Wire the assistant**
@@ -261,8 +276,9 @@ Expected: model `not_al`'ı çağırır ama "hata: böyle bir işlev yok" döner
 - **`InputText`:** `_runner.Notes.UserSpoke()`.
 - **`AudioChunk` ve `OutputText`:** `_runner.Notes.Muted` iken ses hoparlöre eklenmez, durum değişmez; kural sayaçları
   (`AdaSpeaking`) da çağrılmaz.
-- **`OnCheck`:** `_runner.Notes.ShouldFinish()` → `Finish()` ve `client.SendTextAsync(AdaInstruction.NoteFinished)`.
-- **`CloseAsync`:** `_runner.Notes.Reset()`.
+- **`OnCheck`:** `_runner.Notes.ShouldFinish()` → `await _runner.FinishNoteAsync()` ve
+  `client.SendTextAsync(AdaInstruction.NoteFinished)`.
+- **`CloseAsync`:** `await _runner.FinishNoteAsync()` (not ortasında kapanınca da kaydedilir), sonra `_runner.Notes.Reset()`.
 - Debug iz satırları: "not başladı", "not bitti (sessizlik)".
 
 - [ ] **Step 5: Run the end-to-end check**
