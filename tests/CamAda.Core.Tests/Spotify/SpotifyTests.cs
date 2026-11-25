@@ -173,4 +173,56 @@ public class SpotifyTests
         Assert.Null(SpotifyToken.Parse("""{"access_token":5,"expires_in":3600,"refresh_token":"R"}""", Now, null));
         Assert.Null(SpotifyToken.Parse("[]", Now, null));
     }
+    // --- Ada: çalma ---
+
+    private const string SearchJson = """
+        {"artists":{"items":[{"name":"Tarkan","uri":"spotify:artist:T1"}]},
+         "tracks":{"items":[{"name":"Şımarık","uri":"spotify:track:S1","artists":[{"name":"Tarkan"}]}]},
+         "playlists":{"items":[null,{"name":"Tarkan Hits","uri":"spotify:playlist:P1"}]}}
+        """;
+
+    [Fact]
+    public void Artist_exact_match_plays_artist() =>
+        Assert.Equal(new SpotifyPick("spotify:artist:T1", null, "Tarkan"), SpotifyJson.PickFromSearch(SearchJson, "tarkan"));
+
+    [Fact]
+    public void Otherwise_first_track() =>
+        Assert.Equal(new SpotifyPick(null, "spotify:track:S1", "Tarkan — Şımarık"), SpotifyJson.PickFromSearch(SearchJson, "Şımarık"));
+
+    [Fact]
+    public void Playlist_when_no_track() =>
+        Assert.Equal(new SpotifyPick("spotify:playlist:P1", null, "Tarkan Hits"),
+            SpotifyJson.PickFromSearch("""{"artists":{"items":[]},"tracks":{"items":[]},"playlists":{"items":[null,{"name":"Tarkan Hits","uri":"spotify:playlist:P1"}]}}""", "hits"));
+
+    [Fact]
+    public void Nothing_found_is_null()
+    {
+        Assert.Null(SpotifyJson.PickFromSearch("""{"artists":{"items":[]},"tracks":{"items":[]},"playlists":{"items":[]}}""", "x"));
+        Assert.Null(SpotifyJson.PickFromSearch("<html>", "x"));
+    }
+
+    [Fact]
+    public void Computer_device_is_picked() =>
+        Assert.Equal("D2", SpotifyJson.PickComputerDevice(
+            """{"devices":[{"id":"D1","type":"Smartphone"},{"id":"D2","type":"Computer"}]}"""));
+
+    [Fact]
+    public void No_computer_device_is_null() =>
+        Assert.Null(SpotifyJson.PickComputerDevice("""{"devices":[{"id":"D1","type":"Smartphone"}]}"""));
+
+    [Fact]
+    public void Token_scope()
+    {
+        var token = SpotifyToken.Parse("""{"access_token":"A","expires_in":3600,"refresh_token":"R","scope":"a b user-modify-playback-state"}""", Now, null)!;
+        Assert.True(token.HasScope("user-modify-playback-state"));
+        Assert.False(new SpotifyToken("A", "R", Now).HasScope("user-modify-playback-state"));
+    }
+
+    [Fact]
+    public void Refresh_without_scope_keeps_previous_scope() =>
+        Assert.True(SpotifyToken.Parse("""{"access_token":"A","expires_in":3600}""", Now, "R", "user-modify-playback-state")!
+            .HasScope("user-modify-playback-state"));
+
+    [Fact]
+    public void Scopes_include_playback_control() => Assert.Contains("user-modify-playback-state", SpotifyAuth.Scopes);
 }

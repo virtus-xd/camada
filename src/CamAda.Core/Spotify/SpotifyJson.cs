@@ -2,6 +2,9 @@ using System.Text.Json;
 
 namespace CamAda.Core.Spotify;
 
+/// <summary>Ada'nın çalacağı şey: sanatçı ya da çalma listesi bağlamı (<see cref="ContextUri"/>) ya da tek şarkı.</summary>
+public sealed record SpotifyPick(string? ContextUri, string? TrackUri, string Title);
+
 /// <summary>Spotify kuyruğundaki ("Sıradaki") bir şarkı.</summary>
 public sealed record QueueItem(string Title, string Artist);
 
@@ -51,6 +54,63 @@ public static class SpotifyJson
                         : ""))
                 .ToList();
         }) ?? [];
+
+    /// <summary>
+    /// GET /search?type=artist,track,playlist yanıtından çalınacak olanı seçer: adı sorguya tam eşit (tr-TR, harf büyüklüğü
+    /// yok sayılır) sanatçı; yoksa ilk şarkı; o da yoksa ilk çalma listesi. Hiçbiri yoksa null.
+    /// </summary>
+    public static SpotifyPick? PickFromSearch(string json, string query) =>
+        Read(json, root =>
+        {
+            var turkish = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+            var wanted = query.Trim().ToLower(turkish);
+            var artist = Items(root, "artists").FirstOrDefault(a => Text(a, "name")?.Trim().ToLower(turkish) == wanted);
+            if (artist.ValueKind == JsonValueKind.Object && Text(artist, "uri") is { Length: > 0 } artistUri)
+            {
+                return new SpotifyPick(artistUri, null, Text(artist, "name")!);
+            }
+
+            var track = Items(root, "tracks").FirstOrDefault(t => Text(t, "uri") is { Length: > 0 } && Text(t, "name") is not null);
+            if (track.ValueKind == JsonValueKind.Object)
+            {
+                var artists = track.TryGetProperty("artists", out var list) && list.ValueKind == JsonValueKind.Array
+                    ? string.Join(", ", list.EnumerateArray().Select(a => Text(a, "name")).Where(n => !string.IsNullOrEmpty(n)))
+                    : "";
+                var name = Text(track, "name")!;
+                return new SpotifyPick(null, Text(track, "uri"), artists.Length > 0 ? $"{artists} — {name}" : name);
+            }
+
+            var playlist = Items(root, "playlists").FirstOrDefault(p => Text(p, "uri") is { Length: > 0 } && Text(p, "name") is not null);
+            return playlist.ValueKind == JsonValueKind.Object ? new SpotifyPick(Text(playlist, "uri"), null, Text(playlist, "name")!) : null;
+        });
+
+    /// <summary>GET /me/player/devices yanıtındaki bilgisayar cihazının kimliği ("type": "Computer"); yoksa null.</summary>
+    public static string? PickComputerDevice(string devicesJson) =>
+        Read(devicesJson, root => Items(root, "devices", direct: true)
+            .Where(d => Text(d, "type") == "Computer")
+            .Select(d => Text(d, "id"))
+            .FirstOrDefault(id => !string.IsNullOrEmpty(id)));
+
+    /// <summary>"alan.items" dizisindeki nesneler (null öğeler atlanır); <paramref name="direct"/> ise doğrudan "alan" dizisi.</summary>
+    private static IEnumerable<JsonElement> Items(JsonElement root, string property, bool direct = false)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(property, out var value))
+        {
+            return [];
+        }
+
+        if (!direct)
+        {
+            if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("items", out value))
+            {
+                return [];
+            }
+        }
+
+        return value.ValueKind == JsonValueKind.Array
+            ? value.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object).ToList()
+            : [];
+    }
 
     /// <summary>Nesnenin metin türündeki alanı; nesne değilse, alan yoksa ya da metin değilse null.</summary>
     private static string? Text(JsonElement element, string property) =>

@@ -6,13 +6,18 @@ namespace CamAda.Core.Spotify;
 
 /// <summary>
 /// Spotify'a PKCE ile giriş (spec §5, §8): kullanıcının kendi Client ID'si, gizli anahtar yok. Yönlendirme yerel geri döngü
-/// adresine (127.0.0.1; Spotify "localhost"u kabul etmiyor) gelir. Kapsamlar yalnız beğen ve sıradaki şarkılar için.
+/// adresine (127.0.0.1; Spotify "localhost"u kabul etmiyor) gelir. Kapsamlar beğen, sıradaki şarkılar ve Ada'nın çalması
+/// (user-modify-playback-state) için.
 /// </summary>
 public static class SpotifyAuth
 {
     public const int CallbackPort = 43821;
     public const string RedirectUri = "http://127.0.0.1:43821/callback";
-    public const string Scopes = "user-library-read user-library-modify user-read-playback-state user-read-currently-playing";
+
+    /// <summary>Ada'nın Spotify'da çalabilmesi için gereken izin.</summary>
+    public const string PlaybackScope = "user-modify-playback-state";
+    public const string Scopes =
+        "user-library-read user-library-modify user-read-playback-state user-read-currently-playing user-modify-playback-state";
 
     private const string Unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
 
@@ -65,16 +70,20 @@ public static class SpotifyAuth
 }
 
 /// <summary>Erişim belirteci ve yenileme belirteci; erişim belirteci yaklaşık bir saat geçerli.</summary>
-public sealed record SpotifyToken(string AccessToken, string RefreshToken, DateTimeOffset ExpiresAt)
+public sealed record SpotifyToken(string AccessToken, string RefreshToken, DateTimeOffset ExpiresAt, string? Scope = null)
 {
+    /// <summary>Belirteç bu izni içeriyor mu (eski belirteçlerde kapsam saklanmamıştı: false).</summary>
+    public bool HasScope(string scope) =>
+        Scope?.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(scope, StringComparer.Ordinal) == true;
+
     /// <summary>Bitişe bir dakikadan az kaldıysa süresi dolmuş sayılır (istek yoldayken dolmasın).</summary>
     public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt - TimeSpan.FromSeconds(60);
 
     /// <summary>
     /// Belirteç yanıtı: access_token ve expires_in zorunlu; yenilemede refresh_token gelmeyebilir, o zaman öncekisi kalır.
-    /// Eksik ya da bozuk yanıtta (ya da hiç yenileme belirteci yoksa) null.
+    /// Eksik ya da bozuk yanıtta (ya da hiç yenileme belirteci yoksa) null. Kapsam yanıtta yoksa öncekisi kalır.
     /// </summary>
-    public static SpotifyToken? Parse(string json, DateTimeOffset now, string? previousRefreshToken)
+    public static SpotifyToken? Parse(string json, DateTimeOffset now, string? previousRefreshToken, string? previousScope = null)
     {
         try
         {
@@ -92,7 +101,10 @@ public sealed record SpotifyToken(string AccessToken, string RefreshToken, DateT
                                && refresh.GetString() is { Length: > 0 } r
                 ? r
                 : previousRefreshToken;
-            return refreshToken is null ? null : new SpotifyToken(accessToken, refreshToken, now.AddSeconds(seconds));
+            var scope = root.TryGetProperty("scope", out var scopeValue) && scopeValue.ValueKind == JsonValueKind.String
+                ? scopeValue.GetString()
+                : previousScope;
+            return refreshToken is null ? null : new SpotifyToken(accessToken, refreshToken, now.AddSeconds(seconds), scope);
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException) // bozuk ya da beklenmedik türde yanıt
         {

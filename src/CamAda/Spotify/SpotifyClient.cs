@@ -3,12 +3,13 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.Json.Nodes;
 using CamAda.Core.Spotify;
 
 namespace CamAda.Spotify;
 
 /// <summary>
-/// Spotify Web API istemcisi (spec §5: yalnız beğen ve sıradaki şarkılar; Şubat 2026 uç noktaları). İstekten önce süresi
+/// Spotify Web API istemcisi (spec §5: beğen ve sıradaki şarkılar; Ada için arama ve çalma; Şubat 2026 uç noktaları). İstekten önce süresi
 /// dolan belirteç yenilenir; 401'de bir kez yenileyip tekrar denenir; yenileme reddedilirse belirteç silinir (bağlantı kopar);
 /// 429'da Retry-After süresince yeni istek atılmaz; ağ hatası sessizce null ya da boş döner. Bağlı değilken istek atılmaz.
 /// </summary>
@@ -144,8 +145,95 @@ public sealed class SpotifyClient
             ? SpotifyJson.Queue(body, max)
             : [];
 
+    /// <summary>Bağlı ama belirteçte Ada'nın çalma izni yok (izin eklenmeden önce bağlanılmış): "İzni yenile" gerekir.</summary>
+    public bool NeedsReconnect => IsConnected && !_token!.HasScope(SpotifyAuth.PlaybackScope);
+
+    /// <summary>
+    /// Ada için: sorguyu arar (sanatçı tam eşleşirse sanatçı, yoksa ilk şarkı, o da yoksa ilk çalma listesi) ve çalar. Etkin
+    /// cihaz yoksa Spotify'ı açar ve bilgisayar cihazı görünene kadar en çok 8 sn bekler.
+    /// </summary>
+    public async Task<(SpotifyPlayOutcome Outcome, string? Title)> PlayAsync(string query, Func<Task> openSpotifyApp)
+    {
+        if (!IsConnected)
+        {
+            return (SpotifyPlayOutcome.NotConnected, null);
+        }
+
+        if (NeedsReconnect)
+        {
+            return (SpotifyPlayOutcome.NeedsReconnect, null);
+        }
+
+        var search = await SendRawAsync(() => new HttpRequestMessage(HttpMethod.Get,
+            $"{Api}/search?q={Uri.EscapeDataString(query)}&type=artist,track,playlist&limit=1"));
+        if (search is not { Status: >= 200 and < 300 } found)
+        {
+            return (Classify(search), null);
+        }
+
+        if (SpotifyJson.PickFromSearch(found.Body, query) is not { } pick)
+        {
+            return (SpotifyPlayOutcome.NotFound, null);
+        }
+
+        var play = await SendRawAsync(() => PlayRequest(pick, null));
+        if (play is { Status: 404 } && play.Value.Body.Contains("NO_ACTIVE_DEVICE", StringComparison.OrdinalIgnoreCase))
+        {
+            await openSpotifyApp();
+            string? device = null;
+            var deadline = _time.GetUtcNow() + TimeSpan.FromSeconds(8);
+            while (device is null && _time.GetUtcNow() < deadline)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500), _time);
+                if (await SendRawAsync(() => new HttpRequestMessage(HttpMethod.Get, $"{Api}/me/player/devices")) is { Status: 200 } devices)
+                {
+                    device = SpotifyJson.PickComputerDevice(devices.Body);
+                }
+            }
+
+            if (device is null)
+            {
+                return (SpotifyPlayOutcome.NoDevice, null);
+            }
+
+            play = await SendRawAsync(() => PlayRequest(pick, device));
+        }
+
+        var outcome = Classify(play);
+        return (outcome, outcome == SpotifyPlayOutcome.Playing ? pick.Title : null);
+    }
+
+    private static HttpRequestMessage PlayRequest(SpotifyPick pick, string? deviceId)
+    {
+        var body = pick.ContextUri is { } context
+            ? new JsonObject { ["context_uri"] = context }
+            : new JsonObject { ["uris"] = new JsonArray(pick.TrackUri) };
+        var url = $"{Api}/me/player/play" + (deviceId is null ? "" : "?device_id=" + Uri.EscapeDataString(deviceId));
+        return new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
+        };
+    }
+
+    private static SpotifyPlayOutcome Classify((int Status, string Body)? response) => response switch
+    {
+        null => SpotifyPlayOutcome.Failed,
+        { Status: >= 200 and < 300 } => SpotifyPlayOutcome.Playing,
+        { Status: 403 } r when r.Body.Contains("PREMIUM", StringComparison.OrdinalIgnoreCase) => SpotifyPlayOutcome.PremiumRequired,
+        { Status: 403 } r when r.Body.Contains("scope", StringComparison.OrdinalIgnoreCase) => SpotifyPlayOutcome.NeedsReconnect,
+        { Status: 404 } r when r.Body.Contains("NO_ACTIVE_DEVICE", StringComparison.OrdinalIgnoreCase) => SpotifyPlayOutcome.NoDevice,
+        _ => SpotifyPlayOutcome.Failed,
+    };
+
     /// <summary>İsteği gönderir; başarılıysa gövde (boş olabilir), değilse null.</summary>
-    private async Task<string?> SendAsync(Func<HttpRequestMessage> request)
+    private async Task<string?> SendAsync(Func<HttpRequestMessage> request) =>
+        await SendRawAsync(request) is { Status: >= 200 and < 300 } response ? response.Body : null;
+
+    /// <summary>
+    /// İsteği gönderir (süresi dolmuş belirteci yeniler, 401'de bir kez yeniler, 429'da bekler); yanıtın durum kodu ve gövdesi.
+    /// Bağlı değilse, beklemedeyse ya da ağ hatasında null.
+    /// </summary>
+    private async Task<(int Status, string Body)?> SendRawAsync(Func<HttpRequestMessage> request)
     {
         if (!IsConnected || _time.GetUtcNow() < _blockedUntil)
         {
@@ -182,7 +270,7 @@ public sealed class SpotifyClient
                     return null;
                 }
 
-                return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : null;
+                return ((int)response.StatusCode, await response.Content.ReadAsStringAsync());
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
@@ -214,7 +302,7 @@ public sealed class SpotifyClient
             return false;
         }
 
-        var refreshed = await RequestTokenAsync(SpotifyAuth.RefreshForm(clientId, _token.RefreshToken), _token.RefreshToken);
+        var refreshed = await RequestTokenAsync(SpotifyAuth.RefreshForm(clientId, _token.RefreshToken), _token.RefreshToken, _token.Scope);
         if (refreshed is null)
         {
             return false;
@@ -224,7 +312,8 @@ public sealed class SpotifyClient
         return true;
     }
 
-    private async Task<SpotifyToken?> RequestTokenAsync(IReadOnlyDictionary<string, string> form, string? previousRefreshToken)
+    private async Task<SpotifyToken?> RequestTokenAsync(
+        IReadOnlyDictionary<string, string> form, string? previousRefreshToken, string? previousScope = null)
     {
         try
         {
@@ -237,7 +326,7 @@ public sealed class SpotifyClient
             }
 
             return response.IsSuccessStatusCode
-                ? SpotifyToken.Parse(await response.Content.ReadAsStringAsync(), _time.GetUtcNow(), previousRefreshToken)
+                ? SpotifyToken.Parse(await response.Content.ReadAsStringAsync(), _time.GetUtcNow(), previousRefreshToken, previousScope)
                 : null;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
@@ -271,4 +360,16 @@ public sealed class SpotifyClient
         client.DefaultRequestHeaders.UserAgent.ParseAdd("CamAda");
         return client;
     }
+}
+
+/// <summary>Ada'nın "Spotify'da çal" isteğinin sonucu.</summary>
+public enum SpotifyPlayOutcome
+{
+    Playing,
+    NotConnected,
+    NeedsReconnect,
+    NoDevice,
+    NotFound,
+    PremiumRequired,
+    Failed,
 }

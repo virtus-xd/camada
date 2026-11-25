@@ -81,7 +81,7 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         AdaTools.Wifi => RadioAsync(RadioKind.WiFi, "Wi-Fi", Bool(args, "acik")),
         AdaTools.Bluetooth => RadioAsync(RadioKind.Bluetooth, "Bluetooth", Bool(args, "acik")),
         AdaTools.MedyaKontrol => MediaAsync(Text(args, "komut")),
-        AdaTools.SpotifyCal => Done("hata: deneme: Spotify çalma henüz bağlanmadı"),
+        AdaTools.SpotifyCal => SpotifyAsync(Text(args, "sorgu")),
         AdaTools.UygulamaAc => OpenAppAsync(Text(args, "ad")),
         AdaTools.UygulamaKapat => Done(CloseApp(Text(args, "ad"))),
         AdaTools.WebSitesiAc => Done(OpenSite(Text(args, "adres"))),
@@ -286,6 +286,30 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
             default:
                 return "hata: geçersiz değer: komut";
         }
+    }
+
+    private async Task<string> SpotifyAsync(string query)
+    {
+        if (ctx.Spotify is not { IsConfigured: true } spotify)
+        {
+            return "hata: Spotify bağlı değil";
+        }
+
+        var (outcome, title) = await spotify.PlayAsync(query, () =>
+        {
+            ctx.Launcher.Open("spotify:");
+            return Task.CompletedTask;
+        });
+        return outcome switch
+        {
+            Spotify.SpotifyPlayOutcome.Playing => $"tamam: {title} çalıyor",
+            Spotify.SpotifyPlayOutcome.NeedsReconnect => "hata: Spotify izninin yenilenmesi gerekiyor; müzik panelinden 'İzni yenile'",
+            Spotify.SpotifyPlayOutcome.NotConnected => "hata: Spotify bağlı değil",
+            Spotify.SpotifyPlayOutcome.NoDevice => "hata: Spotify açılamadı",
+            Spotify.SpotifyPlayOutcome.PremiumRequired => "hata: Spotify Premium gerekiyor",
+            Spotify.SpotifyPlayOutcome.NotFound => $"hata: Spotify'da '{query}' bulunamadı",
+            _ => "hata: Spotify çalamadı",
+        };
     }
 
     // --- Uygulamalar ---

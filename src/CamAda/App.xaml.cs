@@ -169,7 +169,7 @@ public partial class App : Application
         _spotify = new SpotifyClient(() => _settings.SpotifyClientId, new SpotifyTokenStore(LocalDir), TimeProvider.System);
         _spotifyExtras = new SpotifyExtras(_spotify, _media!, Dispatcher);
         _island.MusicExtras = _spotifyExtras;
-        _island.MusicFooter = () => _spotify.IsConnected ? null : new SpotifyConnectView(_spotify, SaveSpotifyClientId);
+        _island.MusicFooter = () => _spotify.IsConnected && !_spotify.NeedsReconnect ? null : new SpotifyConnectView(_spotify, SaveSpotifyClientId);
 
         if (_settings.Record.Enabled)
         {

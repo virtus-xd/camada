@@ -31,7 +31,16 @@ public sealed partial class SpotifyConnectView : UserControl
 
     private void ShowSummary(string? note = null)
     {
-        Visibility = _client.IsConnected ? Visibility.Collapsed : Visibility.Visible;
+        Visibility = _client.IsConnected && !_client.NeedsReconnect ? Visibility.Collapsed : Visibility.Visible;
+        if (_client.NeedsReconnect)
+        {
+            // Bağlantı var ama Ada'nın çalma izni eklenmeden önce alınmış: aynı giriş akışı yeni izinle yeniden çalışır.
+            SummaryText.Text = note ?? "Spotify izni yenilenmeli (Ada'nın çalabilmesi için).";
+            StartButton.Content = "İzni yenile";
+            StartButton.IsEnabled = true;
+            return;
+        }
+
         SummaryText.Text = note ?? "Beğen ve Sıradaki için Spotify'a bağlan.";
         StartButton.Content = _client.IsConfigured ? "Spotify'a bağlan" : "Bağla";
         StartButton.IsEnabled = true;

@@ -152,5 +152,36 @@ internal static partial class AdaProbes
         await Call(AdaTools.SpotifyCal, """{"sorgu":"Tarkan"}""");
         Log("ada-islev-sina: bitti");
     }
+
+    /// <summary>
+    /// "spotify_cal" gerçek Spotify ile: önceki durum kaydedilir; çalma denenir; önceden çalan bir şey yoksa sonra duraklatılır.
+    /// </summary>
+    private static async Task SpotifyAsync(string query)
+    {
+        var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+        var all = new Core.Settings.SettingsStore(RoamingDir).Load();
+        var spotify = new Spotify.SpotifyClient(() => all.SpotifyClientId, new Spotify.SpotifyTokenStore(LocalDir), TimeProvider.System);
+        Log($"ada-islev-sina spotify: bağlı={spotify.IsConnected}, izin yenilenmeli={spotify.NeedsReconnect}");
+        using var media = await NowPlayingService.CreateAsync(dispatcher);
+        var wasPlaying = media.Current?.State == PlaybackState.Playing;
+        var context = new AdaToolContext(null, null, null, media, spotify, new AppIndex(), new SystemQuickLauncher(), PowerActions.Create(),
+            () => [], new MemoryFile(LocalDir, TimeProvider.System), new CurrentInfoClient(() => null, () => ""), () => all.Assistant,
+            () => { }, _ => { });
+        var runner = new AdaToolRunner(context, TimeProvider.System);
+        var started = DateTime.UtcNow;
+        var result = await runner.RunAsync(new ToolCall(null, AdaTools.SpotifyCal, new JsonObject { ["sorgu"] = query }));
+        Log($"spotify_cal {query} → {result} ({(DateTime.UtcNow - started).TotalMilliseconds:F0} ms)");
+        if (result.StartsWith("tamam", StringComparison.Ordinal))
+        {
+            await Task.Delay(6000);
+            Log($"şimdi çalan: {media.Current?.Artist} — {media.Current?.Title} ({media.Current?.State})");
+            if (!wasPlaying && media.Current?.State == PlaybackState.Playing)
+            {
+                await media.TogglePlayPauseAsync();
+                await Task.Delay(800);
+                Log($"önceki durum geri: {media.Current?.State}");
+            }
+        }
+    }
 }
 #endif

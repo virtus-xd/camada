@@ -29,7 +29,15 @@ internal static partial class AdaProbes
 
         if (args.Contains("--ada-islev-sina"))
         {
-            await ToolsAsync();
+            var at = Array.IndexOf(args, "spotify");
+            if (at >= 0)
+            {
+                await SpotifyAsync(at + 1 < args.Length ? args[at + 1] : "Tarkan");
+            }
+            else
+            {
+                await ToolsAsync();
+            }
             return true;
         }
 
