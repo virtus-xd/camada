@@ -65,6 +65,18 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.FirstOrDefault(a => a.StartsWith("--ada-not-temizle=", StringComparison.Ordinal)) is { } leftover)
+        {
+            var path = Path.Combine(NotepadWriter.NotesFolder, leftover["--ada-not-temizle=".Length..]);
+            await CloseOwnNoteAsync(path);
+            if (Directory.Exists(NotepadWriter.NotesFolder) && !Directory.EnumerateFileSystemEntries(NotepadWriter.NotesFolder).Any())
+            {
+                Directory.Delete(NotepadWriter.NotesFolder);
+            }
+
+            return true;
+        }
+
         if (args.Contains("--ada-not-hiz-sina"))
         {
             await NotePacingProbeAsync();

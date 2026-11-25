@@ -82,7 +82,8 @@ public static class AdaTools
             ("metin", "STRING", "kullanıcı notu aynı cümlede söylediyse düzeltilmiş hâli; söylemediyse boş metin")),
         Fn(NotYaz, "Not kipinde kullanıcının sustuğu ana kadar söylediğini, düzgün metne çevrilmiş olarak nota yazar.",
             ("metin", "STRING", "düzeltilmiş not metni")),
-        Fn(NotBitir, "Not kipinde kullanıcı 'bitti' deyince notu bitirir."),
+        Fn(NotBitir, "YALNIZ kullanıcı açıkça 'bitti' ya da 'not bitti' derse notu bitirir. Kullanıcı durakladı diye ÇAĞIRMA: " +
+            "sessizlikte notu uygulama kendisi bitirir."),
     ];
 
     private static JsonObject Fn(string name, string description, params (string Name, string Type, string Description)[] parameters)

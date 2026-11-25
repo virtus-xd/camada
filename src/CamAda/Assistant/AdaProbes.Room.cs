@@ -1,5 +1,7 @@
 #if DEBUG
+using System.IO;
 using CamAda.Assistant.Audio;
+using CamAda.Interop;
 using CamAda.Audio;
 using CamAda.Media;
 using CamAda.Panels;
@@ -71,6 +73,13 @@ internal static partial class AdaProbes
         ada.Trace += text => Log($"{At()} iz: {text}");
 
         Log($"ada-oda-sina: en uzun {settings.MaxSessionMinutes} dk, sessizlik {settings.SilenceSeconds} sn, konuşmasız {settings.NoSpeechSeconds} sn");
+        var readNote = args.Contains("--not-oku");
+        var probeStarted = DateTime.Now;
+        if (readNote)
+        {
+            Log($"not: Not Defteri yedeği {BackupNotepadState() ?? "yok"}; açık sekme {NotepadTabCount()}; ana ses %{Math.Round(audio.Volume * 100)}");
+        }
+
         ada.Start();
         var triggers = args.FirstOrDefault(a => a.StartsWith("--tetik=", StringComparison.Ordinal))?[8..].Split(',').Select(int.Parse).ToList() ?? [];
         _ = Task.Run(async () =>
@@ -93,9 +102,84 @@ internal static partial class AdaProbes
         await Task.WhenAny(done.Task, Task.Delay(TimeSpan.FromSeconds(Option("sure", 60))));
         ada.Stop();
         await Task.Delay(1500);
+        if (readNote)
+        {
+            await ReadAndRemoveNoteAsync(probeStarted);
+            Log($"not: ana ses %{Math.Round(audio.Volume * 100)}; açık sekme {NotepadTabCount()}");
+        }
+
         var after = usage.Current;
         Log($"ada-oda-sina: bitti, {sessions} oturum; açık TCP=[{EstablishedTcp()}]; kullanım: oturum {before?.Sessions ?? 0}→{after?.Sessions ?? 0}, " +
             $"tahmini ${after?.EstimatedUsd - (before?.EstimatedUsd ?? 0):F4}");
+    }
+
+    /// <summary>
+    /// Denemenin Ada Notları'na yazdığı notları okur (diskten ve ekrandan), yalnız kendi sekmesini kapatır (kaydedilmişse,
+    /// başlık denetimiyle Ctrl+W) ve dosyayı siler. Kaydedilmemiş sekme kapatılmaz (Not Defteri sorardı).
+    /// </summary>
+    private static async Task ReadAndRemoveNoteAsync(DateTime since)
+    {
+        var folder = NotepadWriter.NotesFolder;
+        var notes = Directory.Exists(folder)
+            ? Directory.GetFiles(folder, "Not *.txt").Where(f => File.GetCreationTime(f) >= since.AddSeconds(-1)).ToList()
+            : [];
+        if (notes.Count == 0)
+        {
+            Log("not: Ada Notları'nda yeni not yok");
+            return;
+        }
+
+        foreach (var path in notes)
+        {
+            var name = Path.GetFileName(path);
+            var front = Native.GetForegroundWindow();
+            var title = Native.TitleOf(front);
+            var onScreen = title.Contains(name, StringComparison.Ordinal) ? ReadDocument(front) : null;
+            Log($"not {name}: diskte \"{File.ReadAllText(path).ReplaceLineEndings("\\n")}\"; ekranda \"{onScreen?.ReplaceLineEndings("\\n")}\"; başlık \"{title}\"");
+            await CloseOwnNoteAsync(path);
+        }
+
+        if (Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any())
+        {
+            Directory.Delete(folder);
+        }
+    }
+
+    /// <summary>
+    /// Denemenin kendi not sekmesini kapatır: başlığında dosya adı olan sekme öndeyse kaydeder (Ctrl+S), kaydedildiyse Ctrl+W.
+    /// Sekme kapanmadıysa dosya silinmez (yoksa sekme silinmiş bir dosyaya bağlı kalır).
+    /// </summary>
+    private static async Task CloseOwnNoteAsync(string path)
+    {
+        var name = Path.GetFileName(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        if (!Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal))
+        {
+            Log($"not {name}: kendi sekmesi önde değil, dokunulmadı");
+            return;
+        }
+
+        if (Native.TitleOf(Native.GetForegroundWindow()).StartsWith('*'))
+        {
+            await NotepadWriter.TrySaveAsync(name);
+            await Task.Delay(800);
+        }
+
+        var title = Native.TitleOf(Native.GetForegroundWindow());
+        if (title.Contains(name, StringComparison.Ordinal) && !title.StartsWith('*'))
+        {
+            Native.SendChord(VkControl, 'W');
+            await Task.Delay(800);
+        }
+
+        if (Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal))
+        {
+            Log($"not {name}: sekme kapanmadı, dosya bırakıldı");
+            return;
+        }
+
+        File.Delete(path);
+        Log($"not {name}: sekme kapandı, dosya silindi");
     }
 }
 #endif

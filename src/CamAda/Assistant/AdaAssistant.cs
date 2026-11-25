@@ -37,6 +37,7 @@ internal sealed class AdaAssistant : IDisposable
     private static readonly TimeSpan BargeInQuiet = TimeSpan.FromMilliseconds(700);
     private static readonly TimeSpan BargeInMaxHold = TimeSpan.FromSeconds(3);
     private const double BargeInRms = 0.04;
+    private const double NoteVoiceRms = 0.03; // not kipinde kullanıcı konuşuyor sayılır (yerel ölçüm, canlı yazıdan önce)
     private const int BargeInChunks = 2; // mikrofon parçaları ~100 ms: art arda iki parça ≥ 150 ms
     private const double DuckFactor = 0.3;
     private const string MaxDurationNotice = "Uzun sürdü — yeniden çağırabilirsin";
@@ -628,6 +629,13 @@ internal sealed class AdaAssistant : IDisposable
             }
         }
 
+        if (_runner.Notes.Active && Pcm.Rms(toSend) > NoteVoiceRms)
+        {
+            // Google'ın canlı yazısı söz bitince geliyor: not, kullanıcı konuşurken sessizlik sayılıp bitmesin. Yarı çift yönlüde
+            // Ada konuşurken toSend sıfırdır, Ada'nın kendi sesi sayılmaz.
+            _runner.Notes.UserSpoke();
+        }
+
         Queue(session, toSend);
     }
 
@@ -662,10 +670,16 @@ internal sealed class AdaAssistant : IDisposable
             case LiveEvent.InputText input:
                 session.Rules.UserSpoke();
                 _runner.UserSpoke();
+                _runner.Notes.UserSpoke();
                 session.Transcript.UserText(input.Text);
                 SetState(new AdaState.Listening(session.Transcript.User.Trim()));
                 break;
             case LiveEvent.AudioChunk audio:
+                if (_runner.Notes.Muted)
+                {
+                    break; // not alınırken Ada konuşmaz (model yanıt üretse de duyulmaz)
+                }
+
                 session.Speaker?.Add(audio.Pcm24k);
                 session.ModelSpeaking = true;
                 session.TurnDone = false;
@@ -679,6 +693,11 @@ internal sealed class AdaAssistant : IDisposable
 
                 break;
             case LiveEvent.OutputText output:
+                if (_runner.Notes.Muted)
+                {
+                    break;
+                }
+
                 session.Transcript.AdaText(output.Text);
                 SetState(new AdaState.Speaking(session.Transcript.Ada.Trim()));
                 break;
@@ -724,6 +743,10 @@ internal sealed class AdaAssistant : IDisposable
             foreach (var call in calls)
             {
                 results.Add(new ToolResult(call.Id, call.Name, await _runner.RunAsync(call)));
+                if (call.Name == AdaTools.NotAl && _runner.Notes.Active)
+                {
+                    TraceDebug("not başladı");
+                }
             }
         }
         finally
@@ -754,6 +777,23 @@ internal sealed class AdaAssistant : IDisposable
         {
             session.EndRequested = true;
             session.EndRequestedAt = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>Not 4 sn sessizlikle bitti: kaydedilir, Ada'nın sesi açılır ve model "Not aldım" der.</summary>
+    private async Task FinishNoteAfterSilenceAsync(Session session)
+    {
+        try
+        {
+            if (await _runner.FinishNoteAsync() && session == _session && !session.Closing && session.Client is { } client)
+            {
+                TraceDebug("not bitti (sessizlik)");
+                await client.SendTextAsync(AdaInstruction.NoteFinished);
+            }
+        }
+        catch (Exception ex) when (!IsFatal(ex))
+        {
+            _deps.Log(ex);
         }
     }
 
@@ -804,6 +844,11 @@ internal sealed class AdaAssistant : IDisposable
         {
             _check.Stop();
             return;
+        }
+
+        if (_runner.Notes.ShouldFinish())
+        {
+            _ = FinishNoteAfterSilenceAsync(session);
         }
 
         var playing = session.Speaker?.IsPlaying == true;
@@ -895,6 +940,8 @@ internal sealed class AdaAssistant : IDisposable
 
         try
         {
+            await _runner.FinishNoteAsync(); // not ortasında kapanınca da kaydedilir
+
             if (session.Mic is { } mic)
             {
                 session.Mic = null;
@@ -919,6 +966,7 @@ internal sealed class AdaAssistant : IDisposable
         finally
         {
             // Ne olursa olsun oturum bırakılır: yoksa Ada bir daha açılmaz, uyandırma dinlemez.
+            _runner.Notes.Reset();
             session.Ducker?.Restore();
             if (session.Speaker is { } speaker)
             {

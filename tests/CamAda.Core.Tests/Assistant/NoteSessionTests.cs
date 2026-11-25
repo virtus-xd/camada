@@ -98,4 +98,45 @@ public class NoteSessionTests
     [Fact]
     public void File_name_is_date_and_minute() =>
         Assert.Equal("Not 26.11.2026 01.07.txt", NoteSession.FileNameFor(new DateTime(2026, 11, 26, 1, 7, 42)));
+
+    [Fact]
+    public void Waits_8s_for_first_part_then_4s_between_parts()
+    {
+        var n = Make();
+        n.Start();
+        Wait(7.9); // "Dinliyorum"dan sonra kullanıcının başlaması zaman alır; canlı yazı da söz bitince gelir
+        Assert.False(n.ShouldFinish());
+
+        n.UserSpoke();
+        Wait(7.9);
+        Assert.False(n.ShouldFinish());
+
+        n.Append("Süt al.");
+        Wait(3.9);
+        Assert.False(n.ShouldFinish());
+        Wait(0.2);
+        Assert.True(n.ShouldFinish());
+    }
+
+    [Fact]
+    public void Nothing_said_after_start_finishes_at_8s()
+    {
+        var n = Make();
+        n.Start();
+        Wait(8.1);
+        Assert.True(n.ShouldFinish());
+    }
+
+    [Fact]
+    public void Same_part_twice_in_a_row_is_written_once()
+    {
+        var n = Make();
+        n.Start();
+        n.Append("Süt al.");
+        Assert.Equal("\nAnneni ara.", n.Append("Anneni ara."));
+
+        Assert.Equal("", n.Append(" Anneni ara. ")); // model aynı parçayı yeniden gönderdi (26.11 sahte oda)
+        Assert.Equal("Süt al.\nAnneni ara.", n.Text);
+        Assert.Equal("\nSüt al.", n.Append("Süt al.")); // art arda değilse yazılır
+    }
 }
