@@ -70,6 +70,13 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+#if DEBUG
+        if (await Assistant.AdaProbes.TryRunAsync(e.Args))
+        {
+            Shutdown();
+            return;
+        }
+#endif
         _safety = new TaskbarSafetyStore(Path.Combine(LocalDir, "taskbar-state.json"));
 
         switch (StartupMode.Parse(e.Args))
