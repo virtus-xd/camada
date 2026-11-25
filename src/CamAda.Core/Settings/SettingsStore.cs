@@ -118,6 +118,7 @@ public sealed class SettingsStore
                 .ToList(),
             Weather = SanitizeWeather(s.Weather),
             Record = SanitizeRecord(s.Record),
+            Assistant = SanitizeAssistant(s.Assistant),
             SpotifyClientId = string.IsNullOrWhiteSpace(s.SpotifyClientId) ? null : s.SpotifyClientId.Trim(),
             Hotkeys = new HotkeySettings
             {
@@ -143,6 +144,34 @@ public sealed class SettingsStore
             OutsideFraction = record.OutsideFraction is >= 0 and <= 0.8 ? record.OutsideFraction : defaults.OutsideFraction,
             BottomOffset = record.BottomOffset is >= 0 and <= 600 ? record.BottomOffset : defaults.BottomOffset,
             LabelDiameter = record.LabelDiameter is { } label && label >= 40 && label <= diameter * 0.6 ? label : null,
+        };
+    }
+
+    /// <summary>Ada'nın ayarları: aralık dışı sayılar, boş adlar ve geçersiz kısayol varsayılana döner; eksik kişiler atılır.</summary>
+    private static AssistantSettings SanitizeAssistant(AssistantSettings? a)
+    {
+        var d = new AssistantSettings();
+        if (a is null)
+        {
+            return d;
+        }
+
+        static string OrDefault(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        return a with
+        {
+            Model = OrDefault(a.Model, d.Model),
+            LookupModel = OrDefault(a.LookupModel, d.LookupModel),
+            Voice = OrDefault(a.Voice, d.Voice),
+            Microphone = string.IsNullOrWhiteSpace(a.Microphone) ? null : a.Microphone.Trim(),
+            WakeThreshold = a.WakeThreshold is >= 0.05 and <= 0.60 ? a.WakeThreshold : d.WakeThreshold,
+            SilenceSeconds = a.SilenceSeconds is >= 3 and <= 60 ? a.SilenceSeconds : d.SilenceSeconds,
+            NoSpeechSeconds = a.NoSpeechSeconds is >= 3 and <= 30 ? a.NoSpeechSeconds : d.NoSpeechSeconds,
+            MaxSessionMinutes = a.MaxSessionMinutes is >= 1 and <= 14 ? a.MaxSessionMinutes : d.MaxSessionMinutes,
+            Hotkey = Input.Hotkey.TryParse(a.Hotkey)?.ToString() ?? d.Hotkey,
+            WhatsAppContacts = (a.WhatsAppContacts ?? [])
+                .Where(c => c is not null && !string.IsNullOrWhiteSpace(c.Name) && !string.IsNullOrWhiteSpace(c.Phone))
+                .Select(c => new WhatsAppContact(c.Name.Trim(), c.Phone.Trim()))
+                .ToList(),
         };
     }
 

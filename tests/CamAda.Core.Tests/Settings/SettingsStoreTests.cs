@@ -281,6 +281,78 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Assistant_has_spec_defaults()
+    {
+        var a = new SettingsStore(_dir).Load().Assistant;
+        Assert.False(a.Enabled);
+        Assert.Equal("models/gemini-3.8-live", a.Model);
+        Assert.Equal("gemini-3.5-flash-lite", a.LookupModel);
+        Assert.Equal("Kore", a.Voice);
+        Assert.Null(a.Microphone);
+        Assert.Equal(0.20, a.WakeThreshold);
+        Assert.Equal(8, a.SilenceSeconds);
+        Assert.Equal(6, a.NoSpeechSeconds);
+        Assert.Equal(10, a.MaxSessionMinutes);
+        Assert.Equal("Win+Alt+A", a.Hotkey);
+        Assert.False(a.ListenInFullScreen);
+        Assert.True(a.DuckOthers);
+        Assert.Empty(a.WhatsAppContacts);
+    }
+
+    [Theory]
+    [InlineData(0.01)]
+    [InlineData(0.9)]
+    public void Out_of_range_wake_threshold_falls_back(double threshold)
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            $$"""{ "Assistant": { "WakeThreshold": {{threshold.ToString(System.Globalization.CultureInfo.InvariantCulture)}} } }""");
+        Assert.Equal(0.20, new SettingsStore(_dir).Load().Assistant.WakeThreshold);
+    }
+
+    [Fact]
+    public void Out_of_range_assistant_values_fall_back()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            """
+            { "Assistant": { "SilenceSeconds": 0, "NoSpeechSeconds": 99, "MaxSessionMinutes": 30, "Hotkey": "Ctrl+",
+                             "Voice": "", "Model": " ", "LookupModel": "", "Microphone": "  " } }
+            """);
+        var a = new SettingsStore(_dir).Load().Assistant;
+        Assert.Equal(8, a.SilenceSeconds);
+        Assert.Equal(6, a.NoSpeechSeconds);
+        Assert.Equal(10, a.MaxSessionMinutes);
+        Assert.Equal("Win+Alt+A", a.Hotkey);
+        Assert.Equal("Kore", a.Voice);
+        Assert.Equal("models/gemini-3.8-live", a.Model);
+        Assert.Equal("gemini-3.5-flash-lite", a.LookupModel);
+        Assert.Null(a.Microphone);
+    }
+
+    [Fact]
+    public void Valid_assistant_values_are_kept()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            """{ "Assistant": { "Enabled": true, "WakeThreshold": 0.3, "Microphone": " Realtek ", "SilenceSeconds": 12 } }""");
+        var a = new SettingsStore(_dir).Load().Assistant;
+        Assert.True(a.Enabled);
+        Assert.Equal(0.3, a.WakeThreshold);
+        Assert.Equal("Realtek", a.Microphone);
+        Assert.Equal(12, a.SilenceSeconds);
+    }
+
+    [Fact]
+    public void Contacts_without_name_or_phone_are_dropped()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            """
+            { "Assistant": { "WhatsAppContacts": [ { "Name": "Ahmet", "Phone": "0555 111 22 33" }, { "Name": "", "Phone": "1" },
+                                                   { "Name": "X", "Phone": " " }, null ] } }
+            """);
+        var contact = Assert.Single(new SettingsStore(_dir).Load().Assistant.WhatsAppContacts);
+        Assert.Equal(new WhatsAppContact("Ahmet", "0555 111 22 33"), contact);
+    }
+
+    [Fact]
     public void Unknown_properties_ignored_and_missing_ones_default()
     {
         File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "GlassMode": "Solid", "Gelecek": 1 }""");

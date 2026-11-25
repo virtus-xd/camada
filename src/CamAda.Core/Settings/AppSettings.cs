@@ -54,6 +54,9 @@ public sealed record AppSettings
 
     /// <summary>Genel kısayollar (ör. Ctrl+Shift+M ile mikrofon).</summary>
     public HotkeySettings Hotkeys { get; init; } = new();
+
+    /// <summary>Sesli asistan Ada (Plan 5).</summary>
+    public AssistantSettings Assistant { get; init; } = new();
 }
 
 /// <summary>
