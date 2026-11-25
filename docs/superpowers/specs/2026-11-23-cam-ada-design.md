@@ -29,6 +29,7 @@ Başarı tanımı: Kullanıcı Windows görev çubuğunu kapatıp günlük işle
 - Ayarlar arayüzü. v1'de ayarlar bir JSON dosyasından okunur.
 - İkincil monitörlerde ada ya da üst şerit.
 - Açık tema. Sadece koyu görünüm.
+- **Bildirimler (Plan 4.4, kullanıcı kararıyla iptal, 25.11.2026).** Diğer uygulamaların bildirimlerini okumak Windows'ta paket kimliği istiyor. Deneme: imzasız seyrek paket reddedildi ("unsigned package cannot include Executable activations", 0x80073D2B); imzalı paket kurulumun kendinden imzalı bir sertifikayı güven deposuna eklemesini gerektiriyor. Kullanıcı projeyi ileride açık (public) yapmayı düşündüğü için bu, kurulumun güvenilirliğini zedeleyeceğinden bırakıldı. Yerine düşünülen zil düğmesi (Windows'un bildirim merkezini `ms-actioncenter:` ile açmak) görev çubuğu gizliyken hiçbir pencere açmadı; o da bırakıldı. Bildirimler Windows'un kendi balonlarıyla gelir. §7.1'deki bildirim sayısı, §7.2'deki bildirim düğmesi, §7.4'teki Bildirimler paneli ve §7.5'teki "Bildirim geldi" genişlemesi bu yüzden yapılmadı.
 
 ## 4. Anti-hedefler (çalışsa bile başarısızlık sayılacak durumlar)
 

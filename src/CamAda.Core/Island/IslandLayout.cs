@@ -28,7 +28,7 @@ public static class IslandLayout
 
     /// <summary>
     /// Genişlemiş satırda ^ ile saat arasındaki sistem düğmeleri: pano (Plan 4.2), Wi‑Fi (Plan 4.3), ses (Plan 4.1) ve pil
-    /// (Plan 4.3), 36'şar DIP. Bildirim düğmesi Plan 4.4'te bu genişliği büyütür.
+    /// (Plan 4.3), 36'şar DIP. (Bildirim düğmesi Plan 4.4'le birlikte iptal edildi.)
     /// </summary>
     public const double SystemSectionWidth = 144;
 
