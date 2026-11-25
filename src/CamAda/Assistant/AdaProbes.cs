@@ -84,6 +84,12 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-ekran-saydam-sina"))
+        {
+            ScreenAlphaProbe();
+            return true;
+        }
+
         if (args.Contains("--ada-ekran-sina"))
         {
             ScreenProbe();

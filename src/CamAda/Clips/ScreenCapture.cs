@@ -59,9 +59,7 @@ internal static partial class ScreenCapture
                 return null; // ör. güvenli masaüstü (UAC, kilit ekranı)
             }
 
-            var image = Imaging.CreateBitmapSourceFromHBitmap(bitmap, 0, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            image.Freeze();
-            return image;
+            return FromHBitmap(bitmap);
         }
         catch (Exception ex) when (ex is ExternalException or ArgumentException or OutOfMemoryException)
         {
@@ -86,6 +84,19 @@ internal static partial class ScreenCapture
 
             ReleaseDC(0, screen);
         }
+    }
+
+    /// <summary>
+    /// GDI bitmap'inden dondurulmuş, opak WPF görüntüsü. GDI 32 bitlik piksellerin saydamlık baytını kullanmaz; bazı sürücülerde ya
+    /// da uzak masaüstünde 0 gelir ve görüntü tamamen saydam kaydedilirdi (son inceleme, deneme: Bgra32 → PNG saydamlık 0). Bgr32'ye
+    /// çevrilir: saydamlık yok sayılır (PNG de küçülür).
+    /// </summary>
+    internal static BitmapSource FromHBitmap(nint bitmap)
+    {
+        var raw = Imaging.CreateBitmapSourceFromHBitmap(bitmap, 0, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+        var image = new FormatConvertedBitmap(raw, System.Windows.Media.PixelFormats.Bgr32, null, 0);
+        image.Freeze();
+        return image;
     }
 
     /// <summary>
