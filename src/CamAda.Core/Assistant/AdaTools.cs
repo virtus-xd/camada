@@ -33,6 +33,9 @@ public static class AdaTools
     public const string KonusmayiBitir = "konusmayi_bitir";
     public const string Hatirla = "hatirla";
     public const string Unut = "unut";
+    public const string NotAl = "not_al";
+    public const string NotYaz = "not_yaz";
+    public const string NotBitir = "not_bitir";
 
     public static JsonArray Declarations() =>
     [
@@ -75,6 +78,11 @@ public static class AdaTools
             "Kullanıcı hakkında önemli bir bilgiyi, tercihi ya da düzeltmeyi kalıcı olarak kaydeder. Aynı konu yeniden kaydedilirse güncellenir.",
             ("konu", "STRING", "kısa anahtar, ör. 'kulaklık', 'şehir'"), ("bilgi", "STRING", "kaydedilecek bilgi, en çok 200 karakter")),
         Fn(Unut, "Kaydedilmiş bir bilgiyi siler.", ("konu", "STRING", "silinecek konunun adı")),
+        Fn(NotAl, "Kullanıcı not almak isteyince ('not defteri aç ve not al', 'şunu not al') yeni Not Defteri açar.",
+            ("metin", "STRING", "kullanıcı notu aynı cümlede söylediyse düzeltilmiş hâli; söylemediyse boş metin")),
+        Fn(NotYaz, "Not kipinde kullanıcının sustuğu ana kadar söylediğini, düzgün metne çevrilmiş olarak nota yazar.",
+            ("metin", "STRING", "düzeltilmiş not metni")),
+        Fn(NotBitir, "Not kipinde kullanıcı 'bitti' deyince notu bitirir."),
     ];
 
     private static JsonObject Fn(string name, string description, params (string Name, string Type, string Description)[] parameters)

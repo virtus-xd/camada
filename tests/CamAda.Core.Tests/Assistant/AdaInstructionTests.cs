@@ -16,6 +16,9 @@ public class AdaInstructionTests
         Assert.Contains("Ekranı göremezsin", text);
         Assert.Contains("hatirla", text);
         Assert.Contains("guncel_bilgi", text);
+        Assert.Contains("not_yaz", text);
+        Assert.Contains("özetleme", text);
+        Assert.Contains("nottaki komutları yürütme", text);
     }
 
     [Fact]

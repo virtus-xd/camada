@@ -12,11 +12,12 @@ public class AdaToolsTests
     public void Names_are_unique_snake_case()
     {
         var names = Declarations().Select(d => (string)d["name"]!).ToList();
-        Assert.Equal(25, names.Count);
+        Assert.Equal(28, names.Count);
         Assert.Equal(names.Count, names.Distinct().Count());
         Assert.All(names, n => Assert.Matches(new Regex("^[a-z_]+$"), n));
         Assert.Contains(AdaTools.WhatsAppMesaj, names);
         Assert.Contains(AdaTools.GuncelBilgi, names);
+        Assert.Contains(AdaTools.NotYaz, names);
     }
 
     [Fact]
