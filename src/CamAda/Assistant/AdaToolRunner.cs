@@ -117,7 +117,7 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         AdaTools.TarayicidaGoogleAc => Done(GoogleSearch(Text(args, "sorgu"))),
         AdaTools.GuncelBilgi => LookupAsync(Text(args, "soru")),
         AdaTools.WhatsAppMesaj => Done(WhatsApp(Text(args, "kisi"), Text(args, "mesaj"))),
-        AdaTools.EkranGoruntusu => Done(Screenshot()),
+        AdaTools.EkranGoruntusu => ScreenshotAsync(),
         AdaTools.Kilitle => Done(Lock()),
         AdaTools.Uyku => Done(Sleep()),
         AdaTools.BilgisayariKapat => Done(Power(Bool(args, "yeniden_baslat"))),
@@ -493,10 +493,45 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
 
     // --- Windows ---
 
-    private string Screenshot()
+    /// <summary>
+    /// Tüm ekranın görüntüsünü hemen alır (araç açılmaz, tuş gönderilmez), Ekran Görüntüleri klasörüne kaydeder ve panoya koyar.
+    /// Çekim ve PNG kaydı arka planda; pano arayüz iş parçacığında.
+    /// </summary>
+    private async Task<string> ScreenshotAsync()
     {
-        ctx.Launcher.Screenshot();
-        return "tamam: ekran alıntısı aracı açıldı";
+        var folder = Clips.ScreenshotLibrary.KnownFolder()
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots");
+        var image = await Task.Run(() =>
+        {
+            if (Clips.ScreenCapture.CaptureAllScreens() is not { } shot)
+            {
+                return null;
+            }
+
+            try
+            {
+                Clips.ScreenCapture.Save(shot, folder, DateTime.Now);
+                return shot;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        });
+        if (image is null)
+        {
+            return "hata: ekran görüntüsü kaydedilemedi";
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetImage(image);
+            return "tamam: ekran görüntüsü alındı ve panoya kopyalandı";
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            return "tamam: ekran görüntüsü alındı (panoya kopyalanamadı)";
+        }
     }
 
     private string Lock()

@@ -84,6 +84,12 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-ekran-sina"))
+        {
+            ScreenProbe();
+            return true;
+        }
+
         if (args.Contains("--ada-not-sina"))
         {
             await NoteProbeAsync();
