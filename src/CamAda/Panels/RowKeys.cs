@@ -29,7 +29,7 @@ public static class RowKeys
         }
 
         for (var node = Keyboard.FocusedElement as DependencyObject; node is not null && node != list;
-             node = VisualTreeHelper.GetParent(node) ?? LogicalTreeHelper.GetParent(node))
+             node = node is Visual ? VisualTreeHelper.GetParent(node) ?? LogicalTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
         {
             if (GetKey(node) is { } key)
             {
@@ -54,7 +54,7 @@ public static class RowKeys
             {
                 element.Focus();
             }
-        }, DispatcherPriority.Input);
+        }, DispatcherPriority.Loaded); // yerleşimden sonra (yeni satırlar görünür olsun)
     }
 
     /// <summary>

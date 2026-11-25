@@ -128,7 +128,7 @@ public partial class WifiListView : UserControl
         var wasScanned = _scanned;
         _scanned = true;
         var locationVisibility = result.LocationBlocked ? Visibility.Visible : Visibility.Collapsed;
-        if (wasScanned && LocationButton.Visibility == locationVisibility && result.Rows.SequenceEqual(_rows))
+        if (wasScanned && _rows.Count > 0 && LocationButton.Visibility == locationVisibility && result.Rows.SequenceEqual(_rows))
         {
             return; // değişiklik yok: satırları yeniden kurma (odak ve basılan düğme yerinde kalsın)
         }
