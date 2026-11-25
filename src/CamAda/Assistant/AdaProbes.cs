@@ -131,6 +131,17 @@ internal static partial class AdaProbes
             Log($"kurulum başarısız: {ex.Error}");
         }
 
+        // Ada panelindeki "Kaydet" bu yolu kullanır: yanlış anahtar "Gemini anahtarı geçersiz" demeli.
+        try
+        {
+            await using var badClient = await GeminiLiveClient.ConnectAsync("x", setup, CancellationToken.None);
+            Log("geçersiz anahtarla Live kurulumu: BEKLENMEDİK başarı");
+        }
+        catch (AssistantException ex)
+        {
+            Log($"geçersiz anahtarla Live kurulumu: {ex.Error}");
+        }
+
         var info = new CurrentInfoClient(() => key, () => settings.LookupModel);
         var answer = await info.AskAsync("Bugün 1 ABD doları kaç Türk lirası?", CancellationToken.None);
         Log($"arama: Ok={answer.Ok}, Searched={answer.Searched}, tokenlar {answer.PromptTokens}/{answer.OutputTokens}, " +

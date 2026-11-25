@@ -7,6 +7,7 @@ using CamAda.Audio;
 using CamAda.Clips;
 using CamAda.Panels;
 using CamAda.Core.Apps;
+using CamAda.Core.Assistant;
 using CamAda.Core.Audio;
 using CamAda.Core.Clipboard;
 using CamAda.Core.Input;
@@ -62,6 +63,9 @@ public partial class App : Application
     private QuickServices? _quick;
     private readonly Panels.AppIndex _appIndex = new();
     private Assistant.AdaAssistant? _ada;
+    private GeminiKeyStore? _adaKeys;
+    private MemoryFile? _adaMemory;
+    private UsageFile? _adaUsage;
     private bool _adaHotkeyRegistered;
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
@@ -161,7 +165,10 @@ public partial class App : Application
             IsStartWithWindows: () => _settings.StartWithWindows,
             SetStartWithWindows: SetStartWithWindows,
             IsRecordHidden: () => _record is null,
-            SetRecordHidden: SetRecordHidden), _dock, _media);
+            SetRecordHidden: SetRecordHidden,
+            IsAssistantEnabled: () => _settings.Assistant.Enabled,
+            SetAssistantEnabled: SetAssistantEnabled,
+            OpenAssistantPanel: OpenAssistantPanel), _dock, _media);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
@@ -206,16 +213,23 @@ public partial class App : Application
             return;
         }
 
-        var keys = new GeminiKeyStore(LocalDir);
+        var keys = _adaKeys = new GeminiKeyStore(LocalDir);
         keys.ImportLegacy(Path.Combine(LocalDir, "gemini-anahtar.txt"));
-        var memory = new MemoryFile(LocalDir, TimeProvider.System);
+        var memory = _adaMemory = new MemoryFile(LocalDir, TimeProvider.System);
+        _adaUsage = new UsageFile(LocalDir);
         var tools = new AdaToolContext(_audio, _brightness, _radios, _media, _spotify, _appIndex, _quick?.Launcher ?? CreateQuickLauncher(),
             PowerActions.Create(), AdaOpenWindows, memory, new CurrentInfoClient(keys.Load, () => _settings.Assistant.LookupModel),
             () => _settings.Assistant, EndSessionAfterSpeech: () => { }, LookupUsed: _ => { });
-        _ada = new AdaAssistant(Dispatcher, new AdaDependencies(() => _settings.Assistant, keys, tools, memory, new UsageFile(LocalDir),
+        _ada = new AdaAssistant(Dispatcher, new AdaDependencies(() => _settings.Assistant, keys, tools, memory, _adaUsage,
             Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord"), LogCrash, _audio));
         _ada.Notice += (_, text) => _island?.Flash(new FlashContent("", null, text));
-        _ada.StateChanged += (_, state) => Debug.WriteLine($"Ada: {state}");
+        _ada.StateChanged += (_, state) =>
+        {
+            Debug.WriteLine($"Ada: {state}");
+            _island?.ShowAda(state);
+            _island?.Bar.ShowAssistantActive(_ada?.IsSessionActive == true);
+        };
+        _island.Bar.AssistantClicked += (_, _) => OnAssistantClicked();
         _strip!.FullScreenChanged += (_, fullScreen) => _ada?.SetFullScreen(fullScreen);
         _ada.SetFullScreen(_strip.IsFullScreenActive);
         Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitchForAda;
@@ -224,6 +238,81 @@ public partial class App : Application
         {
             EnsureAssistantHotkey();
             _ada.Start();
+        }
+    }
+
+    /// <summary>Ada düğmesi: asistan açık ve anahtar varsa oturumu açar/kapatır; değilse Ada ayarlarını açar.</summary>
+    private void OnAssistantClicked()
+    {
+        if (_settings.Assistant.Enabled && _adaKeys?.Load() is not null)
+        {
+            _ada?.Trigger();
+            return;
+        }
+
+        OpenAssistantPanel();
+    }
+
+    /// <summary>Menüdeki "Sesli asistan" ve paneldeki anahtar: anahtar yoksa açmak yerine Ada ayarlarını açar.</summary>
+    private void SetAssistantEnabled(bool on)
+    {
+        if (on && _adaKeys?.Load() is null)
+        {
+            OpenAssistantPanel();
+            return;
+        }
+
+        SaveAssistantSettings(_settings.Assistant with { Enabled = on });
+        if (on)
+        {
+            EnsureAssistantHotkey();
+            _ada?.Start();
+        }
+        else
+        {
+            _ada?.Stop();
+        }
+    }
+
+    private void SaveAssistantSettings(AssistantSettings assistant)
+    {
+        _settings = _settings with { Assistant = assistant };
+        _settingsStore.Save(_settings);
+        _ada?.Refresh();
+    }
+
+    private void OpenAssistantPanel()
+    {
+        if (_island is null || _adaKeys is null || _adaMemory is null || _adaUsage is null || _island.Panels.IsOpenWith("ada"))
+        {
+            return;
+        }
+
+        var services = new Panels.AdaPanelServices(_adaKeys, _adaMemory, _adaUsage, () => _settings.Assistant, SaveAssistantSettings,
+            () => _audio?.Inputs() ?? [], ValidateGeminiKeyAsync, SetAssistantEnabled, () => _ada?.Refresh());
+        _island.Panels.Show("ada", new Panels.AdaPanel(services), Panels.AdaPanel.PanelWidth);
+        _island.ExpandForKeyboard(); // menüden açılınca da panel adaya bağlı kalsın, anahtar kutusuna yazılabilsin
+    }
+
+    /// <summary>Anahtarı ses göndermeden bir Live kurulumuyla dener (ücret doğmaz); sorun yoksa None.</summary>
+    private async Task<AssistantError> ValidateGeminiKeyAsync(string key)
+    {
+        var assistant = _settings.Assistant;
+        var setup = LiveSetup.Build(new LiveSetupOptions(assistant.Model, assistant.Voice, "Anahtar denetimi.", AdaTools.Declarations()));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        try
+        {
+            await using var client = await GeminiLiveClient.ConnectAsync(key, setup, timeout.Token);
+            await client.CloseAsync();
+            return AssistantError.None;
+        }
+        catch (AssistantException ex)
+        {
+            return ex.Error;
+        }
+        catch (OperationCanceledException)
+        {
+            return AssistantError.Network;
         }
     }
 

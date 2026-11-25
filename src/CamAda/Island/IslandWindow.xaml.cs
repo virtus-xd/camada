@@ -6,6 +6,8 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using CamAda.Assistant;
+using CamAda.Core.Assistant;
 using CamAda.Core.Island;
 using CamAda.Core.Settings;
 using CamAda.Core.Time;
@@ -53,6 +55,12 @@ public partial class IslandWindow : Window
 
     private readonly DispatcherTimer _flashTimer = new(DispatcherPriority.Normal);
     private FlashKind _flashKind;
+    private AdaState _ada = new AdaState.Idle();
+    private bool _adaShown;
+    private bool _adaSuppressing;
+    private bool _adaPulsing;
+    private TimeSpan _adaPulseTime;
+    private Action<TimeSpan>? _adaFrame;
 
     /// <summary>Ekran görüntüsü önizlemesi bu kadar sonra kaybolur; imleç üzerindeyken durur, çekilince 1 sn sonra.</summary>
     private static readonly TimeSpan ShotHold = TimeSpan.FromSeconds(5);
@@ -127,6 +135,7 @@ public partial class IslandWindow : Window
         PillBorder.ContextMenuOpening += (_, _) =>
         {
             HideTaskbarItem.IsChecked = _commands.IsTaskbarHidden();
+            AssistantItem.IsChecked = _commands.IsAssistantEnabled();
             StartWithWindowsItem.IsChecked = _commands.IsStartWithWindows();
             HideRecordItem.IsChecked = _commands.IsRecordHidden();
             GlassWallpaperItem.IsChecked = _glassMode == GlassMode.Wallpaper;
@@ -148,10 +157,16 @@ public partial class IslandWindow : Window
             {
                 EndFlash(immediate: true); // genişleyen ada göstergeyi taşımaz
                 EndScreenshot();
+                HideAdaRow(); // panel ya da kısayol genişletti: oturum sürer, satır daralınca geri gelir
                 Expanding?.Invoke(this, EventArgs.Empty);
             }
 
             AnimateTo(_hover.IsExpanded);
+            if (!_hover.IsExpanded)
+            {
+                TryBeginAda();
+            }
+
             ApplyPresence();
             UpdateMediaAnimation();
         });
@@ -245,7 +260,7 @@ public partial class IslandWindow : Window
     /// </summary>
     public void ShowScreenshot(ImageSource thumbnail, Func<Task<bool>> copy, Action edit)
     {
-        if (_closed || _fullScreen || _hover.IsExpanded || _panels.IsOpen)
+        if (_closed || _fullScreen || _hover.IsExpanded || _panels.IsOpen || _adaSuppressing)
         {
             return;
         }
@@ -361,7 +376,188 @@ public partial class IslandWindow : Window
     {
         var duration = immediate || !SystemParameters.ClientAreaAnimation ? TimeSpan.Zero : TimeSpan.FromSeconds(0.15);
         FlashRow.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 1 : 0, duration));
-        CompactLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 0 : 1, duration));
+        if (_adaShown)
+        {
+            AdaRow.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 0 : 1, duration));
+        }
+        else
+        {
+            CompactLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 0 : 1, duration));
+        }
+    }
+
+    /// <summary>
+    /// Ada'nın oturum satırı (Plan 5; ekran görüntüsü önizlemesinin genişleme düzeniyle): hap büyür, solda nokta ya da glif,
+    /// ortada tek satır. Dinlerken nokta nabız atar; konuşurken ✦ ve Ada'nın son cümlesi; hatada ⚠ ve ileti. Satır
+    /// açıkken ada fareyle genişlemez; ada zaten genişse satır daralınca açılır. Tam ekranda ada gizlidir (yalnız ses).
+    /// </summary>
+    public void ShowAda(AdaState state)
+    {
+        _ada = state;
+        var micOpen = state is AdaState.Connecting or AdaState.Listening or AdaState.Speaking;
+        CompactAdaDot.Visibility = micOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (state is AdaState.Idle)
+        {
+            EndAda();
+            return;
+        }
+
+        string text;
+        switch (state)
+        {
+            case AdaState.Listening { UserText: { Length: > 0 } said }:
+                text = "“" + AdaText.LastSentence(said, 70) + "”";
+                break;
+            case AdaState.Speaking speaking:
+                text = speaking.AdaText.Length > 0 ? AdaText.LastSentence(speaking.AdaText, 70) : "…";
+                break;
+            case AdaState.Failed failed:
+                text = failed.Message;
+                break;
+            default:
+                text = "Dinliyorum…";
+                break;
+        }
+
+        AdaLine.Text = text;
+        AutomationProperties.SetName(AdaRow, text);
+        AdaDot.Visibility = micOpen ? Visibility.Visible : Visibility.Collapsed;
+        switch (state)
+        {
+            case AdaState.Speaking:
+                AdaGlyph.Text = "✦";
+                AdaGlyph.FontFamily = FontFamily;
+                AdaGlyph.Foreground = (Brush)FindResource("AccentBrush");
+                AdaGlyph.Visibility = Visibility.Visible;
+                break;
+            case AdaState.Failed:
+                AdaGlyph.Text = "\uE7BA";
+                AdaGlyph.FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
+                AdaGlyph.Foreground = (Brush)FindResource("WarningBrush");
+                AdaGlyph.Visibility = Visibility.Visible;
+                break;
+            default:
+                AdaGlyph.Visibility = Visibility.Collapsed;
+                break;
+        }
+
+        AdaGlyph.Margin = micOpen ? new Thickness(10, 0, 0, 0) : new Thickness(0);
+        SetAdaPulse(state is AdaState.Connecting or AdaState.Listening);
+        TryBeginAda();
+    }
+
+    private void TryBeginAda()
+    {
+        if (_adaShown || _closed || _ada is AdaState.Idle)
+        {
+            return;
+        }
+
+        if (!_hover.IsExpanded)
+        {
+            EndFlash(immediate: true);
+            EndScreenshot();
+        }
+
+        if (!_adaSuppressing)
+        {
+            _adaSuppressing = true;
+            _hover.Suppress(true);
+        }
+
+        if (_hover.IsExpanded)
+        {
+            return; // imleç ayrılıp ada daralınca açılır
+        }
+
+        _adaShown = true;
+        AdaRow.Visibility = Visibility.Visible;
+        AnimateShotSize(IslandLayout.AssistantPeek);
+        FadeAda(show: true);
+        ApplyPresence();
+    }
+
+    /// <summary>Oturum bitti: satır kapanır, ada küçülür ve yeniden fareyle genişleyebilir.</summary>
+    private void EndAda()
+    {
+        SetAdaPulse(false);
+        HideAdaRow();
+        if (_adaSuppressing)
+        {
+            _adaSuppressing = false;
+            _hover.Suppress(false);
+        }
+    }
+
+    private void HideAdaRow()
+    {
+        if (!_adaShown)
+        {
+            return;
+        }
+
+        _adaShown = false;
+        if (!_hover.IsExpanded)
+        {
+            AnimateShotSize(IslandLayout.Compact);
+        }
+
+        FadeAda(show: false);
+        ApplyPresence();
+    }
+
+    private void FadeAda(bool show)
+    {
+        var duration = SystemParameters.ClientAreaAnimation ? TimeSpan.FromSeconds(0.15) : TimeSpan.Zero;
+        var fade = new DoubleAnimation(show ? 1 : 0, duration);
+        if (!show)
+        {
+            fade.Completed += (_, _) =>
+            {
+                if (!_adaShown)
+                {
+                    AdaRow.Visibility = Visibility.Collapsed;
+                }
+            };
+        }
+
+        AdaRow.BeginAnimation(OpacityProperty, fade);
+        if (_flashKind == FlashKind.None)
+        {
+            CompactLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(show ? 0 : 1, duration));
+        }
+    }
+
+    /// <summary>Dinlerken nokta hafifçe nabız atar (ortak 30 kare/sn saatiyle; durunca tam opak).</summary>
+    private void SetAdaPulse(bool on)
+    {
+        if (on == _adaPulsing)
+        {
+            return;
+        }
+
+        _adaPulsing = on;
+        _adaFrame ??= OnAdaFrame;
+        if (on)
+        {
+            _adaPulseTime = TimeSpan.Zero;
+            AnimationTicker.Add(_adaFrame);
+        }
+        else
+        {
+            AnimationTicker.Remove(_adaFrame);
+            AdaDot.Opacity = 1;
+            CompactAdaDot.Opacity = 1;
+        }
+    }
+
+    private void OnAdaFrame(TimeSpan elapsed)
+    {
+        _adaPulseTime += elapsed;
+        var phase = _adaPulseTime.TotalSeconds % 1.6 / 1.6;
+        var opacity = 0.45 + 0.55 * (0.5 + 0.5 * Math.Cos(2 * Math.PI * phase));
+        AdaDot.Opacity = opacity;
+        CompactAdaDot.Opacity = opacity;
     }
 
     /// <summary>Müzik panelindeki beğen ve "Sıradaki" kaynağı (Spotify'a bağlanınca).</summary>
@@ -391,7 +587,8 @@ public partial class IslandWindow : Window
             return;
         }
 
-        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded, _flashKind);
+        var flash = _flashKind != FlashKind.None ? _flashKind : _adaShown ? FlashKind.Passive : FlashKind.None;
+        var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded, flash);
 
         if (presence == IslandPresence.Hidden)
         {
@@ -689,6 +886,11 @@ public partial class IslandWindow : Window
 
     private void ExitItem_Click(object sender, RoutedEventArgs e) => _commands.Exit();
 
+    private void AssistantItem_Click(object sender, RoutedEventArgs e) =>
+        _commands.SetAssistantEnabled(AssistantItem.IsChecked);
+
+    private void AssistantSettingsItem_Click(object sender, RoutedEventArgs e) => _commands.OpenAssistantPanel();
+
     private void GlassItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem { Tag: string tag } && Enum.TryParse<GlassMode>(tag, out var mode))
@@ -701,6 +903,7 @@ public partial class IslandWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _closed = true;
+        SetAdaPulse(false);
         _panels.Close();
         _clockTimer.Stop();
         _graceTimer.Stop();

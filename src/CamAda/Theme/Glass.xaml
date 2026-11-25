@@ -15,6 +15,8 @@
     <SolidColorBrush x:Key="OnAccentBrush" Color="#2A1A08" />
     <!-- "Kırmızımsı" uyarı (spec §7.1 mikrofon kapalı işareti): paletteki kapak gülü -->
     <SolidColorBrush x:Key="WarningBrush" Color="#E0607E" />
+    <!-- Ada oturumdayken mikrofon açık noktası (Plan 5, gizlilik işareti) -->
+    <SolidColorBrush x:Key="AdaDotBrush" Color="#F0626E" />
     <SolidColorBrush x:Key="TextBrush" Color="#F4F6FB" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#D1E8ECF7" />
     <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#EB14182A" />

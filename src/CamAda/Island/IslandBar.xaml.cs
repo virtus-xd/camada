@@ -28,6 +28,7 @@ public partial class IslandBar : UserControl
     public event EventHandler? ClockClicked;
     public event EventHandler? SoundClicked;
     public event EventHandler? ClipboardClicked;
+    public event EventHandler? AssistantClicked;
     public event EventHandler? WifiClicked;
     public event EventHandler? BatteryClicked;
 
@@ -109,6 +110,23 @@ public partial class IslandBar : UserControl
     private void SoundButton_Click(object sender, RoutedEventArgs e) => SoundClicked?.Invoke(this, EventArgs.Empty);
 
     private void ClipboardButton_Click(object sender, RoutedEventArgs e) => ClipboardClicked?.Invoke(this, EventArgs.Empty);
+
+    private void AssistantButton_Click(object sender, RoutedEventArgs e) => AssistantClicked?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Ada oturumdayken mikrofon glifi vurgu renginde.</summary>
+    public void ShowAssistantActive(bool active)
+    {
+        if (active)
+        {
+            AssistantGlyph.Foreground = (System.Windows.Media.Brush)FindResource("AccentBrush");
+        }
+        else
+        {
+            AssistantGlyph.ClearValue(System.Windows.Controls.TextBlock.ForegroundProperty);
+        }
+
+        System.Windows.Automation.AutomationProperties.SetName(AssistantButton, active ? "Ada, sesli asistan: dinliyor" : "Ada, sesli asistan");
+    }
 
     private void WifiButton_Click(object sender, RoutedEventArgs e) => WifiClicked?.Invoke(this, EventArgs.Empty);
 

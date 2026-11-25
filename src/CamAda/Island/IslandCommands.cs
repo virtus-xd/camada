@@ -12,6 +12,9 @@ namespace CamAda.Island;
 /// <param name="SetStartWithWindows">Ayarı kaydeder ve Run anahtarını yazar ya da siler.</param>
 /// <param name="IsRecordHidden">Masaüstü plağı şu an gizli mi.</param>
 /// <param name="SetRecordHidden">Ayarı kaydeder ve plağı kapatır ya da yeniden kurar.</param>
+/// <param name="IsAssistantEnabled">Sesli asistan Ada açık mı.</param>
+/// <param name="SetAssistantEnabled">Ada'yı açar ya da kapatır (anahtar yoksa Ada ayarlarını açar).</param>
+/// <param name="OpenAssistantPanel">Ada ayarları panelini açar.</param>
 public sealed record IslandCommands(
     Func<bool> IsTaskbarHidden,
     Action<bool> SetTaskbarHidden,
@@ -21,4 +24,7 @@ public sealed record IslandCommands(
     Func<bool> IsStartWithWindows,
     Action<bool> SetStartWithWindows,
     Func<bool> IsRecordHidden,
-    Action<bool> SetRecordHidden);
+    Action<bool> SetRecordHidden,
+    Func<bool> IsAssistantEnabled,
+    Action<bool> SetAssistantEnabled,
+    Action OpenAssistantPanel);

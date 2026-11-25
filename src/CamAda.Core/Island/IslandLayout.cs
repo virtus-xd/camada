@@ -12,6 +12,9 @@ public static class IslandLayout
     /// <summary>Ekran görüntüsü önizlemesi (Plan 4.2): küçük resim + "Ekran görüntüsü" + Kopyala + Düzenle.</summary>
     public static readonly PillSize ScreenshotPeek = new(450, 76);
 
+    /// <summary>Ada'nın oturum satırı (Plan 5): nokta ya da glif + tek satır metin.</summary>
+    public static readonly PillSize AssistantPeek = new(560, 46);
+
     /// <summary>Hapın ekranın üst kenarından uzaklığı.</summary>
     public const double TopMargin = 8;
 
@@ -30,7 +33,7 @@ public static class IslandLayout
     /// Genişlemiş satırda ^ ile saat arasındaki sistem düğmeleri: pano (Plan 4.2), Wi‑Fi (Plan 4.3), ses (Plan 4.1) ve pil
     /// (Plan 4.3), 36'şar DIP. (Bildirim düğmesi Plan 4.4'le birlikte iptal edildi.)
     /// </summary>
-    public const double SystemSectionWidth = 144;
+    public const double SystemSectionWidth = 180;
 
     /// <summary>Akıllı gizlenmede adayı açan üst kenar bölgesinin genişliği (ortada).</summary>
     public const double RevealZoneWidth = 900;

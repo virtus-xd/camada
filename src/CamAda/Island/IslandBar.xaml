@@ -108,13 +108,19 @@
                 </StackPanel>
             </Button>
             <Rectangle Style="{StaticResource Separator}" />
+            <!-- Ada (Plan 5): sesli asistan; oturumdayken glif vurgu renginde. Genişliği SystemSectionWidth'e dahil. -->
+            <Button x:Name="AssistantButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
+                    AutomationProperties.Name="Ada, sesli asistan" Click="AssistantButton_Click">
+                <TextBlock x:Name="AssistantGlyph" Text="&#xE720;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
             <Button x:Name="TrayButton" Style="{StaticResource IslandIconButton}" Width="28" Height="34"
                     AutomationProperties.Name="Arka planda çalışan uygulamalar" Click="TrayButton_Click">
                 <Path Data="M6,15 L12,9 L18,15" Width="14" Height="8" Stretch="Uniform"
                       Stroke="{StaticResource TextBrush}" StrokeThickness="2.2"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
             </Button>
-            <!-- Pano (Plan 4.2), Wi‑Fi, ses ve pil: hepsi birlikte IslandLayout.SystemSectionWidth -->
+            <!-- Ada (Plan 5), pano (Plan 4.2), Wi‑Fi, ses ve pil: hepsi birlikte IslandLayout.SystemSectionWidth -->
             <Button x:Name="ClipboardButton" Style="{StaticResource IslandIconButton}" Width="36" Height="34"
                     AutomationProperties.Name="Pano" Click="ClipboardButton_Click">
                 <TextBlock Text="&#xE77F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15"

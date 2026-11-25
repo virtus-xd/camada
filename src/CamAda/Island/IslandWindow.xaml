@@ -47,6 +47,9 @@
                               Click="StartWithWindowsItem_Click" />
                     <MenuItem x:Name="HideRecordItem" Header="Plağı gizle" IsCheckable="True"
                               Click="HideRecordItem_Click" />
+                    <MenuItem x:Name="AssistantItem" Header="Sesli asistan" IsCheckable="True"
+                              Click="AssistantItem_Click" />
+                    <MenuItem Header="Ada ayarları…" Click="AssistantSettingsItem_Click" />
                     <MenuItem Header="Cam görünümü">
                         <MenuItem x:Name="GlassWallpaperItem" Header="Duvar kağıdı" Click="GlassItem_Click" Tag="Wallpaper" />
                         <!-- Akrilik, WPF katmanlı penceresinde hap şekline kırpılamadığı için gizli (spec §9) -->
@@ -90,6 +93,9 @@
                     </DockPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Ada oturumdayken mikrofonun açık olduğunu gösteren kırmızımsı nokta (Plan 5, gizlilik) -->
+                        <Ellipse x:Name="CompactAdaDot" Width="8" Height="8" Fill="{StaticResource AdaDotBrush}" Margin="0,0,10,0"
+                                 VerticalAlignment="Center" Visibility="Collapsed" AutomationProperties.Name="Ada dinliyor" />
                         <!-- Mikrofon kapalıyken kırmızımsı işaret (spec §7.1) -->
                         <TextBlock x:Name="CompactMicOff" Text="&#xEC54;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                    FontSize="13" Foreground="{StaticResource WarningBrush}" Margin="0,0,10,0"
@@ -158,6 +164,22 @@
                             <TextBlock Text="Düzenle" Margin="6,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                </Grid>
+
+                <!-- Ada'nın oturum satırı (Plan 5): nokta (dinlerken nabız atar), ✦ ya da ⚠ ve tek satır metin. Tıklama
+                     geçirir; ada bu sırada fareyle genişlemez. -->
+                <Grid x:Name="AdaRow" Margin="18,0" Opacity="0" Visibility="Collapsed" VerticalAlignment="Center"
+                      IsHitTestVisible="False">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Ellipse x:Name="AdaDot" Width="9" Height="9" Fill="{StaticResource AdaDotBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="AdaGlyph" Grid.Column="1" Margin="10,0,0,0" FontSize="14" VerticalAlignment="Center"
+                               Visibility="Collapsed" />
+                    <TextBlock x:Name="AdaLine" Grid.Column="2" Margin="12,0,0,0" FontSize="13" FontWeight="SemiBold"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 </Grid>
 
                 <!-- Genişlemiş hâl: Başlat, Ara | uygulamalar | ^ | saat (spec §7.2) -->

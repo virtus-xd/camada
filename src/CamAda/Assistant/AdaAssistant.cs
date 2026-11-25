@@ -86,6 +86,18 @@ internal sealed class AdaAssistant : IDisposable
         UpdateListening();
     }
 
+    /// <summary>Mikrofon seçimi ya da anahtar değişti: oturum yoksa dinleme yeniden kurulur (ya da artık gerekmiyorsa durur).</summary>
+    public void Refresh()
+    {
+        if (_session is not null)
+        {
+            return;
+        }
+
+        StopListening();
+        UpdateListening();
+    }
+
     /// <summary>Oturumu hemen kapatır ve dinlemeyi bırakır (kilit, uyku, asistan kapatma).</summary>
     public void Stop()
     {
