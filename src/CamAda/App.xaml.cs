@@ -186,10 +186,34 @@ public partial class App : Application
 
     /// <summary>
     /// Ses servisi (spec §7.4 "Ses ve mikrofon"): ses düğmesi, Ses paneli. Core Audio kurulamazsa (ör. ses hizmeti
-    /// kapalı) ada sessiz simgeyle çalışmaya devam eder, panel açılmaz.
+    /// kapalı) ada sessiz simgeyle çalışmaya devam eder; ses düğmesine basınca yeniden denenir.
     /// </summary>
     private void StartAudio()
     {
+        _island!.Bar.SoundClicked += (_, _) => OnSoundClicked();
+        TryStartAudio();
+    }
+
+    private void OnSoundClicked()
+    {
+        if (!TryStartAudio())
+        {
+            _island?.Flash(new FlashContent(SpeakerGlyph.For(SpeakerLevel.Muted), null, "Ses hizmetine ulaşılamadı"));
+            return;
+        }
+
+        var audio = _audio!;
+        _island!.Panels.Toggle("sound", () => new Panels.SoundPanel(audio), Panels.SoundPanel.PanelWidth);
+    }
+
+    /// <summary>Ses servisini kurar (kuruluysa dokunmaz); kurulamazsa false.</summary>
+    private bool TryStartAudio()
+    {
+        if (_audio is not null)
+        {
+            return true;
+        }
+
         AudioService audio;
         try
         {
@@ -199,7 +223,7 @@ public partial class App : Application
         {
             LogCrash(ex);
             _island?.Bar.ShowSound(SpeakerLevel.Muted, micMuted: false);
-            return;
+            return false;
         }
 
         _audio = audio;
@@ -216,10 +240,9 @@ public partial class App : Application
         };
         audio.DevicesChanged += (_, _) => UpdateSoundButton();
         audio.MicChanged += (_, _) => UpdateSoundButton();
-        _island!.Bar.SoundClicked += (_, _) =>
-            _island.Panels.Toggle("sound", () => new Panels.SoundPanel(audio), Panels.SoundPanel.PanelWidth);
         UpdateSoundButton();
         RegisterMicHotkey(audio);
+        return true;
     }
 
     /// <summary>

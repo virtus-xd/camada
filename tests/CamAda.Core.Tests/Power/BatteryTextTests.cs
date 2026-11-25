@@ -58,7 +58,16 @@ public class BatteryTextTests
         Assert.Equal(new BatteryIcon(8, false, false), BatteryText.Icon(Snap(76, BatteryCharge.Discharging)));
         Assert.Equal(new BatteryIcon(0, false, true), BatteryText.Icon(Snap(4, BatteryCharge.Discharging)));
         Assert.Equal(new BatteryIcon(2, false, true), BatteryText.Icon(Snap(15, BatteryCharge.Discharging)));
-        Assert.Equal(new BatteryIcon(10, true, false), BatteryText.Icon(Snap(100, BatteryCharge.Charging, plugged: true)));
+        Assert.Equal(new BatteryIcon(10, true, false, PluggedIn: true), BatteryText.Icon(Snap(100, BatteryCharge.Charging, plugged: true)));
+    }
+
+    [Fact]
+    public void Icon_marks_plugged_in_battery_that_is_not_charging()
+    {
+        // Prize takılı ama şarj etmiyor (dolu ya da şarj sınırında): simge prizde olduğunu göstermeli.
+        Assert.Equal(new BatteryIcon(8, false, false, PluggedIn: true), BatteryText.Icon(Snap(80, BatteryCharge.Idle, plugged: true)));
+        Assert.Equal(new BatteryIcon(10, false, false, PluggedIn: true), BatteryText.Icon(Snap(100, BatteryCharge.Idle, plugged: true)));
+        Assert.False(BatteryText.Icon(Snap(80, BatteryCharge.Discharging)).PluggedIn);
     }
 
     [Fact]

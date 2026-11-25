@@ -94,8 +94,7 @@ public sealed class NetworkStatusService : IDisposable
             // İnternet bir VPN üzerinden gidiyorsa ya da internet yoksa altta bağlı Wi‑Fi/Ethernet profilini göster.
             var link = internet is not null && internetLevel != NetworkConnectivityLevel.None && IsLink(internet)
                 ? internet
-                : NetworkInformation.GetConnectionProfiles().FirstOrDefault(p =>
-                    IsLink(p) && p.GetNetworkConnectivityLevel() != NetworkConnectivityLevel.None);
+                : PickFallback();
             if (link is null)
             {
                 return new NetworkSnapshot(NetworkLink.None, NetworkReach.None, 0, hasWifi, wifiOn, null);
@@ -104,12 +103,7 @@ public sealed class NetworkStatusService : IDisposable
             var level = internetLevel == NetworkConnectivityLevel.InternetAccess
                 ? NetworkConnectivityLevel.InternetAccess
                 : link.GetNetworkConnectivityLevel();
-            var reach = level switch
-            {
-                NetworkConnectivityLevel.InternetAccess => NetworkReach.Internet,
-                NetworkConnectivityLevel.LocalAccess or NetworkConnectivityLevel.ConstrainedInternetAccess => NetworkReach.Local,
-                _ => NetworkReach.None,
-            };
+            var reach = ReachOf(level);
 
             return link.IsWlanConnectionProfile
                 ? new NetworkSnapshot(NetworkLink.Wifi, reach, NetworkIcons.BarsFrom(link.GetSignalBars() ?? 0, 5), hasWifi, wifiOn,
@@ -121,6 +115,24 @@ public sealed class NetworkStatusService : IDisposable
             return new NetworkSnapshot(NetworkLink.None, NetworkReach.None, 0, hasWifi, wifiOn, null);
         }
     }
+
+    /// <summary>Bağlı Wi‑Fi/Ethernet profilleri arasından gösterileceği (<see cref="LinkChoice"/>); yoksa null.</summary>
+    private static ConnectionProfile? PickFallback()
+    {
+        var profiles = NetworkInformation.GetConnectionProfiles().Where(IsLink).ToList();
+        var candidates = profiles
+            .Select(p => new LinkCandidate(p.IsWlanConnectionProfile ? NetworkLink.Wifi : NetworkLink.Ethernet,
+                ReachOf(p.GetNetworkConnectivityLevel())))
+            .ToList();
+        return LinkChoice.PickFallback(candidates) is { } index ? profiles[index] : null;
+    }
+
+    private static NetworkReach ReachOf(NetworkConnectivityLevel level) => level switch
+    {
+        NetworkConnectivityLevel.InternetAccess => NetworkReach.Internet,
+        NetworkConnectivityLevel.LocalAccess or NetworkConnectivityLevel.ConstrainedInternetAccess => NetworkReach.Local,
+        _ => NetworkReach.None,
+    };
 
     private static bool IsLink(ConnectionProfile profile) =>
         profile.IsWlanConnectionProfile || profile.NetworkAdapter?.IanaInterfaceType == EthernetType;

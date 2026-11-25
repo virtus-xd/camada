@@ -66,6 +66,12 @@ public partial class BluetoothListView : UserControl
         RadioButton.Style = (Style)FindResource(RadioOn ? "PanelAccentButton" : "PanelButton");
         AutomationProperties.SetName(RadioButton, RadioOn ? "Bluetooth açık; kapat" : "Bluetooth kapalı; aç");
 
+        if (RowKeys.DeferWhilePressed(Rows, Show))
+        {
+            return; // cihaz olayı tıklama sürerken geldi: bırakılınca kurulur
+        }
+
+        var focused = RowKeys.Focused(Rows);
         Rows.Children.Clear();
         if (!RadioOn)
         {
@@ -85,6 +91,8 @@ public partial class BluetoothListView : UserControl
         {
             Rows.Children.Add(CreateRow(device));
         }
+
+        RowKeys.Restore(Rows, focused);
     }
 
     private void ShowStatus(string text)
@@ -117,6 +125,7 @@ public partial class BluetoothListView : UserControl
                 }
                 : new Button { Style = (Style)FindResource("PanelButton"), Content = "Ayarlarda bağlan ›", Padding = new Thickness(12, 4, 12, 4) };
             AutomationProperties.SetName(action, $"{device.Name}: {action.Content}");
+            RowKeys.SetKey(action, device.Id);
             action.Click += async (_, _) =>
             {
                 if (!_bluetooth.CanSendAudioCommands)
@@ -208,9 +217,13 @@ public partial class BluetoothListView : UserControl
         }
 
         RadioButton.IsEnabled = false;
-        await radios.SetAsync(RadioKind.Bluetooth, !radios.BluetoothOn);
+        var changed = await radios.SetAsync(RadioKind.Bluetooth, !radios.BluetoothOn);
         RadioButton.IsEnabled = true;
         Show();
+        if (!changed)
+        {
+            await WifiListView.ShowRadioFailedAsync(RadioButton, Show);
+        }
     }
 
     private void BackButton_Click(object sender, RoutedEventArgs e) => _goBack();

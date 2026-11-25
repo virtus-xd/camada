@@ -228,7 +228,8 @@ public sealed class BrightnessService : IDisposable
         {
             using var searcher = new ManagementObjectSearcher(@"root\WMI",
                 "SELECT InstanceName, CurrentBrightness FROM WmiMonitorBrightness WHERE Active=TRUE");
-            foreach (ManagementObject item in searcher.Get())
+            using var results = searcher.Get();
+            foreach (ManagementObject item in results)
             {
                 using (item)
                 {
@@ -261,7 +262,8 @@ public sealed class BrightnessService : IDisposable
     private static ManagementObject? FindActiveMethods()
     {
         using var methods = new ManagementClass(@"root\WMI", "WmiMonitorBrightnessMethods", null);
-        foreach (ManagementObject instance in methods.GetInstances())
+        using var instances = methods.GetInstances();
+        foreach (ManagementObject instance in instances)
         {
             if (instance["Active"] is true)
             {
@@ -337,7 +339,8 @@ public sealed class BrightnessService : IDisposable
         try
         {
             using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT InstanceName, UserFriendlyName FROM WmiMonitorID");
-            foreach (ManagementObject item in searcher.Get())
+            using var results = searcher.Get();
+            foreach (ManagementObject item in results)
             {
                 using (item)
                 {

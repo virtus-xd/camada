@@ -28,6 +28,10 @@ public sealed class AudioService : IDisposable
     private readonly ProcessInfoCache _processes = new(ProcessInfoReader.Read);
     private MMDevice? _output;
     private AudioEndpointVolume? _outputVolume;
+    private AudioEndpointVolumeNotificationDelegate? _outputHandler;
+
+    /// <summary>Her bağlanışta artar: eski cihazın kuyrukta kalan ses olayı yeni cihazın düzeyi gibi gösterilmez.</summary>
+    private int _outputGeneration;
     private MMDevice? _micConsole;
     private MMDevice? _micCommunications;
     private bool _disposed;
@@ -258,6 +262,9 @@ public sealed class AudioService : IDisposable
     private void AttachOutput()
     {
         DetachOutput();
+        var generation = ++_outputGeneration;
+        AudioEndpointVolumeNotificationDelegate handler = data => OnOutputVolume(data, generation);
+        _outputHandler = handler;
         Write(() =>
         {
             if (!_enumerator.HasDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia))
@@ -268,7 +275,7 @@ public sealed class AudioService : IDisposable
             _output = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
             _outputVolume = _output.AudioEndpointVolume;
             _outputVolume.NotificationGuid = OwnContext; // CamAda'nın yazdıkları bu bağlamla bildirilir
-            _outputVolume.OnVolumeNotification += OnOutputVolume;
+            _outputVolume.OnVolumeNotification += handler;
         });
 
         if (_outputVolume is null)
@@ -279,24 +286,25 @@ public sealed class AudioService : IDisposable
 
     private void DetachOutput()
     {
-        if (_outputVolume is { } endpoint)
+        if (_outputVolume is { } endpoint && _outputHandler is { } handler)
         {
-            endpoint.OnVolumeNotification -= OnOutputVolume;
+            endpoint.OnVolumeNotification -= handler;
         }
 
         _outputVolume = null;
+        _outputHandler = null;
         var output = _output;
         _output = null;
         Write(() => output?.Dispose()); // AudioEndpointVolume'u ve geri çağrı kaydını da bırakır
     }
 
-    /// <summary>Core Audio iş parçacığından gelir.</summary>
-    private void OnOutputVolume(AudioVolumeNotificationData data)
+    /// <summary>Core Audio iş parçacığından gelir; bağlandığı cihaz artık varsayılan değilse yok sayılır.</summary>
+    private void OnOutputVolume(AudioVolumeNotificationData data, int generation)
     {
         var change = new MasterVolumeChange(data.MasterVolume, data.Muted, data.EventContext == OwnContext);
         _dispatcher.BeginInvoke(() =>
         {
-            if (!_disposed)
+            if (!_disposed && generation == _outputGeneration)
             {
                 MasterChanged?.Invoke(this, change);
             }

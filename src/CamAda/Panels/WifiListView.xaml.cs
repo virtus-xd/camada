@@ -125,13 +125,33 @@ public partial class WifiListView : UserControl
             return;
         }
 
+        var wasScanned = _scanned;
         _scanned = true;
-        LocationButton.Visibility = result.LocationBlocked ? Visibility.Visible : Visibility.Collapsed;
+        var locationVisibility = result.LocationBlocked ? Visibility.Visible : Visibility.Collapsed;
+        if (wasScanned && LocationButton.Visibility == locationVisibility && result.Rows.SequenceEqual(_rows))
+        {
+            return; // değişiklik yok: satırları yeniden kurma (odak ve basılan düğme yerinde kalsın)
+        }
+
+        LocationButton.Visibility = locationVisibility;
         Show(result.Rows, result.LocationBlocked);
     }
 
     private void Show(IReadOnlyList<WifiRow> rows, bool locationBlocked = false)
     {
+        // Tarama sonucu tıklama sürerken gelirse bırakılınca kurulur (satır açıldıysa açık satır korunur).
+        if (RowKeys.DeferWhilePressed(Rows, () =>
+            {
+                if (_expanded is null)
+                {
+                    Show(rows, locationBlocked);
+                }
+            }))
+        {
+            return;
+        }
+
+        var focused = _expanded is null ? RowKeys.Focused(Rows) : null; // açık satır odağı kendisi verir
         _rows = rows;
         Rows.Children.Clear();
         if (!RadioOn)
@@ -158,6 +178,8 @@ public partial class WifiListView : UserControl
         {
             Rows.Children.Add(CreateRow(row));
         }
+
+        RowKeys.Restore(Rows, focused);
     }
 
     private void ShowStatus(string text)
@@ -204,6 +226,7 @@ public partial class WifiListView : UserControl
         });
 
         var button = new Button { Style = (Style)FindResource("PanelRowButton"), Content = header, Margin = new Thickness(0) };
+        RowKeys.SetKey(button, "ssid:" + row.Ssid);
         AutomationProperties.SetName(button, $"{row.Ssid}{(right.Length > 0 ? ", " + right : "")}");
         var container = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
         container.Children.Add(button);
@@ -437,9 +460,25 @@ public partial class WifiListView : UserControl
         }
 
         RadioButton.IsEnabled = false;
-        await radios.SetAsync(RadioKind.WiFi, !radios.WifiOn);
+        var changed = await radios.SetAsync(RadioKind.WiFi, !radios.WifiOn);
         RadioButton.IsEnabled = true;
         UpdateHeader();
+        if (!changed)
+        {
+            await ShowRadioFailedAsync(RadioButton, UpdateHeader);
+        }
+    }
+
+    /// <summary>Telsiz değiştirilemedi (ör. donanım anahtarı, ilke): düğmede 3 sn "Değiştirilemedi", sonra gerçek durum.</summary>
+    internal static async Task ShowRadioFailedAsync(Button button, Action restore)
+    {
+        button.Content = "Değiştirilemedi";
+        AutomationProperties.SetName(button, "Değiştirilemedi");
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        if (button.IsLoaded)
+        {
+            restore();
+        }
     }
 
     private void BackButton_Click(object sender, RoutedEventArgs e) => _goBack();

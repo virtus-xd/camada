@@ -11,8 +11,8 @@ public enum BatteryCharge
 /// <summary>Pil durumu; <paramref name="Remaining"/> Windows tahmin edemiyorsa null.</summary>
 public sealed record BatterySnapshot(int Percent, BatteryCharge Charge, bool PluggedIn, TimeSpan? Remaining);
 
-/// <summary>Pil simgesi: 0–10 doluluk, şimşek, düşük pil uyarısı.</summary>
-public sealed record BatteryIcon(int Level, bool Charging, bool Low);
+/// <summary>Pil simgesi: 0–10 doluluk, şarj, düşük pil uyarısı, prize takılı.</summary>
+public sealed record BatteryIcon(int Level, bool Charging, bool Low, bool PluggedIn = false);
 
 /// <summary>Adadaki pil simgesi, küçük ada uyarısı ve panel başlığındaki pil metni (Plan 4.3).</summary>
 public static class BatteryText
@@ -52,7 +52,7 @@ public static class BatteryText
 
     public static BatteryIcon Icon(BatterySnapshot s) =>
         new((int)Math.Clamp(Math.Round(s.Percent / 10.0, MidpointRounding.AwayFromZero), 0, 10),
-            s.Charge == BatteryCharge.Charging, IsLow(s));
+            s.Charge == BatteryCharge.Charging, IsLow(s), s.PluggedIn);
 
     public static string CompactText(BatterySnapshot s) => $"%{s.Percent}";
 

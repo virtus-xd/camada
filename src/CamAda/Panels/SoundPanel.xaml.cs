@@ -96,7 +96,11 @@ public partial class SoundPanel : UserControl
 
             view.Row = row;
             view.Name.Text = row.Name;
-            AutomationProperties.SetName(view.Slider, $"{row.Name} ses düzeyi");
+
+            // Windows'un karıştırıcısında sessize alınmış uygulama: satır soluk (kaydırıcı düzeyi yine gösterir).
+            view.Element.Opacity = row.Muted ? 0.5 : 1;
+            view.Element.ToolTip = row.Muted ? "Windows'ta sessize alınmış" : null;
+            AutomationProperties.SetName(view.Slider, row.Muted ? $"{row.Name} ses düzeyi, sessiz" : $"{row.Name} ses düzeyi");
             if (!view.Slider.IsMouseCaptureWithin && !view.Slider.IsKeyboardFocusWithin)
             {
                 _updating = true;
@@ -190,6 +194,12 @@ public partial class SoundPanel : UserControl
 
     private void ShowOutputs()
     {
+        if (RowKeys.DeferWhilePressed(OutputList, ShowOutputs))
+        {
+            return;
+        }
+
+        var focused = RowKeys.Focused(OutputList);
         OutputList.Children.Clear();
         var outputs = _audio.Outputs();
         NoOutputText.Visibility = outputs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -225,9 +235,12 @@ public partial class SoundPanel : UserControl
             var button = new Button { Style = (Style)FindResource("PanelRowButton"), Content = row };
             AutomationProperties.SetName(button, output.IsDefault ? $"{output.Name}, seçili" : output.Name);
             var id = output.Id;
+            RowKeys.SetKey(button, id);
             button.Click += (_, _) => _audio.SetDefaultOutput(id);
             OutputList.Children.Add(button);
         }
+
+        RowKeys.Restore(OutputList, focused);
     }
 
     private void MuteButton_Click(object sender, RoutedEventArgs e) => _audio.SetMuted(!_audio.Muted);

@@ -41,8 +41,11 @@ public static class QuickGlyphs
         _ => WifiFull,
     };
 
-    /// <summary>0–10 doluluk; şarjda şimşekli.</summary>
-    public static string Battery(BatteryIcon icon) => icon.Charging
+    /// <summary>
+    /// 0–10 doluluk; şarjda ya da prize takılıyken şimşekli (fontta fiş glifi yok; "prize takılı, şarj etmiyor" ayrımını
+    /// erişilebilir ad yapar).
+    /// </summary>
+    public static string Battery(BatteryIcon icon) => icon.Charging || icon.PluggedIn
         ? icon.Level switch
         {
             <= 8 => ((char)(0xE85A + Math.Max(0, icon.Level))).ToString(),
