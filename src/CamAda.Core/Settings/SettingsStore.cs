@@ -15,6 +15,9 @@ public sealed class SettingsStore
 
     private readonly string _directory;
 
+    /// <summary>Dosya var ama okunamadı (ör. kilitli): bu oturumda üzerine yazılmaz, kullanıcının ayarları korunur.</summary>
+    private bool _readFailed;
+
     public SettingsStore(string directory)
     {
         _directory = directory;
@@ -25,7 +28,10 @@ public sealed class SettingsStore
 
     private string CorruptBackupPath => Path.Combine(_directory, "settings.corrupt.json");
 
-    /// <summary>Ayarları yükler. Dosya yoksa ya da bozuksa varsayılanları yazar ve döner.</summary>
+    /// <summary>
+    /// Ayarları yükler. Dosya yoksa ya da bozuksa varsayılanları yazar ve döner. Dosya okunamıyorsa (kilitli, izin yok)
+    /// varsayılanlarla çalışılır ama dosyaya bu oturumda dokunulmaz.
+    /// </summary>
     public AppSettings Load()
     {
         if (!File.Exists(FilePath))
@@ -35,9 +41,19 @@ public sealed class SettingsStore
             return defaults;
         }
 
+        string json;
         try
         {
-            var json = File.ReadAllText(FilePath);
+            json = File.ReadAllText(FilePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _readFailed = true;
+            return new AppSettings();
+        }
+
+        try
+        {
             var settings = Sanitize(JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings());
             if (FileVersion(json) < AppSettings.CurrentVersion)
             {
@@ -49,7 +65,7 @@ public sealed class SettingsStore
         }
         catch (JsonException)
         {
-            File.Copy(FilePath, CorruptBackupPath, overwrite: true);
+            TryBackupCorrupt();
             var defaults = new AppSettings();
             Save(defaults);
             return defaults;
@@ -162,9 +178,47 @@ public sealed class SettingsStore
         };
     }
 
-    public void Save(AppSettings settings)
+    /// <summary>
+    /// Ayarları geçici dosyaya yazıp yerine taşır (yarıda kalan yazım dosyayı bozmaz). Disk dolu, dosya kilitli ya da
+    /// izin yoksa false; uygulama çökmez, değişiklik yalnız bu oturumda geçerli kalır.
+    /// </summary>
+    public bool Save(AppSettings settings)
     {
-        Directory.CreateDirectory(_directory);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(settings, JsonOptions));
+        if (_readFailed)
+        {
+            return false;
+        }
+
+        var temporary = FilePath + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(_directory);
+            File.WriteAllText(temporary, JsonSerializer.Serialize(settings, JsonOptions));
+            File.Move(temporary, FilePath, overwrite: true);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            try
+            {
+                File.Delete(temporary);
+            }
+            catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            return false;
+        }
+    }
+
+    private void TryBackupCorrupt()
+    {
+        try
+        {
+            File.Copy(FilePath, CorruptBackupPath, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 }

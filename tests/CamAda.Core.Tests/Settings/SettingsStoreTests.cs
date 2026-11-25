@@ -244,6 +244,43 @@ public class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_reports_failure_instead_of_throwing_when_folder_is_unusable()
+    {
+        var blocked = Path.Combine(_dir, "dosya");
+        File.WriteAllText(blocked, "klasör değil");
+        Assert.False(new SettingsStore(blocked).Save(new AppSettings()));
+    }
+
+    [Fact]
+    public void Locked_file_loads_defaults_and_is_never_overwritten_this_session()
+    {
+        var path = Path.Combine(_dir, "settings.json");
+        const string original = """{ "GlassMode": "Solid", "SettingsVersion": 2 }""";
+        File.WriteAllText(path, original);
+        var store = new SettingsStore(_dir);
+
+        AppSettings loaded;
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            loaded = store.Load();
+        }
+
+        Assert.Equal(new AppSettings(), loaded);
+        Assert.False(store.Save(loaded with { GlassMode = GlassMode.Acrylic }));
+        Assert.Equal(original, File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void Save_replaces_the_file_without_leaving_temporary_files()
+    {
+        var store = new SettingsStore(_dir);
+        Assert.True(store.Save(new AppSettings { GlassMode = GlassMode.Solid }));
+        Assert.True(store.Save(new AppSettings { GlassMode = GlassMode.Acrylic }));
+        Assert.Equal(GlassMode.Acrylic, store.Load().GlassMode);
+        Assert.Equal(["settings.json"], Directory.GetFiles(_dir).Select(Path.GetFileName));
+    }
+
+    [Fact]
     public void Unknown_properties_ignored_and_missing_ones_default()
     {
         File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "GlassMode": "Solid", "Gelecek": 1 }""");

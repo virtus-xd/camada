@@ -32,6 +32,15 @@ public sealed class ScreenshotTracker(TimeProvider time)
 
     public bool HasPending => _pending.Count > 0;
 
+    /// <summary>Yeni ekran görüntüsü sayılan dosyanın en büyük yaşı (yazımı süren dosya için pay dahil).</summary>
+    public static readonly TimeSpan NewFileAge = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Klasörde beliren dosya yeni çekilmiş mi: klasöre taşınan ya da yeniden adlandırılan eski dosya oluşturulma zamanını
+    /// korur ve "yeni ekran görüntüsü" sayılmaz.
+    /// </summary>
+    public static bool IsNewFile(DateTime createdUtc, DateTimeOffset now) => now.UtcDateTime - createdUtc <= NewFileAge;
+
     public ClipImageDecision OnClipImage(string pendingId, int width, int height, bool fromScreenshotTool)
     {
         Prune();

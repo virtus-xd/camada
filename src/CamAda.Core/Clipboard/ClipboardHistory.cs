@@ -62,6 +62,13 @@ public sealed class ClipboardHistory
         return item;
     }
 
+    /// <summary>Aynı içerik (sabitli ya da değil) geçmişte var mı.</summary>
+    public bool Contains(ClipPayload payload)
+    {
+        var key = payload.Key;
+        return _pinned.Exists(i => i.Payload.Key == key) || _recent.Exists(i => i.Payload.Key == key);
+    }
+
     public ClipItem? Find(string id) => _pinned.Find(i => i.Id == id) ?? _recent.Find(i => i.Id == id);
 
     /// <summary>CamAda'nın kendi yeniden kopyalaması: sabitlenmemiş öğeyi en üste alır.</summary>

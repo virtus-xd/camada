@@ -58,7 +58,7 @@ public partial class IslandWindow : Window
     private static readonly TimeSpan ShotHold = TimeSpan.FromSeconds(5);
 
     private readonly DispatcherTimer _shotTimer = new(DispatcherPriority.Normal);
-    private Action? _shotCopy;
+    private Func<Task<bool>>? _shotCopy;
     private Action? _shotEdit;
 
     /// <summary>Hapın genişlik animasyonunun en son hedefi (DIP).</summary>
@@ -243,7 +243,7 @@ public partial class IslandWindow : Window
     /// de tıklanabilir; önizleme boyunca imleç adayı genişletmez. Tam ekranda, ada genişlemişken ya da panel açıkken
     /// gösterilmez. Yeni ekran görüntüsü gelirse içerik değişir ve süre yenilenir.
     /// </summary>
-    public void ShowScreenshot(ImageSource thumbnail, Action copy, Action edit)
+    public void ShowScreenshot(ImageSource thumbnail, Func<Task<bool>> copy, Action edit)
     {
         if (_closed || _fullScreen || _hover.IsExpanded || _panels.IsOpen)
         {
@@ -336,10 +336,18 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void ShotCopy_Click(object sender, RoutedEventArgs e)
+    private async void ShotCopy_Click(object sender, RoutedEventArgs e)
     {
-        _shotCopy?.Invoke();
-        ShotCopyText.Text = "Kopyalandı";
+        if (_shotCopy is not { } copy)
+        {
+            return;
+        }
+
+        var copied = await copy();
+        if (_shotCopy == copy) // beklerken yeni ekran görüntüsü geldiyse onun düğmesine dokunma
+        {
+            ShotCopyText.Text = copied ? "Kopyalandı" : "Kopyalanamadı";
+        }
     }
 
     private void ShotEdit_Click(object sender, RoutedEventArgs e)

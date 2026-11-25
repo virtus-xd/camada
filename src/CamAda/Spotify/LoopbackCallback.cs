@@ -10,12 +10,18 @@ namespace CamAda.Spotify;
 /// <summary>
 /// Spotify girişinden sonra tarayıcının yönlendirdiği http://127.0.0.1:43821/callback isteğini yakalar. HttpListener yerine
 /// TcpListener: 127.0.0.1 için yönetici izni (URL ACL) gerekmez. Bağlantılar ayrı ayrı okunur; tarayıcıların önceden açıp
-/// boş bıraktığı bağlantılar asıl isteği bekletmez. /callback isteğine Türkçe kısa bir sayfa döner, başka yollar 404 alır.
+/// boş bıraktığı bağlantılar asıl isteği bekletmez. Durumu (state) bu girişinkiyle eşleşmeyen geri dönüş (ör. önceki
+/// denemenin sekmesi) yok sayılır ve bekleme sürer; eşleşen kod takas edildikten sonra sayfa sonucu söyler. Başka yollar
+/// 404 alır.
 /// </summary>
 public static class LoopbackCallback
 {
-    /// <summary>Geri dönüşü bekler; zaman aşımında, iptalde ya da port meşgulse null.</summary>
-    public static async Task<OAuthCallbackResult?> WaitAsync(TimeSpan timeout, CancellationToken cancellation)
+    /// <summary>
+    /// Geri dönüşü bekler ve kodu <paramref name="exchange"/> ile takas eder; takasın sonucunu döner. Kullanıcı reddederse,
+    /// takas başarısızsa, zaman aşımında, iptalde ya da port meşgulse null.
+    /// </summary>
+    public static async Task<T?> WaitAsync<T>(string expectedState, Func<string, Task<T?>> exchange, TimeSpan timeout,
+        CancellationToken cancellation) where T : class
     {
         TcpListener listener;
         try
@@ -31,12 +37,12 @@ public static class LoopbackCallback
 
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         stop.CancelAfter(timeout);
-        var result = new TaskCompletionSource<OAuthCallbackResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = stop.Token.Register(() => result.TrySetResult(null));
-        var accepting = AcceptAsync(listener, result, stop.Token);
+        var session = new Session<T>(expectedState, exchange);
+        using var registration = stop.Token.Register(() => session.Result.TrySetResult(null));
+        var accepting = AcceptAsync(listener, session, stop.Token);
         try
         {
-            return await result.Task;
+            return await session.Result.Task;
         }
         finally
         {
@@ -46,14 +52,29 @@ public static class LoopbackCallback
         }
     }
 
-    private static async Task AcceptAsync(TcpListener listener, TaskCompletionSource<OAuthCallbackResult?> result, CancellationToken stop)
+    /// <summary>Bir girişin bekleme durumu: beklenen state, takas işlevi, tek seferlik sahiplenme ve sonuç.</summary>
+    private sealed class Session<T>(string expectedState, Func<string, Task<T?>> exchange) where T : class
+    {
+        private int _claimed;
+
+        public string ExpectedState { get; } = expectedState;
+
+        public Func<string, Task<T?>> Exchange { get; } = exchange;
+
+        public TaskCompletionSource<T?> Result { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Kodu yalnız ilk geçerli geri dönüş takas eder (tarayıcı isteği yinelerse ikinci takas olmaz).</summary>
+        public bool TryClaim() => Interlocked.Exchange(ref _claimed, 1) == 0;
+    }
+
+    private static async Task AcceptAsync<T>(TcpListener listener, Session<T> session, CancellationToken stop) where T : class
     {
         try
         {
             while (!stop.IsCancellationRequested)
             {
                 var client = await listener.AcceptTcpClientAsync(stop);
-                _ = HandleAsync(client, result, stop);
+                _ = HandleAsync(client, session, stop);
             }
         }
         catch (Exception ex) when (ex is OperationCanceledException or SocketException or ObjectDisposedException)
@@ -62,7 +83,7 @@ public static class LoopbackCallback
         }
     }
 
-    private static async Task HandleAsync(TcpClient client, TaskCompletionSource<OAuthCallbackResult?> result, CancellationToken stop)
+    private static async Task HandleAsync<T>(TcpClient client, Session<T> session, CancellationToken stop) where T : class
     {
         using (client)
         {
@@ -84,14 +105,40 @@ public static class LoopbackCallback
                     return;
                 }
 
-                var message = parsed.Error is null
-                    ? "CamAda Spotify'a bağlandı. Bu sekmeyi kapatabilirsin."
-                    : $"Bağlanılamadı: {WebUtility.HtmlEncode(parsed.Error)}";
-                await RespondAsync(stream, "200 OK",
-                    "<!doctype html><html lang=\"tr\"><meta charset=\"utf-8\"><title>CamAda</title>" +
-                    "<body style=\"font-family:sans-serif;background:#14182A;color:#F4F6FB;display:grid;place-items:center;height:90vh\">" +
-                    $"<p style=\"font-size:20px\">{message}</p></body></html>", stop);
-                result.TrySetResult(parsed);
+                switch (OAuthCallback.Judge(parsed, session.ExpectedState))
+                {
+                    case CallbackVerdict.Stale:
+                        await RespondAsync(stream, "400 Bad Request",
+                            Page("Bu giriş bağlantısı eski. CamAda'daki Bağlan düğmesiyle yeniden dene."), stop);
+                        return;
+
+                    case CallbackVerdict.Denied:
+                        await RespondAsync(stream, "200 OK",
+                            Page($"Bağlanılamadı: {WebUtility.HtmlEncode(parsed.Error ?? "yanıt eksik")}"), stop);
+                        session.Result.TrySetResult(null);
+                        return;
+                }
+
+                if (!session.TryClaim())
+                {
+                    await RespondAsync(stream, "200 OK", Page("Giriş zaten işleniyor. Bu sekmeyi kapatabilirsin."), stop);
+                    return;
+                }
+
+                T? exchanged = null;
+                try
+                {
+                    exchanged = await session.Exchange(parsed.Code!);
+                    await RespondAsync(stream, "200 OK", Page(exchanged is not null
+                        ? "CamAda Spotify'a bağlandı. Bu sekmeyi kapatabilirsin."
+                        : "Bağlanılamadı: Spotify girişi tamamlanamadı. CamAda'dan yeniden dene."), stop);
+                }
+                finally
+                {
+                    // Sayfa yazıldıktan sonra (yazılamasa ya da takas hata atsa da) bekleme biter; önce bitseydi dinleyici
+                    // kapanır ve sayfa yarıda kalırdı.
+                    session.Result.TrySetResult(exchanged);
+                }
             }
             catch (Exception ex) when (ex is IOException or SocketException or OperationCanceledException or ObjectDisposedException)
             {
@@ -99,6 +146,11 @@ public static class LoopbackCallback
             }
         }
     }
+
+    private static string Page(string message) =>
+        "<!doctype html><html lang=\"tr\"><meta charset=\"utf-8\"><title>CamAda</title>" +
+        "<body style=\"font-family:sans-serif;background:#14182A;color:#F4F6FB;display:grid;place-items:center;height:90vh\">" +
+        $"<p style=\"font-size:20px\">{message}</p></body></html>";
 
     private static async Task RespondAsync(Stream stream, string status, string html, CancellationToken cancellation)
     {

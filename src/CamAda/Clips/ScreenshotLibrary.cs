@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CamAda.Core.Clipboard;
+using CamAda.Core.Collections;
 
 namespace CamAda.Clips;
 
@@ -20,13 +21,15 @@ public sealed class ScreenshotLibrary : IDisposable
 {
     private static readonly string[] Extensions = [".png", ".jpg", ".jpeg"];
     private static readonly Guid ScreenshotsFolderId = new("B7BEDE81-DF94-4682-A7D8-57A52620B86F");
+    private const uint KF_FLAG_DONT_VERIFY = 0x4000; // klasör henüz yoksa da yolunu ver (yoksa Resimler\Screenshots'a düşerdik)
 
     private readonly Dispatcher _dispatcher;
     private readonly ClipboardService _clips;
     private readonly Action<Exception> _log;
     private readonly ScreenshotTracker _tracker = new(TimeProvider.System);
     private readonly Dictionary<string, ClipPayload> _pending = new();
-    private readonly Dictionary<string, ImageSource> _thumbnails = new(StringComparer.OrdinalIgnoreCase);
+    // Şerit en çok 10 görüntü gösterir; sınır, yıllarca alınan ekran görüntülerinin küçük resimlerinin birikmesini önler.
+    private readonly LruCache<string, ImageSource> _thumbnails = new(capacity: 32, StringComparer.OrdinalIgnoreCase);
     private readonly DispatcherTimer _expiry;
     private FileSystemWatcher? _watcher;
     private bool _disposed;
@@ -54,7 +57,7 @@ public sealed class ScreenshotLibrary : IDisposable
     /// <summary>Windows'un ekran görüntüsü klasörü (kullanıcı taşıdıysa yeni yeri); bulunamazsa Resimler\Screenshots.</summary>
     public static string? KnownFolder()
     {
-        if (SHGetKnownFolderPath(ScreenshotsFolderId, 0, 0, out var pointer) == 0)
+        if (SHGetKnownFolderPath(ScreenshotsFolderId, KF_FLAG_DONT_VERIFY, 0, out var pointer) == 0)
         {
             try
             {
@@ -97,7 +100,7 @@ public sealed class ScreenshotLibrary : IDisposable
     /// <summary>Şerit için küçük resim (192 piksel genişlik, önbellekli); açılamazsa null.</summary>
     public ImageSource? Thumbnail(ScreenshotFile file)
     {
-        if (_thumbnails.TryGetValue(file.Path, out var cached))
+        if (_thumbnails.TryGet(file.Path, out var cached))
         {
             return cached;
         }
@@ -112,7 +115,7 @@ public sealed class ScreenshotLibrary : IDisposable
             image.DecodePixelWidth = 192;
             image.EndInit();
             image.Freeze();
-            _thumbnails[file.Path] = image;
+            _thumbnails.Set(file.Path, image);
             return image;
         }
         catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or FileFormatException)
@@ -131,7 +134,14 @@ public sealed class ScreenshotLibrary : IDisposable
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            Process.Start(new ProcessStartInfo("mspaint.exe", $"\"{path}\"") { UseShellExecute = true });
+            try
+            {
+                Process.Start(new ProcessStartInfo("mspaint.exe", $"\"{path}\"") { UseShellExecute = true });
+            }
+            catch (Exception fallback) when (fallback is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                Debug.WriteLine($"Ekran görüntüsü düzenlemeye açılamadı: {ex.Message} / {fallback.Message}");
+            }
         }
     }
 
@@ -151,7 +161,7 @@ public sealed class ScreenshotLibrary : IDisposable
 
     private void Watch()
     {
-        if (Folder is null)
+        if (Folder is null || _disposed)
         {
             return;
         }
@@ -163,11 +173,13 @@ public sealed class ScreenshotLibrary : IDisposable
                 _watcher = new FileSystemWatcher(Folder) { NotifyFilter = NotifyFilters.FileName };
                 _watcher.Created += (_, e) => _ = OnFileAsync(e.FullPath);
                 _watcher.Renamed += (_, e) => _ = OnFileAsync(e.FullPath);
+                _watcher.Error += OnWatcherError;
                 _watcher.EnableRaisingEvents = true;
                 return;
             }
 
-            // Klasör henüz yok (hiç ekran görüntüsü alınmamış): üst klasörü izle, oluşunca ona geç.
+            // Klasör henüz yok (hiç ekran görüntüsü alınmamış): üst klasörü izle, oluşunca ona geç. Gezgin'de "Yeni
+            // klasör" sonra yeniden adlandırma Created değil Renamed verir.
             var parent = Path.GetDirectoryName(Folder);
             if (parent is null || !Directory.Exists(parent))
             {
@@ -176,21 +188,16 @@ public sealed class ScreenshotLibrary : IDisposable
 
             var name = Path.GetFileName(Folder);
             _watcher = new FileSystemWatcher(parent) { NotifyFilter = NotifyFilters.DirectoryName };
-            _watcher.Created += (_, e) =>
+            FileSystemEventHandler onAppeared = (_, e) =>
             {
                 if (string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase))
                 {
-                    _dispatcher.BeginInvoke(() =>
-                    {
-                        _watcher?.Dispose();
-                        _watcher = null;
-                        if (!_disposed)
-                        {
-                            Watch();
-                        }
-                    });
+                    _dispatcher.BeginInvoke(Rewatch);
                 }
             };
+            _watcher.Created += onAppeared;
+            _watcher.Renamed += (sender, e) => onAppeared(sender, e);
+            _watcher.Error += OnWatcherError;
             _watcher.EnableRaisingEvents = true;
         }
         catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException)
@@ -199,12 +206,30 @@ public sealed class ScreenshotLibrary : IDisposable
         }
     }
 
+    /// <summary>İzleyici durdu (arabellek taştı, klasör silindi ya da ağ sürücüsü koptu): bir süre sonra yeniden kur.</summary>
+    private void OnWatcherError(object sender, ErrorEventArgs e)
+    {
+        _log(e.GetException());
+        _dispatcher.BeginInvoke(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Rewatch();
+        });
+    }
+
+    private void Rewatch()
+    {
+        _watcher?.Dispose();
+        _watcher = null;
+        Watch();
+    }
+
     /// <summary>İzleyici iş parçacığında: dosya yazımı bitince boyutunu okuyup UI'a geçer.</summary>
     private async Task OnFileAsync(string path)
     {
-        if (!IsImage(path))
+        if (!IsImage(path) || !ScreenshotTracker.IsNewFile(File.GetCreationTimeUtc(path), DateTimeOffset.UtcNow))
         {
-            return;
+            return; // taşınan ya da yeniden adlandırılan eski dosya yeni ekran görüntüsü değildir
         }
 
         (int Width, int Height)? size = null;
@@ -262,7 +287,10 @@ public sealed class ScreenshotLibrary : IDisposable
         switch (_tracker.OnClipImage(pendingId, payload.Width, payload.Height, arrival.FromScreenshotTool))
         {
             case ClipImageDecision.AddToHistory:
-                if (_clips.AddImage(payload) is { } item)
+                // Yalnız yeni ve sabitlenmemiş öğe izlenir: aynı boyutta dosya gelince silinecek olan odur. Geçmişte zaten
+                // olan (ör. sabitli) görselin kopyası yeniden gelince silinmemeli.
+                var existed = _clips.History.Contains(payload);
+                if (_clips.AddImage(payload) is { Pinned: false } item && !existed)
                 {
                     _tracker.AddedToHistory(item.Id, payload.Width, payload.Height);
                 }

@@ -96,7 +96,10 @@ public sealed class SpotifyClient
 
         var verifier = SpotifyAuth.CreateVerifier();
         var state = SpotifyAuth.CreateState();
-        var callback = LoopbackCallback.WaitAsync(TimeSpan.FromMinutes(2), cancellation);
+        // Takas geri dönüşün içinde yapılır (sayfa sonucu söylesin); belirteç bu bağlamda kaydedilir (olaylar UI'da).
+        var callback = LoopbackCallback.WaitAsync(state,
+            code => RequestTokenAsync(SpotifyAuth.CodeExchangeForm(clientId, code, verifier), previousRefreshToken: null),
+            TimeSpan.FromMinutes(2), cancellation);
         try
         {
             Process.Start(new ProcessStartInfo(SpotifyAuth.AuthorizeUrl(clientId, SpotifyAuth.ChallengeFor(verifier), state))
@@ -110,13 +113,7 @@ public sealed class SpotifyClient
             return false;
         }
 
-        var result = await callback;
-        if (result is not { Code: { } code } || result.State != state)
-        {
-            return false;
-        }
-
-        var token = await RequestTokenAsync(SpotifyAuth.CodeExchangeForm(clientId, code, verifier), previousRefreshToken: null);
+        var token = await callback;
         if (token is null)
         {
             return false;

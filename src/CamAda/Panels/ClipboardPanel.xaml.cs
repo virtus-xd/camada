@@ -29,6 +29,7 @@ public partial class ClipboardPanel : UserControl
     private readonly List<Button> _rows = new();
     private readonly List<Button> _shotButtons = new();
     private string? _copiedId;
+    private bool _copyFailed; // _copiedId'nin satırında "Kopyalandı" yerine "Kopyalanamadı"
 
     public ClipboardPanel(ClipboardService clips, ScreenshotLibrary? shots, bool pasteOnChoose)
     {
@@ -40,6 +41,7 @@ public partial class ClipboardPanel : UserControl
         {
             _copiedTimer!.Stop();
             _copiedId = null;
+            _copyFailed = false;
             Rebuild(FocusedId(), focusFirst: false);
             RebuildShots();
         }, Dispatcher);
@@ -120,10 +122,10 @@ public partial class ClipboardPanel : UserControl
                 Background = new SolidColorBrush(Color.FromArgb(0xB0, 0x14, 0x18, 0x2A)),
                 Child = new TextBlock
                 {
-                    Text = "Kopyalandı",
+                    Text = _copyFailed ? "Kopyalanamadı" : "Kopyalandı",
                     FontSize = 11.5,
                     FontWeight = FontWeights.Bold,
-                    Foreground = (Brush)FindResource("AccentBrush"),
+                    Foreground = (Brush)FindResource(_copyFailed ? "WarningBrush" : "AccentBrush"),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                 },
@@ -165,15 +167,16 @@ public partial class ClipboardPanel : UserControl
     {
         _copiedTimer.Stop();
         _copiedId = path;
-        if (await _clips.PutAsync(new ScreenshotChoice(path)))
-        {
-            _copiedTimer.Start();
-            RebuildShots();
-        }
-        else
-        {
-            _copiedId = null;
-        }
+        ShowCopyResult(await _clips.PutAsync(new ScreenshotChoice(path)));
+        RebuildShots();
+    }
+
+    /// <summary>Kopyalama sonucu satırda kısa süre görünür; başarısızlık daha uzun kalır (pano başka uygulamada kilitli).</summary>
+    private void ShowCopyResult(bool copied)
+    {
+        _copyFailed = !copied;
+        _copiedTimer.Interval = TimeSpan.FromSeconds(copied ? 1 : 2.5);
+        _copiedTimer.Start();
     }
 
     private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
@@ -250,10 +253,10 @@ public partial class ClipboardPanel : UserControl
         var copied = item.Id == _copiedId;
         var age = new TextBlock
         {
-            Text = copied ? "Kopyalandı" : ClipAge.Format(item.CopiedAt, now),
+            Text = !copied ? ClipAge.Format(item.CopiedAt, now) : _copyFailed ? "Kopyalanamadı" : "Kopyalandı",
             FontSize = 11.5,
             FontWeight = copied ? FontWeights.Bold : FontWeights.SemiBold,
-            Foreground = (Brush)FindResource(copied ? "AccentBrush" : "TextSecondaryBrush"),
+            Foreground = (Brush)FindResource(!copied ? "TextSecondaryBrush" : _copyFailed ? "WarningBrush" : "AccentBrush"),
             VerticalAlignment = VerticalAlignment.Center,
         };
         Grid.SetColumn(age, 2);
@@ -355,15 +358,8 @@ public partial class ClipboardPanel : UserControl
     {
         _copiedTimer.Stop();
         _copiedId = id;
-        if (await _clips.PutAsync(new HistoryChoice(id)))
-        {
-            _copiedTimer.Start();
-            Rebuild(id, focusFirst: false);
-        }
-        else
-        {
-            _copiedId = null;
-        }
+        ShowCopyResult(await _clips.PutAsync(new HistoryChoice(id)));
+        Rebuild(id, focusFirst: false);
     }
 
     private void ClearButton_Click(object sender, RoutedEventArgs e) => _clips.ClearUnpinned();
@@ -441,11 +437,17 @@ public partial class ClipboardPanel : UserControl
             return $"Görsel {item.Payload.Width}×{item.Payload.Height}";
         }
 
-        var lines = (item.Payload.Text ?? "").Replace("\r\n", "\n").Split('\n')
+        var text = item.Payload.Text ?? "";
+        if (text.Length > ClipClassifier.MaxInspected)
+        {
+            text = text[..ClipClassifier.MaxInspected]; // ilk iki dolu satır için 16 MB'ın tamamını bölme
+        }
+
+        var lines = text.Replace("\r\n", "\n").Split('\n')
             .Where(l => !string.IsNullOrWhiteSpace(l))
             .Take(2)
             .Select(l => item.Kind == ClipKind.Code ? l.TrimEnd() : l.Trim());
-        var text = string.Join("\n", lines);
-        return text.Length > 300 ? text[..300] : text;
+        var preview = string.Join("\n", lines);
+        return preview.Length > 300 ? preview[..300] : preview;
     }
 }

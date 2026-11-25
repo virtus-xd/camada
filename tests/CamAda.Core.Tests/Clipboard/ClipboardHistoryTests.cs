@@ -9,6 +9,17 @@ public class ClipboardHistoryTests
     private static ClipPayload Text(string text, string? html = null) => ClipPayload.FromText(text, html);
 
     [Fact]
+    public void Contains_finds_same_content_in_pinned_and_recent()
+    {
+        var history = new ClipboardHistory([new ClipItem("p", ClipKind.Text, Text("sabit"), T0, Pinned: true)]);
+        history.Add(Text("yakın"), T0);
+
+        Assert.True(history.Contains(Text("sabit")));
+        Assert.True(history.Contains(Text("yakın")));
+        Assert.False(history.Contains(Text("yok")));
+    }
+
+    [Fact]
     public void Adds_newest_first()
     {
         var history = new ClipboardHistory([]);

@@ -11,6 +11,18 @@ public class ScreenshotTrackerTests
 
     private void Ms(int ms) => _time.Advance(TimeSpan.FromMilliseconds(ms));
 
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(-8, true)]
+    [InlineData(2, true)]      // saat kayması: biraz ileride olan da yeni
+    [InlineData(-60, false)]   // klasöre taşınan/yeniden adlandırılan eski dosya
+    [InlineData(-3600, false)]
+    public void Only_just_created_files_are_new_screenshots(int createdSecondsFromNow, bool expected)
+    {
+        var now = new DateTimeOffset(2026, 11, 25, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(expected, ScreenshotTracker.IsNewFile(now.UtcDateTime.AddSeconds(createdSecondsFromNow), now));
+    }
+
     [Fact]
     public void File_then_matching_clip_within_3s_drops_clip()
     {

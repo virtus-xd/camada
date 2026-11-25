@@ -105,6 +105,16 @@ public class SpotifyTests
     public void Other_requests_are_ignored() =>
         Assert.Null(OAuthCallback.Parse("GET /favicon.ico HTTP/1.1"));
 
+    [Theory]
+    [InlineData("abc", "xyz", null, CallbackVerdict.Accept)]
+    [InlineData(null, "xyz", "access_denied", CallbackVerdict.Denied)]
+    [InlineData(null, "xyz", null, CallbackVerdict.Denied)]       // durumu doğru ama kod da hata da yok
+    [InlineData("abc", "eski", null, CallbackVerdict.Stale)]      // önceki denemenin sekmesi: beklemeyi bitirmez
+    [InlineData(null, "eski", "access_denied", CallbackVerdict.Stale)]
+    [InlineData("abc", null, null, CallbackVerdict.Stale)]
+    public void Callback_is_judged_against_the_expected_state(string? code, string? state, string? error, CallbackVerdict expected) =>
+        Assert.Equal(expected, OAuthCallback.Judge(new OAuthCallbackResult(code, state, error), "xyz"));
+
     // --- Yanıtlar ---
 
     private const string CurrentlyPlaying = """

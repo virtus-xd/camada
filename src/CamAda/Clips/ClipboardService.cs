@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CamAda.Core.Clipboard;
+using CamAda.Core.Collections;
 using CamAda.Interop;
 
 namespace CamAda.Clips;
@@ -45,7 +46,8 @@ public sealed class ClipboardService : IDisposable
     private readonly Action<Exception> _log;
     private readonly HwndSource _source;
     private readonly DispatcherTimer _settle;
-    private readonly Dictionary<string, ImageSource> _thumbnails = new();
+    // Geçmişte en çok 30 + sabitli görsel olur; sınır silinen öğelerin küçük resimlerinin birikmesini önler.
+    private readonly LruCache<string, ImageSource> _thumbnails = new(capacity: 64);
     private int _attempts;
     private int _busyAttempts;
     private string? _ownerAtUpdate;
@@ -107,7 +109,7 @@ public sealed class ClipboardService : IDisposable
             return null;
         }
 
-        if (!_thumbnails.TryGetValue(hash, out var thumbnail))
+        if (!_thumbnails.TryGet(hash, out var thumbnail))
         {
             try
             {
@@ -119,7 +121,7 @@ public sealed class ClipboardService : IDisposable
                 return null;
             }
 
-            _thumbnails[hash] = thumbnail;
+            _thumbnails.Set(hash, thumbnail);
         }
 
         return thumbnail;

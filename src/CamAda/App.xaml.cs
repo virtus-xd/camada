@@ -99,9 +99,6 @@ public partial class App : Application
             return;
         }
 
-        // Çalma durumu ada, panel ve plaktan önce hazır olsun (hepsi aynı servisi dinler).
-        _media = await NowPlayingService.CreateAsync(Dispatcher);
-
         // Önceki oturum hem ana süreci hem bekçiyi kaybettiyse görev çubuğunu önce geri getir.
         if (WatchdogDecision.ShouldRestore(_safety.Load()))
         {
@@ -123,6 +120,14 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (_, e) => OnCrash(e.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, e) => LogCrash(e.Exception);
         SessionEnding += (_, _) => ExitGracefully();
+
+        // Çalma durumu ada, panel ve plaktan önce hazır olsun (hepsi aynı servisi dinler). Görev çubuğu kurtarma, bekçi ve
+        // çökme işleyicileri kurulduktan sonra, görev çubuğu gizlenmeden önce: medya hizmeti takılırsa görev çubuğu açık kalır.
+        _media = await NowPlayingService.CreateAsync(Dispatcher);
+        if (_exiting)
+        {
+            return; // beklerken oturum kapandı
+        }
 
         if (_settings.HideWindowsTaskbar)
         {
@@ -370,7 +375,7 @@ public partial class App : Application
 
         var clips = _clips;
         _island.ShowScreenshot(thumbnail,
-            () => _ = clips.PutAsync(new ScreenshotChoice(file.Path)),
+            () => clips.PutAsync(new ScreenshotChoice(file.Path)),
             () => ScreenshotLibrary.OpenForEdit(file.Path));
     }
 
@@ -384,13 +389,14 @@ public partial class App : Application
 
         var clips = _clips;
         _island.ShowScreenshot(thumbnail,
-            () => _ = clips.PutAsync(new HistoryChoice(item.Id)),
+            () => clips.PutAsync(new HistoryChoice(item.Id)),
             () =>
             {
                 try
                 {
                     var folder = Path.Combine(Path.GetTempPath(), "CamAda");
                     Directory.CreateDirectory(folder);
+                    DeleteOldTempShots(folder);
                     var path = Path.Combine(folder, $"shot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
                     File.WriteAllBytes(path, png);
                     ScreenshotLibrary.OpenForEdit(path);
@@ -400,6 +406,26 @@ public partial class App : Application
                     LogCrash(ex);
                 }
             });
+    }
+
+    /// <summary>Düzenlemeye açılmış geçici ekran görüntülerinden bir günden eskileri siler (düzenleyici çoktan kapanmıştır).</summary>
+    private static void DeleteOldTempShots(string folder)
+    {
+        var cutoff = DateTime.UtcNow - TimeSpan.FromDays(1);
+        foreach (var file in new DirectoryInfo(folder).EnumerateFiles("shot-*.png"))
+        {
+            try
+            {
+                if (file.LastWriteTimeUtc < cutoff)
+                {
+                    file.Delete();
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // hâlâ açık olabilir; sonraki sefere
+            }
+        }
     }
 
     /// <summary>Ekran görüntüsü klasörü; Debug derlemesinde CAMADA_SCREENSHOTS ortam değişkeni önceliklidir (deneme).</summary>
@@ -446,8 +472,10 @@ public partial class App : Application
             return;
         }
 
+        // Öndeki pencere yoksa yapıştırılacak yer yok: düğmeyle açılmış gibi yalnız kopyalanır ve panel açık kalır.
         var target = PasteBack.CaptureForeground();
-        var pasteOnChoose = PasteRule.Decide(openedByHotkey: true, PasteBack.Describe(target, Environment.ProcessId))
+        var pasteOnChoose = target != 0
+                            && PasteRule.Decide(openedByHotkey: true, PasteBack.Describe(target, Environment.ProcessId))
                             != PasteOutcome.CopyOnly;
         var panel = CreateClipboardPanel(pasteOnChoose);
         var chosen = false;
@@ -483,6 +511,7 @@ public partial class App : Application
         _island?.Panels.Close();
         if (!copied)
         {
+            _island?.Flash(new FlashContent("\uE8C8", null, "Kopyalanamadı — pano meşgul"));
             return;
         }
 

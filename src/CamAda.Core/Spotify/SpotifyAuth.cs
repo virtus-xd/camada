@@ -103,9 +103,31 @@ public sealed record SpotifyToken(string AccessToken, string RefreshToken, DateT
 
 public sealed record OAuthCallbackResult(string? Code, string? State, string? Error);
 
+/// <summary>Geri dönüşün bu girişe göre anlamı.</summary>
+public enum CallbackVerdict
+{
+    /// <summary>Durum eşleşti, kod var: takas edilebilir.</summary>
+    Accept,
+
+    /// <summary>Durum eşleşti ama kullanıcı reddetti ya da yanıt eksik: giriş başarısız biter.</summary>
+    Denied,
+
+    /// <summary>Başka (eski) bir girişin geri dönüşü: yok sayılır, bekleme sürer.</summary>
+    Stale,
+}
+
 /// <summary>Tarayıcının yerel geri dönüş adresine yaptığı isteğin ilk satırı: "GET /callback?code=..&amp;state=.. HTTP/1.1".</summary>
 public static class OAuthCallback
 {
+    /// <summary>
+    /// Durum (state) bu girişinkiyle eşleşmeyen geri dönüş eskidir ya da sahtedir: beklemeyi bitirmez. Eşleşen yanıtta kod
+    /// yoksa (ret ya da eksik yanıt) giriş başarısız biter.
+    /// </summary>
+    public static CallbackVerdict Judge(OAuthCallbackResult result, string expectedState) =>
+        !string.Equals(result.State, expectedState, StringComparison.Ordinal) ? CallbackVerdict.Stale
+        : result.Error is null && !string.IsNullOrEmpty(result.Code) ? CallbackVerdict.Accept
+        : CallbackVerdict.Denied;
+
     public static OAuthCallbackResult? Parse(string requestLine)
     {
         var parts = requestLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
