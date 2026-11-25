@@ -237,6 +237,23 @@ internal static partial class Native
     private static extern int GetWindowTextLength(nint hwnd);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(nint hwnd, char[] buffer, int maxCount);
+
+    /// <summary>Pencere başlığı; yoksa boş.</summary>
+    public static string TitleOf(nint hwnd)
+    {
+        var length = GetWindowTextLength(hwnd);
+        if (length <= 0)
+        {
+            return "";
+        }
+
+        var buffer = new char[length + 1];
+        var read = GetWindowText(hwnd, buffer, buffer.Length);
+        return new string(buffer, 0, Math.Max(0, read));
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetClassName(nint hwnd, char[] buffer, int maxCount);
 
     [DllImport("user32.dll")]

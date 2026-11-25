@@ -82,4 +82,8 @@ public sealed class NoteSession(TimeProvider time, TimeSpan quietToFinish)
     }
 
     public static bool Allows(string toolName) => toolName is AdaTools.NotYaz or AdaTools.NotBitir;
+
+    /// <summary>Ada'nın not dosyasının adı ("Not 26.11.2026 01.07.txt"); Not Defteri başlığında bu ad aranır.</summary>
+    public static string FileNameFor(DateTime now) =>
+        "Not " + now.ToString("dd.MM.yyyy HH.mm", System.Globalization.CultureInfo.InvariantCulture) + ".txt";
 }

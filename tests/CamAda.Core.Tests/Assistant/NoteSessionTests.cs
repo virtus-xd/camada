@@ -94,4 +94,8 @@ public class NoteSessionTests
         Assert.False(n.Muted);
         Assert.Null(n.Append("x"));
     }
+
+    [Fact]
+    public void File_name_is_date_and_minute() =>
+        Assert.Equal("Not 26.11.2026 01.07.txt", NoteSession.FileNameFor(new DateTime(2026, 11, 26, 1, 7, 42)));
 }

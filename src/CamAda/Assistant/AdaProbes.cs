@@ -65,6 +65,18 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-not-hiz-sina"))
+        {
+            await NotePacingProbeAsync();
+            return true;
+        }
+
+        if (args.Contains("--ada-not-sina"))
+        {
+            await NoteProbeAsync();
+            return true;
+        }
+
         if (args.Contains("--ada-esmik-sina"))
         {
             await OverlapAsync();

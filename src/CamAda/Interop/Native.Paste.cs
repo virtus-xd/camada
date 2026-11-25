@@ -7,6 +7,8 @@ internal static partial class Native
 {
     private const uint INPUT_KEYBOARD = 1;
     private const uint KEYEVENTF_KEYUP = 0x0002;
+    private const uint KEYEVENTF_UNICODE = 0x0004;
+    private const ushort VK_RETURN = 0x0D;
     private const ushort VK_CONTROL = 0x11;
     private const ushort VK_V = 0x56;
     private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
@@ -119,6 +121,47 @@ internal static partial class Native
         ];
         return SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>()) == inputs.Length;
     }
+
+    /// <summary>
+    /// Metni ön pencereye tuş olarak yazar (Ada'nın notu): her karakter Unicode tuşu, satır sonu Enter; pano kullanılmaz.
+    /// Tümü gönderildiyse true.
+    /// </summary>
+    public static bool TypeText(string text)
+    {
+        var inputs = new List<INPUT>(text.Length * 2);
+        foreach (var c in text)
+        {
+            if (c == '\r')
+            {
+                continue;
+            }
+
+            if (c == '\n')
+            {
+                inputs.Add(Key(VK_RETURN, up: false));
+                inputs.Add(Key(VK_RETURN, up: true));
+                continue;
+            }
+
+            inputs.Add(Unicode(c, up: false));
+            inputs.Add(Unicode(c, up: true));
+        }
+
+        return inputs.Count == 0 || SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<INPUT>()) == inputs.Count;
+    }
+
+    /// <summary>Tuşlara sırayla basar, ters sırayla bırakır (ör. Ctrl+W).</summary>
+    public static bool SendChord(params ushort[] keys)
+    {
+        var inputs = keys.Select(k => Key(k, up: false)).Concat(keys.Reverse().Select(k => Key(k, up: true))).ToArray();
+        return SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>()) == inputs.Length;
+    }
+
+    private static INPUT Unicode(char c, bool up) => new()
+    {
+        Type = INPUT_KEYBOARD,
+        Union = new InputUnion { Keyboard = new KEYBDINPUT { ScanCode = c, Flags = KEYEVENTF_UNICODE | (up ? KEYEVENTF_KEYUP : 0) } },
+    };
 
     private static INPUT Key(ushort virtualKey, bool up) => new()
     {
