@@ -10,7 +10,7 @@ namespace CamAda.Assistant;
 /// Yalnız Debug: Ada'nın parçalarını çalışan CamAda'ya dokunmadan tek tek deneyen komut satırı girişleri. Her biri
 /// sonucunu <c>%LOCALAPPDATA%\CamAda\ada-deneme.log</c>'a yazıp çıkar.
 /// </summary>
-internal static class AdaProbes
+internal static partial class AdaProbes
 {
     private static readonly string LocalDir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CamAda");
@@ -24,6 +24,12 @@ internal static class AdaProbes
         if (args.Contains("--ada-ses-sina"))
         {
             await SoundAsync();
+            return true;
+        }
+
+        if (args.Contains("--ada-islev-sina"))
+        {
+            await ToolsAsync();
             return true;
         }
 

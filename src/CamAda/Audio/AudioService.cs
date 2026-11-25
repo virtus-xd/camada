@@ -170,6 +170,25 @@ public sealed class AudioService : IDisposable
     /// <summary>Cihazı üç rolün varsayılanı yapar; Windows'un bildirimi gelince <see cref="DevicesChanged"/> yayımlanır.</summary>
     public void SetDefaultOutput(string deviceId) => Write(() => PolicyConfig.SetDefaultEndpoint(deviceId));
 
+    /// <summary>Etkin kayıt cihazları; konsol rolündeki varsayılan işaretli.</summary>
+    public IReadOnlyList<AudioOutput> Inputs() => Read<IReadOnlyList<AudioOutput>>(() =>
+    {
+        var defaultId = _micConsole?.ID;
+        var inputs = new List<AudioOutput>();
+        foreach (var device in _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
+        {
+            using (device)
+            {
+                inputs.Add(new AudioOutput(device.ID, device.FriendlyName, device.ID == defaultId));
+            }
+        }
+
+        return inputs;
+    }, []);
+
+    /// <summary>Kayıt cihazını üç rolün varsayılanı yapar (Ada'nın "giriş cihazı seç" işlevi).</summary>
+    public void SetDefaultInput(string deviceId) => Write(() => PolicyConfig.SetDefaultEndpoint(deviceId));
+
     public void Dispose()
     {
         if (_disposed)

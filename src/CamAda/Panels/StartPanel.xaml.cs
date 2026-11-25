@@ -236,27 +236,7 @@ public sealed partial class StartPanel : UserControl
         revert.Start();
     }
 
-    /// <summary>Uygulama/dosya yolları ManagedShell ile; Store uygulamaları, Ayarlar sayfaları ve web adresleri kabukla açılır.</summary>
-    private static void Open(SearchItem item)
-    {
-        try
-        {
-            var isPath = item.Kind is SearchKind.App or SearchKind.File
-                && !item.Target.StartsWith("shell:", StringComparison.OrdinalIgnoreCase);
-            if (isPath)
-            {
-                ShellHelper.StartProcess(item.Target);
-            }
-            else
-            {
-                Process.Start(new ProcessStartInfo(item.Target) { UseShellExecute = true })?.Dispose();
-            }
-        }
-        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or System.IO.FileNotFoundException)
-        {
-            Debug.WriteLine($"Açılamadı: {item.Target} ({ex.Message})");
-        }
-    }
+    private static void Open(SearchItem item) => ItemLauncher.Open(item);
 
     private void ClosePanel() => (Window.GetWindow(this) as PanelWindow)?.Dismiss();
 

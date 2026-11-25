@@ -41,4 +41,13 @@ public class NameMatchTests
 
     [Fact]
     public void Not_found() => Assert.IsType<NameMatchResult.NotFound>(NameMatch.Best("Photoshop", Devices));
+
+    [Fact]
+    public void All_words_match_across_separators() =>
+        Assert.Equal(new NameMatchResult.Found(0),
+            NameMatch.Best("sonar media", ["SteelSeries Sonar - Media", "SteelSeries Sonar - Microphone"]));
+
+    [Fact]
+    public void All_words_stage_needs_every_word() =>
+        Assert.IsType<NameMatchResult.NotFound>(NameMatch.Best("sonar kulaklık", ["SteelSeries Sonar - Media"]));
 }

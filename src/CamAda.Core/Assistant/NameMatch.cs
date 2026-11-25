@@ -22,7 +22,7 @@ public abstract record NameMatchResult
 
 /// <summary>
 /// Söylenen adı (uygulama, cihaz, kişi) adaylarla eşler. Aşamalar sırayla: tam eşleşme, ad şununla başlıyor, bir sözcüğü
-/// şununla başlıyor, içeriyor. Karşılaştırma tr-TR'de büyük/küçük harfe duyarsız (ı ≠ i). İlk sonuç veren aşamada farklı
+/// şununla başlıyor, içeriyor, söylenen her sözcük bir sözcüğün başında ("sonar media" → "Sonar - Media"). Karşılaştırma tr-TR'de büyük/küçük harfe duyarsız (ı ≠ i). İlk sonuç veren aşamada farklı
 /// adlı birden çok aday varsa belirsizdir.
 /// </summary>
 public static class NameMatch
@@ -38,12 +38,14 @@ public static class NameMatch
         }
 
         var lowered = candidates.Select(c => c.Trim().ToLower(Turkish)).ToList();
+        var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         Func<string, bool>[] stages =
         [
             c => c == query,
             c => c.StartsWith(query, StringComparison.Ordinal),
             c => WordStartIndex(c, query) >= 0,
             c => c.Contains(query, StringComparison.Ordinal),
+            c => words.Length > 1 && words.All(w => WordStartIndex(c, w) >= 0),
         ];
 
         foreach (var stage in stages)
