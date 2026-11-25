@@ -42,7 +42,11 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
 
     private readonly UserConfirmGate _shutdownGate = new(time, ConfirmWindow);
     private readonly UserConfirmGate _rebootGate = new(time, ConfirmWindow);
-    private string? _noteFile;
+    private readonly SemaphoreSlim _noteWrites = new(1, 1); // parçalar sırayla yazılır (üst üste gelen not_yaz)
+    private NoteTarget? _note;
+
+    /// <summary>Notta geçen ya da not sınırında gelen komut yürütülmez; model söyleneni nota yazmalı.</summary>
+    public const string NoteRefusal = "hata: not alınıyor; bu komut yürütülmez, söylenen olduğu gibi not_yaz ile nota yazılmalı";
 
     /// <summary>Not kipi (tasarım "Ada ile not alma"): AdaAssistant susturma ve 4 sn bitiş için okur.</summary>
     public NoteSession Notes { get; } = new(time, NoteSession.Quiet);
@@ -60,24 +64,11 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         _shutdownGate.Reset();
         _rebootGate.Reset();
         Notes.Reset();
-        _noteFile = null;
+        _note = null;
     }
 
-    /// <summary>Not sürüyorsa bitirir ve Ada'nın not dosyasını kaydeder (yalnız başlığı o dosya olan ön pencereye Ctrl+S).</summary>
-    public async Task<bool> FinishNoteAsync()
-    {
-        if (!Notes.Finish())
-        {
-            return false;
-        }
-
-        if (_noteFile is { } file)
-        {
-            await NotepadWriter.TrySaveAsync(file);
-        }
-
-        return true;
-    }
+    /// <summary>Not sürüyorsa bitirir (dosya her parçada zaten yazıldı); bittiyse true.</summary>
+    public bool FinishNote() => Notes.Finish();
 
     public async Task<string> RunAsync(ToolCall call)
     {
@@ -104,7 +95,7 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
     }
 
     private Task<string> DispatchAsync(string name, JsonObject args) =>
-        Notes.Active && !NoteSession.Allows(name) ? Done("hata: not alınıyor; bu komut yürütülmez, söylenen olduğu gibi not_yaz ile nota yazılmalı") : RunToolAsync(name, args);
+        Notes.Refuses(name) ? Done(NoteRefusal) : RunToolAsync(name, args);
 
     private Task<string> RunToolAsync(string name, JsonObject args) => name switch
     {
@@ -573,76 +564,99 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
 
     // --- Not ---
 
-    /// <summary>Ada'nın not dosyasını Not Defteri'nde açar; not aynı cümlede söylendiyse yazıp hemen bitirir.</summary>
+    /// <summary>
+    /// Ada'nın not dosyasını Not Defteri'nde açar; not aynı cümlede söylendiyse yazıp hemen bitirir. Açılış sürerken gelen komutlar
+    /// da yürütülmez; oturum bu arada değiştiyse (kapatılıp yeniden açıldı) not kipi başlamaz.
+    /// </summary>
     private async Task<string> TakeNoteAsync(string first)
     {
-        if (await NotepadWriter.OpenNewAsync(NotepadWriter.NotesFolder, DateTime.Now) is not { } file)
+        var generation = Notes.Generation;
+        Notes.BeginOpening();
+        var target = await NotepadWriter.OpenNewAsync(NotepadWriter.NotesFolder, DateTime.Now);
+        if (target is null)
         {
-            return "hata: Not Defteri açılamadı";
+            Notes.CancelOpening();
+            return first.Length > 0 ? ToClipboard(first, "not dosyası oluşturulamadı") : "hata: not dosyası oluşturulamadı";
         }
 
-        _noteFile = file;
-        Notes.Start();
-        if (first.Length == 0)
+        if (!Notes.TryStart(generation))
         {
-            return "tamam: not defteri açık; kullanıcıya yalnız 'Dinliyorum' de ve bekle";
+            return "hata: oturum kapandı";
         }
 
-        var written = await WriteNoteAsync(first);
-        if (written.StartsWith("hata", StringComparison.Ordinal))
+        _note = target;
+        if (first.Length > 0)
         {
-            return written;
+            var written = await WriteNoteAsync(first);
+            FinishNote();
+            return written.StartsWith("hata", StringComparison.Ordinal) ? written
+                : target.Document is null ? $"tamam: not Belgeler\\Ada Notları\\{target.FileName} dosyasına yazıldı (Not Defteri görünmedi); bunu kısaca söyle"
+                : "tamam: not yazıldı; yalnız 'Not aldım' de";
         }
 
-        await FinishNoteAsync();
-        return "tamam: not yazıldı; yalnız 'Not aldım' de";
+        return target.Document is null
+            ? $"tamam: Not Defteri görünmedi ama not Belgeler\\Ada Notları\\{target.FileName} dosyasına yazılacak; bunu kısaca söyle ve bekle"
+            : "tamam: not defteri açık; kullanıcıya yalnız 'Dinliyorum' de ve bekle";
     }
 
+    /// <summary>Parçayı nota ekler ve notun tamamını dosyaya ve Ada'nın sekmesine yazar (aynı anda tek yazma).</summary>
     private async Task<string> WriteNoteAsync(string text)
     {
-        var typed = Notes.Append(text);
-        if (typed is null)
-        {
-            return "hata: önce not_al";
-        }
-
-        if (typed.Length == 0)
-        {
-            return "tamam: yazıldı; hiçbir şey söyleme";
-        }
-
-        if (_noteFile is not { } file || !await NotepadWriter.TryTypeAsync(file, typed))
-        {
-            return NoteToClipboard();
-        }
-
-        if (!Notes.Active)
-        {
-            await NotepadWriter.TrySaveAsync(file); // not bittikten sonra gelen geç parça da kaydedilsin
-        }
-
-        return "tamam: yazıldı; hiçbir şey söyleme";
-    }
-
-    /// <summary>Not Defteri önde değil: metin hiçbir pencereye yazılmaz, notun tamamı panoya konur ve not biter.</summary>
-    private string NoteToClipboard()
-    {
-        Notes.Finish();
+        await _noteWrites.WaitAsync();
         try
         {
-            System.Windows.Clipboard.SetText(Notes.Text);
-            return "hata: Not Defteri önde değildi; notun tamamı panoya kopyalandı";
+            var line = Notes.Append(text);
+            if (line is null || _note is not { } target)
+            {
+                return "hata: önce not_al";
+            }
+
+            if (line.Length == 0)
+            {
+                return "tamam: yazıldı; hiçbir şey söyleme";
+            }
+
+            Notes.WriteStarted();
+            try
+            {
+                return await NotepadWriter.WriteAsync(target, Notes.Text) == NoteWrite.Failed
+                    ? ToClipboard(Notes.Text, "not dosyaya yazılamadı", finish: true)
+                    : "tamam: yazıldı; hiçbir şey söyleme";
+            }
+            finally
+            {
+                Notes.WriteFinished();
+            }
+        }
+        finally
+        {
+            _noteWrites.Release();
+        }
+    }
+
+    /// <summary>Not yazılamadı: metin hiçbir pencereye gitmez, panoya konur (Windows satır sonlarıyla).</summary>
+    private string ToClipboard(string text, string reason, bool finish = false)
+    {
+        if (finish)
+        {
+            Notes.Finish();
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetText(text.ReplaceLineEndings("\r\n"));
+            return $"hata: {reason}; not panoya kopyalandı";
         }
         catch (System.Runtime.InteropServices.ExternalException)
         {
-            return "hata: Not Defteri önde değildi; not yazılamadı";
+            return $"hata: {reason}; not panoya da kopyalanamadı";
         }
     }
 
-    private async Task<string> EndNoteAsync()
+    private Task<string> EndNoteAsync()
     {
-        await FinishNoteAsync();
-        return "tamam: not bitti; yalnız 'Not aldım' de";
+        FinishNote();
+        return Done("tamam: not bitti; yalnız 'Not aldım' de");
     }
 
     // --- Yardımcılar ---

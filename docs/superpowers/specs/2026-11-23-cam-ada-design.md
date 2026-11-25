@@ -172,6 +172,9 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
   - Bağlantı: saniyede bir ping, 3 sn'de pong gelmezse "Bağlantı koptu". 10 dk sınırında Ada "Uzun sürdü, yeniden çağırabilirsin" der ve kapanır.
   - İşlevler (ses, cihaz, parlaklık, telsizler, medya, Spotify çalma, uygulama aç/kapat, site, Google, WhatsApp bağlantısı, kilit/uyku, iki adımlı kapatma, hafıza) mevcut servislerin üstüne bağlanır; Spotify çalma için `user-modify-playback-state` izni eklendi ("İzni yenile", yalnız Ada açıkken istenir).
   - Hafıza: en çok 50 madde, DPAPI ile `ada-hafiza.bin`; kullanım tahmini `ada-kullanim.json`.
+  - Not alma (Plan 6): "yeni not defteri aç ve not al" → `Belgeler\Ada Notları` altında Ada'nın kendi dosyası Not Defteri'nde
+    açılır; söylenenler düzeltilmiş metin olarak UI Automation ile o sekmeye ve dosyaya yazılır (tuş gönderilmez); not sürerken
+    başka komut yürümez, Ada konuşmaz; 4 sn sessizlik ya da "bitti" ile "Not aldım".
 
 ## 9. Riskler ve ilk deneme (spike)
 

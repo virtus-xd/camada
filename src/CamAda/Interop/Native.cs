@@ -239,6 +239,23 @@ internal static partial class Native
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowText(nint hwnd, char[] buffer, int maxCount);
 
+    /// <summary>Sürecin görünür üst düzey pencereleri.</summary>
+    public static IReadOnlyList<nint> TopLevelWindowsOf(int processId)
+    {
+        var windows = new List<nint>();
+        EnumWindows((hwnd, _) =>
+        {
+            GetWindowThreadProcessId(hwnd, out var pid);
+            if (pid == processId && IsWindowVisible(hwnd))
+            {
+                windows.Add(hwnd);
+            }
+
+            return true;
+        }, 0);
+        return windows;
+    }
+
     /// <summary>Pencere başlığı; yoksa boş.</summary>
     public static string TitleOf(nint hwnd)
     {

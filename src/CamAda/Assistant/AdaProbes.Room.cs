@@ -144,42 +144,5 @@ internal static partial class AdaProbes
             Directory.Delete(folder);
         }
     }
-
-    /// <summary>
-    /// Denemenin kendi not sekmesini kapatır: başlığında dosya adı olan sekme öndeyse kaydeder (Ctrl+S), kaydedildiyse Ctrl+W.
-    /// Sekme kapanmadıysa dosya silinmez (yoksa sekme silinmiş bir dosyaya bağlı kalır).
-    /// </summary>
-    private static async Task CloseOwnNoteAsync(string path)
-    {
-        var name = Path.GetFileName(path);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        if (!Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal))
-        {
-            Log($"not {name}: kendi sekmesi önde değil, dokunulmadı");
-            return;
-        }
-
-        if (Native.TitleOf(Native.GetForegroundWindow()).StartsWith('*'))
-        {
-            await NotepadWriter.TrySaveAsync(name);
-            await Task.Delay(800);
-        }
-
-        var title = Native.TitleOf(Native.GetForegroundWindow());
-        if (title.Contains(name, StringComparison.Ordinal) && !title.StartsWith('*'))
-        {
-            Native.SendChord(VkControl, 'W');
-            await Task.Delay(800);
-        }
-
-        if (Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal))
-        {
-            Log($"not {name}: sekme kapanmadı, dosya bırakıldı");
-            return;
-        }
-
-        File.Delete(path);
-        Log($"not {name}: sekme kapandı, dosya silindi");
-    }
 }
 #endif

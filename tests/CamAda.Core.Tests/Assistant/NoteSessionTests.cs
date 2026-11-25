@@ -139,4 +139,62 @@ public class NoteSessionTests
         Assert.Equal("Süt al.\nAnneni ara.", n.Text);
         Assert.Equal("\nSüt al.", n.Append("Süt al.")); // art arda değilse yazılır
     }
+
+    [Fact]
+    public void Does_not_finish_while_writing_and_counts_from_write_end()
+    {
+        var n = Make();
+        n.Start();
+        n.Append("Uzun bir parça.");
+        n.WriteStarted(); // parça karakter karakter yazılıyor (~65 karakter/sn)
+        Wait(10);
+        Assert.False(n.ShouldFinish());
+
+        n.WriteFinished();
+        Wait(3.9);
+        Assert.False(n.ShouldFinish());
+        Wait(0.2);
+        Assert.True(n.ShouldFinish());
+    }
+
+    [Fact]
+    public void Refuses_other_tools_while_opening_active_and_shortly_after_finish()
+    {
+        var n = Make();
+        n.BeginOpening(); // Not Defteri açılırken (≤5 sn) gelen komut da yürütülmez
+        Assert.True(n.Refuses(AdaTools.SesDegistir));
+
+        Assert.True(n.TryStart(n.Generation));
+        Assert.True(n.Refuses(AdaTools.SesDegistir));
+        Assert.False(n.Refuses(AdaTools.NotYaz));
+
+        n.Finish();
+        Wait(2.9); // aynı sözden geç gelen komut
+        Assert.True(n.Refuses(AdaTools.SesDegistir));
+        Assert.False(n.Refuses(AdaTools.NotYaz)); // geç parça yazılır
+        Wait(0.2);
+        Assert.False(n.Refuses(AdaTools.SesDegistir));
+    }
+
+    [Fact]
+    public void Batch_with_a_note_tool_refuses_other_tools()
+    {
+        Assert.True(NoteSession.RefusedInBatch([AdaTools.NotAl, AdaTools.SesDegistir], AdaTools.SesDegistir));
+        Assert.True(NoteSession.RefusedInBatch([AdaTools.NotYaz, AdaTools.NotBitir, AdaTools.SesDegistir], AdaTools.SesDegistir));
+        Assert.False(NoteSession.RefusedInBatch([AdaTools.NotAl, AdaTools.NotYaz], AdaTools.NotYaz));
+        Assert.False(NoteSession.RefusedInBatch([AdaTools.SesDegistir, AdaTools.Hatirla], AdaTools.SesDegistir));
+    }
+
+    [Fact]
+    public void Stale_start_after_session_reset_is_ignored()
+    {
+        var n = Make();
+        var generation = n.Generation;
+        n.BeginOpening();
+        n.Reset(); // oturum, Not Defteri açılırken kapandı; yeni oturum başladı
+
+        Assert.False(n.TryStart(generation));
+        Assert.False(n.Active);
+        Assert.False(n.Refuses(AdaTools.SesDegistir));
+    }
 }

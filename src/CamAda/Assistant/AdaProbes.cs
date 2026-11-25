@@ -67,19 +67,20 @@ internal static partial class AdaProbes
 
         if (args.FirstOrDefault(a => a.StartsWith("--ada-not-temizle=", StringComparison.Ordinal)) is { } leftover)
         {
-            var path = Path.Combine(NotepadWriter.NotesFolder, leftover["--ada-not-temizle=".Length..]);
+            var name = leftover["--ada-not-temizle=".Length..];
+            if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^Not \d\d\.\d\d\.\d{4} \d\d\.\d\d( \(\d+\))?\.txt$"))
+            {
+                Log("ada-not-temizle: yalnız Ada not dosyası adı (klasörsüz)");
+                return true;
+            }
+
+            var path = Path.Combine(NotepadWriter.NotesFolder, name);
             await CloseOwnNoteAsync(path);
             if (Directory.Exists(NotepadWriter.NotesFolder) && !Directory.EnumerateFileSystemEntries(NotepadWriter.NotesFolder).Any())
             {
                 Directory.Delete(NotepadWriter.NotesFolder);
             }
 
-            return true;
-        }
-
-        if (args.Contains("--ada-not-hiz-sina"))
-        {
-            await NotePacingProbeAsync();
             return true;
         }
 

@@ -1,35 +1,60 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Windows.Automation;
 using CamAda.Core.Assistant;
 using CamAda.Interop;
 
 namespace CamAda.Assistant;
 
+/// <summary>Ada'nın açık not dosyası ve (bulunabildiyse) Not Defteri'ndeki sekmesinin belge öğesi.</summary>
+internal sealed class NoteTarget(string path, AutomationElement? document)
+{
+    public string Path { get; } = path;
+
+    public string FileName => System.IO.Path.GetFileName(Path);
+
+    /// <summary>Ada'nın sekmesinin belge öğesi; Not Defteri 5 sn içinde göstermediyse null (not yine dosyaya yazılır).</summary>
+    public AutomationElement? Document { get; } = document;
+}
+
+internal enum NoteWrite
+{
+    /// <summary>Dosyaya yazıldı ve Ada'nın sekmesinde görünüyor.</summary>
+    Shown,
+
+    /// <summary>Dosyaya yazıldı; sekme yok (kapatıldı ya da hiç görünmedi).</summary>
+    FileOnly,
+
+    /// <summary>Dosyaya yazılamadı.</summary>
+    Failed,
+}
+
 /// <summary>
-/// Ada'nın notu için Not Defteri (tasarım "Ada ile not alma"). Not Defteri açılınca önceki oturumun sekmelerini geri yükler ve
-/// hangi sekmenin önde olacağı belli değildir; bu yüzden Ada her not için kendi dosyasını açar ve tuşları (yazı ve Ctrl+S) yalnız
-/// başlığında o dosyanın adı olan, yönetici olmayan ön Not Defteri penceresine gönderir. Pano kullanılmaz.
+/// Ada'nın notu (tasarım "Ada ile not alma"). Not Defteri açılınca önceki oturumun sekmelerini geri yükler ve hangi sekmenin önde
+/// olacağı belli değildir; Ada bu yüzden her not için kendi dosyasını açar. Tuş göndermez: açılışta, başlığı Ada'nın dosyası olan
+/// pencerenin o anki (boş) belge öğesi yakalanır ve her parçada notun tamamı UI Automation ile o öğeye ve dosyaya doğrudan yazılır.
+/// Öğe sekmeye bağlıdır (26.11 denemesi: başka sekme etkinken yazılan metin yine Ada'nın sekmesine gitti); Not Defteri'nin önde
+/// olması gerekmez, pano kullanılmaz.
 /// </summary>
 internal static class NotepadWriter
 {
-    private const ushort VkControl = 0x11;
     private static readonly TimeSpan OpenTimeout = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan ForegroundNudgeAfter = TimeSpan.FromSeconds(1.5);
-    private static readonly TimeSpan ModifierWait = TimeSpan.FromSeconds(1);
-    private static readonly TimeSpan CharacterPause = TimeSpan.FromMilliseconds(5); // zamanlayıcıyla ~15 ms
 
     public static string NotesFolder { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Ada Notları");
+        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Ada Notları");
 
-    /// <summary>Son açılışta öne gelen Not Defteri penceresi (deneme geri okuma ve temizlik için).</summary>
+    /// <summary>Son açılışta Ada'nın sekmesini gösteren Not Defteri penceresi (deneme geri okuma ve temizlik için).</summary>
     public static nint LastOpened { get; private set; }
 
     /// <summary>
-    /// Klasörde boş not dosyası oluşturur ("Not 26.11.2026 01.07.txt", çakışırsa " (2)"…) ve Not Defteri'nde açar. En çok
-    /// 5 sn içinde başlığında dosya adı olan Not Defteri penceresi öne gelince dosya adını döner; gelmezse null.
+    /// Klasörde boş not dosyası oluşturur ("Not 26.11.2026 01.07.txt", çakışırsa " (2)"…) ve Not Defteri'nde açar. En çok 5 sn
+    /// içinde etkin sekmesi bu dosya olan Not Defteri penceresinin boş belge öğesini yakalar. Dosya oluşturulamazsa null;
+    /// Not Defteri göstermezse belge öğesi olmadan döner (not dosyaya yazılır).
     /// </summary>
-    public static async Task<string?> OpenNewAsync(string folder, DateTime now)
+    public static async Task<NoteTarget?> OpenNewAsync(string folder, DateTime now)
     {
         string path;
         try
@@ -39,74 +64,65 @@ internal static class NotepadWriter
             await using (File.Create(path))
             {
             }
-
-            Process.Start(new ProcessStartInfo("notepad.exe", $"\"{path}\"") { UseShellExecute = true })?.Dispose();
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception or InvalidOperationException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return null;
         }
 
-        var name = Path.GetFileName(path);
+        try
+        {
+            Process.Start(new ProcessStartInfo("notepad.exe", $"\"{path}\"") { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            return new NoteTarget(path, null);
+        }
+
+        var name = System.IO.Path.GetFileName(path);
         var started = Stopwatch.StartNew();
-        var nudged = false;
         while (started.Elapsed < OpenTimeout)
         {
             await Task.Delay(100);
-            var front = Native.GetForegroundWindow();
-            if (IsOurs(front, name))
+            if (FindWindowTitled(name) is var window and not 0 && await Task.Run(() => EmptyDocumentOf(window)) is { } document
+                && Native.TitleOf(window).Contains(name, StringComparison.Ordinal))
             {
-                LastOpened = front;
-                return name;
-            }
-
-            if (!nudged && started.Elapsed >= ForegroundNudgeAfter && FindWindowTitled(name) is var window and not 0)
-            {
-                // Windows arka plandaki sürecin pencere öne almasını engelleyebilir: anlamsız bir tuş bu hakkı verir.
-                nudged = true;
-                Native.SendMaskKey();
-                Native.SetForegroundWindow(window);
+                LastOpened = window;
+                return new NoteTarget(path, document);
             }
         }
 
-        return null;
+        return new NoteTarget(path, null);
     }
 
-    /// <summary>
-    /// Ön pencere Ada'nın not dosyasıysa metni yazar; değilse hiçbir pencereye tuş gitmez ve false. Not Defteri art arda gelen
-    /// Unicode tuşlarını bozuyor (26.11 ölçümü: 2+ karakterlik parçalar bozuk, tek karakter + ~15 ms doğru): karakter karakter
-    /// yazılır ve her karakterden önce pencerenin hâlâ önde olduğuna bakılır; araya başka pencere girerse yazma durur.
-    /// </summary>
-    public static async Task<bool> TryTypeAsync(string fileName, string text)
+    /// <summary>Notun tamamını dosyaya yazar ve Ada'nın sekmesinde gösterir (satır sonları Windows biçiminde).</summary>
+    public static async Task<NoteWrite> WriteAsync(NoteTarget target, string fullText)
     {
-        if (await ReadyAsync(fileName) is not { } front)
+        var text = fullText.ReplaceLineEndings("\r\n");
+        try
         {
-            return false;
+            await File.WriteAllTextAsync(target.Path, text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return NoteWrite.Failed;
         }
 
-        for (var i = 0; i < text.Length; i++)
+        if (target.Document is not { } document)
         {
-            if (Native.GetForegroundWindow() != front)
-            {
-                return false;
-            }
-
-            var length = char.IsHighSurrogate(text[i]) && i + 1 < text.Length ? 2 : 1;
-            if (!Native.TypeText(text.Substring(i, length)))
-            {
-                return false;
-            }
-
-            i += length - 1;
-            await Task.Delay(CharacterPause);
+            return NoteWrite.FileOnly;
         }
 
-        return true;
+        try
+        {
+            await Task.Run(() => ((ValuePattern)document.GetCurrentPattern(ValuePattern.Pattern)).SetValue(text));
+            return NoteWrite.Shown;
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or COMException)
+        {
+            return NoteWrite.FileOnly; // sekme kapatıldı: not dosyada
+        }
     }
-
-    /// <summary>Ön pencere Ada'nın not dosyasıysa Ctrl+S ile kaydeder.</summary>
-    public static async Task<bool> TrySaveAsync(string fileName) =>
-        await ReadyAsync(fileName) is { } front && Native.GetForegroundWindow() == front && Native.SendChord(VkControl, 'S');
 
     public static bool IsNotepad(nint hwnd)
     {
@@ -126,53 +142,54 @@ internal static class NotepadWriter
         }
     }
 
-    private static bool IsOurs(nint hwnd, string fileName) =>
-        IsNotepad(hwnd) && Native.TitleOf(hwnd).Contains(fileName, StringComparison.Ordinal);
-
-    /// <summary>
-    /// Ön pencere başlığında dosya adı olan, yönetici olmayan Not Defteri ise ve değiştirici tuşlar (ör. hâlâ basılı Win+Alt+A)
-    /// en çok 1 sn içinde bırakılırsa o pencere; değilse null.
-    /// </summary>
-    private static async Task<nint?> ReadyAsync(string fileName)
+    /// <summary>Pencerenin etkin belge öğesi, yalnız boşsa (yeni not dosyası boştur: başka bir sekme yakalanmasın).</summary>
+    private static AutomationElement? EmptyDocumentOf(nint window)
     {
-        var front = Native.GetForegroundWindow();
-        if (!IsOurs(front, fileName) || Native.IsElevated(Native.ProcessIdOf(front)))
+        try
+        {
+            var document = AutomationElement.FromHandle(window).FindFirst(TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Document));
+            return document?.GetCurrentPattern(TextPattern.Pattern) is TextPattern text && text.DocumentRange.GetText(1).Length == 0
+                && document.TryGetCurrentPattern(ValuePattern.Pattern, out _)
+                ? document
+                : null;
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or ArgumentException or COMException)
         {
             return null;
         }
-
-        var waited = Stopwatch.StartNew();
-        while (Native.AnyModifierDown())
-        {
-            if (waited.Elapsed >= ModifierWait)
-            {
-                return null;
-            }
-
-            await Task.Delay(50);
-        }
-
-        return IsOurs(Native.GetForegroundWindow(), fileName) ? front : null;
     }
 
     private static string UniquePath(string folder, string fileName)
     {
-        var path = Path.Combine(folder, fileName);
-        var stem = Path.GetFileNameWithoutExtension(fileName);
+        var path = System.IO.Path.Combine(folder, fileName);
+        var stem = System.IO.Path.GetFileNameWithoutExtension(fileName);
         for (var i = 2; File.Exists(path); i++)
         {
-            path = Path.Combine(folder, $"{stem} ({i}).txt");
+            path = System.IO.Path.Combine(folder, $"{stem} ({i}).txt");
         }
 
         return path;
     }
 
+    /// <summary>Etkin sekmesi bu dosya olan Not Defteri penceresi (başlıkta dosya adı); yoksa 0.</summary>
     private static nint FindWindowTitled(string fileName)
     {
         var processes = Process.GetProcessesByName("Notepad");
         try
         {
-            return processes.Select(p => p.MainWindowHandle).FirstOrDefault(h => h != 0 && Native.TitleOf(h).Contains(fileName, StringComparison.Ordinal));
+            foreach (var process in processes)
+            {
+                foreach (var window in Native.TopLevelWindowsOf(process.Id))
+                {
+                    if (Native.TitleOf(window).Contains(fileName, StringComparison.Ordinal))
+                    {
+                        return window;
+                    }
+                }
+            }
+
+            return 0;
         }
         finally
         {

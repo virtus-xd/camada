@@ -1,8 +1,6 @@
 #if DEBUG
 using System.IO;
-using System.Windows;
 using System.Windows.Automation;
-using System.Windows.Controls;
 using CamAda.Interop;
 
 namespace CamAda.Assistant;
@@ -12,81 +10,57 @@ internal static partial class AdaProbes
     private const ushort VkControl = 0x11;
 
     /// <summary>
-    /// Not yazma, kullanıcının notlarına dokunmadan:
-    /// (1) Denemenin kendi metin kutusuna Türkçe harfler ve satır sonuyla tuş gönderir.
-    /// (2) Not Defteri önde değilken yazmanın reddedildiğine bakar.
-    /// (3) Not Defteri'nin oturum dosyalarını yedekler, geçici klasörde kendi not dosyasını açar, başka adla yazmanın
-    ///     reddedildiğine bakar, yazar, UI Automation ile geri okur, kaydeder, diskteki içeriği karşılaştırır. Yalnız kendi
-    ///     sekmesini Ctrl+W ile kapatır ve dosyayı siler.
-    /// Ctrl+A, Delete ve ESC göndermez; tıklamaz.
+    /// Not yazma, kullanıcının notlarına dokunmadan. Not Defteri'nin oturum dosyaları önce yedeklenir. Geçici klasörde kendi
+    /// notunu (A) açar ve iki parça yazar; ekrandaki ve diskteki metin karşılaştırılır. Sonra aynı pencerede ikinci bir kendi
+    /// notu (B) etkinken A'ya üçüncü parçayı yazar: B'ye hiçbir şey gitmemeli, A'nın dosyası üç satır olmalı. Kendi sekmelerini
+    /// yalnız başlık denetimiyle Ctrl+W ile kapatır ve dosyaları siler. Yazma tuşla yapılmaz.
     /// </summary>
     private static async Task NoteProbeAsync()
     {
-        // 1) Kendi penceremiz.
-        var box = new TextBox { AcceptsReturn = true, FontSize = 16 };
-        var window = new Window { Title = "CamAda not denemesi", Width = 420, Height = 160, Content = box, Topmost = true };
-        window.Show();
-        window.Activate();
-        box.Focus();
-        await Task.Delay(400);
-        const string expected = "Çay ğüşıöç İ\nikinci satır";
-        if (Native.GetForegroundWindow() == new System.Windows.Interop.WindowInteropHelper(window).Handle)
-        {
-            var sent = Native.TypeText(expected);
-            await Task.Delay(600);
-            var got = box.Text.Replace("\r\n", "\n");
-            Log(got == expected ? $"yazma: tamam (gönderildi={sent})" : $"yazma: FARK: beklenen \"{expected}\", gelen \"{got}\"");
-        }
-        else
-        {
-            // Tuşlar yalnız kendi penceremize gider: öne gelmediysek bu adım atlanır (başka pencereye yazılmaz).
-            Log("yazma: deneme penceresi öne gelmedi, bu adım atlandı");
-        }
-
-        // 2) Önde Not Defteri yokken yazma reddedilmeli.
-        var before = box.Text;
-        var refused = !await NotepadWriter.TryTypeAsync("Not 01.01.2000 00.00.txt", "x");
-        await Task.Delay(300);
-        Log($"Not Defteri değilken yazma reddedildi={refused}, kutu değişmedi={box.Text == before}");
-        window.Close();
-        await Task.Delay(1500); // deneme artık önde değil: Ada'nın arka planda açtığı duruma yakın
-
-        // 3) Gerçek Not Defteri, kendi geçici dosyamız.
-        var backup = BackupNotepadState();
-        Log($"Not Defteri oturum yedeği: {backup ?? "Not Defteri durumu yok"}; açık sekme {NotepadTabCount()}");
+        Log($"ada-not-sina: yedek {BackupNotepadState() ?? "Not Defteri durumu yok"}; açık sekme {NotepadTabCount()}");
         var folder = Path.Combine(Path.GetTempPath(), "camada-not-deneme-" + Guid.NewGuid().ToString("N")[..8]);
         try
         {
-            var name = await NotepadWriter.OpenNewAsync(folder, DateTime.Now);
-            var hwnd = NotepadWriter.LastOpened;
-            Log($"açıldı={name is not null}, ad={name}, ön pencere başlığı=\"{Native.TitleOf(Native.GetForegroundWindow())}\"");
-            if (name is null)
+            var a = await NotepadWriter.OpenNewAsync(folder, DateTime.Now);
+            Log($"A açıldı={a is not null}, belge yakalandı={a?.Document is not null}, ad={a?.FileName}");
+            if (a?.Document is null)
             {
                 return;
             }
 
-            Log($"başka adla yazma reddedildi={!await NotepadWriter.TryTypeAsync("baska.txt", "x")}");
-            const string note = "CamAda deneme ğüş\nsatır 2";
-            var typed = await NotepadWriter.TryTypeAsync(name, note);
-            await Task.Delay(800);
-            var read = ReadDocument(hwnd)?.Replace("\r\n", "\n").Replace("\r", "\n");
-            Log($"yazıldı={typed}; geri okunan {(read == note ? "AYNI" : $"FARKLI: \"{read?.Replace("\n", "\\n")}\"")}");
+            var one = await NotepadWriter.WriteAsync(a, "Süt al.");
+            var two = await NotepadWriter.WriteAsync(a, "Süt al.\nAnneni ara: ğüşıöç İ");
+            await Task.Delay(400);
+            Log($"A iki parça: {one}/{two}; ekranda \"{ReadDocument(NotepadWriter.LastOpened)?.ReplaceLineEndings("\\n")}\"; " +
+                $"diskte \"{File.ReadAllText(a.Path).ReplaceLineEndings("\\n")}\"");
 
-            var saved = await NotepadWriter.TrySaveAsync(name);
-            await Task.Delay(800);
-            var onDisk = File.ReadAllText(Path.Combine(folder, name)).Replace("\r\n", "\n").Replace("\r", "\n");
-            Log($"kaydedildi={saved}; diskte {(onDisk == note ? "AYNI" : $"FARKLI: \"{onDisk.Replace("\n", "\\n")}\"")}");
+            var b = await NotepadWriter.OpenNewAsync(folder, DateTime.Now); // aynı dakika: "… (2).txt", aynı pencerede etkin
+            await Task.Delay(400);
+            var three = await NotepadWriter.WriteAsync(a, "Süt al.\nAnneni ara: ğüşıöç İ\nüçüncü");
+            await Task.Delay(400);
+            var inB = b is not null && Native.TitleOf(Native.GetForegroundWindow()).Contains(b.FileName, StringComparison.Ordinal)
+                ? ReadDocument(Native.GetForegroundWindow())
+                : null;
+            Log($"B etkinken A'ya yazma: {three}; B'de {inB?.Length.ToString() ?? "okunamadı"} karakter; A diskte \"{File.ReadAllText(a.Path).ReplaceLineEndings("\\n")}\"");
 
-            if (Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal))
+            if (b is not null)
             {
-                Native.SendChord(VkControl, 'W'); // yalnız kendi (kaydedilmiş) sekmemiz
-                await Task.Delay(1000);
+                await CloseOwnNoteAsync(b.Path);
             }
 
-            Log($"kendi sekmesi kapandı={!NotepadWriter.IsNotepad(Native.GetForegroundWindow()) || !Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal)}; açık sekme {NotepadTabCount()}");
+            // A'yı yeniden etkinleştir (açık dosyayı yeniden açmak sekmesine geçer), ekranda üç satır olmalı, sonra kapat.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("notepad.exe", $"\"{a.Path}\"") { UseShellExecute = true })?.Dispose();
+            for (var i = 0; i < 30 && !Native.TitleOf(Native.GetForegroundWindow()).Contains(a.FileName, StringComparison.Ordinal); i++)
+            {
+                await Task.Delay(100);
+            }
+
+            Log($"A yeniden etkin; ekranda \"{ReadDocument(Native.GetForegroundWindow())?.ReplaceLineEndings("\\n")}\"");
+            await CloseOwnNoteAsync(a.Path);
         }
         finally
         {
+            Log($"bitti; açık sekme {NotepadTabCount()}");
             try
             {
                 Directory.Delete(folder, recursive: true);
@@ -95,64 +69,6 @@ internal static partial class AdaProbes
             {
             }
         }
-    }
-
-    /// <summary>
-    /// Hız ölçümü (Not Defteri hızlı Unicode tuşlarını bozuyor): her biçim için ayrı geçici dosya açılır, metin parça parça
-    /// yazılır, geri okunup karşılaştırılır, kaydedilip yalnız o sekme kapatılır.
-    /// </summary>
-    private static async Task NotePacingProbeAsync()
-    {
-        Log($"ada-not-hiz-sina: yedek {BackupNotepadState()}; açık sekme {NotepadTabCount()}");
-        const string note = "CamAda deneme ğüşıöç İ, bir iki üç.\nsatır 2: süt ve ekmek al.";
-        var folder = Path.Combine(Path.GetTempPath(), "camada-not-hiz-" + Guid.NewGuid().ToString("N")[..8]);
-        try
-        {
-            foreach (var (chunk, delay) in new[] { (1, 15), (2, 15), (4, 15), (8, 15), (1, 5) })
-            {
-                var name = await NotepadWriter.OpenNewAsync(Path.Combine(folder, $"{chunk}-{delay}"), DateTime.Now);
-                if (name is null)
-                {
-                    Log($"parça {chunk}, {delay} ms: açılamadı");
-                    continue;
-                }
-
-                var hwnd = NotepadWriter.LastOpened;
-                await Task.Delay(300);
-                var started = System.Diagnostics.Stopwatch.StartNew();
-                for (var i = 0; i < note.Length && Native.GetForegroundWindow() == hwnd; i += chunk)
-                {
-                    Native.TypeText(note.Substring(i, Math.Min(chunk, note.Length - i)));
-                    await Task.Delay(delay);
-                }
-
-                var took = started.ElapsedMilliseconds;
-                await Task.Delay(700);
-                var read = ReadDocument(hwnd)?.Replace("\r\n", "\n").Replace("\r", "\n");
-                Log($"parça {chunk}, {delay} ms: {took} ms, {(read == note ? "AYNI" : $"FARKLI: \"{read?.Replace("\n", "\\n")}\"")}");
-                if (await NotepadWriter.TrySaveAsync(name))
-                {
-                    await Task.Delay(500);
-                    if (Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal))
-                    {
-                        Native.SendChord(VkControl, 'W');
-                        await Task.Delay(800);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            try
-            {
-                Directory.Delete(folder, recursive: true);
-            }
-            catch (IOException)
-            {
-            }
-        }
-
-        Log($"bitti; açık sekme {NotepadTabCount()}");
     }
 
     /// <summary>Not Defteri'nin oturum dosyalarını (LocalState) %LOCALAPPDATA%\CamAda altına kopyalar.</summary>
@@ -176,13 +92,13 @@ internal static partial class AdaProbes
         return target;
     }
 
-    /// <summary>Çalışan Not Defteri'ndeki sekme sayısı (UI Automation); Not Defteri yoksa 0.</summary>
+    /// <summary>Çalışan Not Defteri pencerelerindeki toplam sekme sayısı (UI Automation).</summary>
     private static int NotepadTabCount()
     {
         var processes = System.Diagnostics.Process.GetProcessesByName("Notepad");
         try
         {
-            return processes.Where(p => p.MainWindowHandle != 0).Sum(p => AutomationElement.FromHandle(p.MainWindowHandle)
+            return processes.SelectMany(p => Native.TopLevelWindowsOf(p.Id)).Sum(w => AutomationElement.FromHandle(w)
                 .FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem)).Count);
         }
         catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or ArgumentException)
@@ -204,14 +120,44 @@ internal static partial class AdaProbes
         try
         {
             var root = AutomationElement.FromHandle(hwnd);
-            var document = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Document))
-                ?? root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
+            var document = root.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Document));
             return document?.GetCurrentPattern(TextPattern.Pattern) is TextPattern text ? text.DocumentRange.GetText(-1) : null;
         }
         catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or ArgumentException)
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Denemenin kendi not sekmesini kapatır: ön pencere Not Defteri ve başlığında dosya adı varsa, sekme değiştirilmemişse
+    /// (Ada dosyayı kendisi yazar, sekme "Unmodified" kalır) Ctrl+W. Sekme kapanmadıysa dosya silinmez.
+    /// </summary>
+    private static async Task CloseOwnNoteAsync(string path)
+    {
+        var name = Path.GetFileName(path);
+        bool Ours() => NotepadWriter.IsNotepad(Native.GetForegroundWindow())
+            && Native.TitleOf(Native.GetForegroundWindow()).Contains(name, StringComparison.Ordinal);
+        if (!Ours())
+        {
+            Log($"not {name}: kendi sekmesi önde değil, dokunulmadı");
+            return;
+        }
+
+        if (!Native.TitleOf(Native.GetForegroundWindow()).StartsWith('*'))
+        {
+            Native.SendChord(VkControl, 'W');
+            await Task.Delay(800);
+        }
+
+        if (Ours())
+        {
+            Log($"not {name}: sekme kapanmadı, dosya bırakıldı");
+            return;
+        }
+
+        File.Delete(path);
+        Log($"not {name}: sekme kapandı, dosya silindi");
     }
 }
 #endif

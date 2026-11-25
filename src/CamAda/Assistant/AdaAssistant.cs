@@ -740,9 +740,12 @@ internal sealed class AdaAssistant : IDisposable
         var results = new List<ToolResult>();
         try
         {
+            var names = calls.Select(c => c.Name).ToList();
             foreach (var call in calls)
             {
-                results.Add(new ToolResult(call.Id, call.Name, await _runner.RunAsync(call)));
+                // Bir not işleviyle aynı grupta gelen komut nottan gelmiştir ("…sesi kıs" dikte edildi): yürütülmez.
+                var result = NoteSession.RefusedInBatch(names, call.Name) ? AdaToolRunner.NoteRefusal : await _runner.RunAsync(call);
+                results.Add(new ToolResult(call.Id, call.Name, result));
                 if (call.Name == AdaTools.NotAl && _runner.Notes.Active)
                 {
                     TraceDebug("not başladı");
@@ -785,7 +788,7 @@ internal sealed class AdaAssistant : IDisposable
     {
         try
         {
-            if (await _runner.FinishNoteAsync() && session == _session && !session.Closing && session.Client is { } client)
+            if (_runner.FinishNote() && session == _session && !session.Closing && session.Client is { } client)
             {
                 TraceDebug("not bitti (sessizlik)");
                 await client.SendTextAsync(AdaInstruction.NoteFinished);
@@ -898,7 +901,8 @@ internal sealed class AdaAssistant : IDisposable
             case SessionEnd.MaxDuration when DateTime.UtcNow - session.MaxReachedAt > MaxDurationGoodbyeCap:
                 _ = CloseAsync(session, notice: MaxDurationNotice); // veda uzadı
                 break;
-            case SessionEnd.NoSpeech or SessionEnd.Silence:
+            case SessionEnd.NoSpeech or SessionEnd.Silence when !_runner.Notes.Active:
+                // Not sürerken bitişi not kipi yönetir (canlı yazı söz bitince geliyor; oturum sessizliği dikte ortasında kapatmasın).
                 _ = CloseAsync(session);
                 break;
         }
@@ -940,7 +944,7 @@ internal sealed class AdaAssistant : IDisposable
 
         try
         {
-            await _runner.FinishNoteAsync(); // not ortasında kapanınca da kaydedilir
+            _runner.FinishNote(); // not dosyası her parçada yazıldı
 
             if (session.Mic is { } mic)
             {
