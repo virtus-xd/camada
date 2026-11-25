@@ -15,12 +15,14 @@ public enum AdaCue
 
 /// <summary>
 /// Ada'nın sesi: Live'dan gelen 24 kHz mono 16 bit PCM, cihazın biçimine çevrilip çalınır. Söz kesilince
-/// <see cref="Clear"/> kalan sesi atar.
+/// <see cref="Clear"/> kalan sesi atar; yerel söz kesmede <see cref="Hold"/> sesi tutar (sessizlik çalar),
+/// <see cref="Resume"/> kaldığı yerden sürdürür.
 /// </summary>
 internal sealed class AdaSpeaker : IDisposable
 {
     private const double CueAmplitude = 0.126; // −18 dBFS
     private readonly BufferedWaveProvider _buffer;
+    private readonly HoldableProvider _gate;
     private readonly WasapiOut _player;
 
     public AdaSpeaker(MMDevice device)
@@ -33,7 +35,7 @@ internal sealed class AdaSpeaker : IDisposable
         };
 
         var mix = device.AudioClient.MixFormat;
-        ISampleProvider chain = _buffer.ToSampleProvider();
+        ISampleProvider chain = _gate = new HoldableProvider(_buffer.ToSampleProvider());
         if (mix.SampleRate != 24000)
         {
             chain = new WdlResamplingSampleProvider(chain, mix.SampleRate);
@@ -65,12 +67,21 @@ internal sealed class AdaSpeaker : IDisposable
     /// </summary>
     public string DeviceId { get; }
 
-    /// <summary>Çalınmayı bekleyen ses var mı.</summary>
+    /// <summary>Çalınmayı bekleyen ses var mı (tutulan ses de sayılır).</summary>
     public bool IsPlaying => _buffer.BufferedBytes > 0;
 
     public void Add(byte[] pcm24k) => _buffer.AddSamples(pcm24k, 0, pcm24k.Length);
 
-    public void Clear() => _buffer.ClearBuffer();
+    /// <summary>Kalan sesi atar; tutuluyorsa bırakır (sonraki ses ve bipler çalar).</summary>
+    public void Clear()
+    {
+        _buffer.ClearBuffer();
+        _gate.Held = false;
+    }
+
+    public void Hold() => _gate.Held = true;
+
+    public void Resume() => _gate.Held = false;
 
     public void PlayCue(AdaCue cue)
     {
@@ -84,6 +95,31 @@ internal sealed class AdaSpeaker : IDisposable
     {
         _player.Stop();
         _player.Dispose();
+    }
+
+    /// <summary>Tutulurken arabellekten okumaz, sessizlik verir: ses kaybolmaz, bekler.</summary>
+    private sealed class HoldableProvider(ISampleProvider source) : ISampleProvider
+    {
+        private volatile bool _held;
+
+        public bool Held
+        {
+            get => _held;
+            set => _held = value;
+        }
+
+        public WaveFormat WaveFormat => source.WaveFormat;
+
+        public int Read(float[] buffer, int offset, int count)
+        {
+            if (_held)
+            {
+                Array.Clear(buffer, offset, count);
+                return count;
+            }
+
+            return source.Read(buffer, offset, count);
+        }
     }
 
     /// <summary>24 kHz'te yumuşak girişli ve çıkışlı (10 ms) sinüs tonu.</summary>

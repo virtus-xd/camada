@@ -9,7 +9,8 @@ namespace CamAda.Assistant;
 /// <summary>
 /// Ada'nın hafızası: kurallar <see cref="MemoryBook"/>'ta, saklama %LOCALAPPDATA%\CamAda\ada-hafiza.bin dosyasında
 /// (Windows DPAPI, yalnız bu kullanıcı). Her değişiklikte yazılır. Bozuk ya da çözülemeyen dosya
-/// <c>ada-hafiza.bozuk.bin</c> olarak yedeklenir ve boş hafızayla başlanır.
+/// <c>ada-hafiza.bozuk.bin</c> olarak yedeklenir ve boş hafızayla başlanır. Dosyaya yazılamayan değişiklik geri alınır ve
+/// başarısız sayılır: Ada kaydetmediği şeyi "kaydedildi" demez.
 /// </summary>
 public sealed class MemoryFile
 {
@@ -36,45 +37,64 @@ public sealed class MemoryFile
         MemoryChange change;
         lock (_lock)
         {
+            var before = Book.ToJson();
             change = Book.Remember(topic, fact, _time.GetUtcNow());
             if (change is MemoryChange.Rejected)
             {
                 return change;
             }
 
-            Save();
+            if (!Save())
+            {
+                Book.RestoreFrom(before);
+                return new MemoryChange.Rejected(WriteFailed);
+            }
         }
 
         Changed?.Invoke();
         return change;
     }
 
-    public bool Forget(string topic)
+    public MemoryForget Forget(string topic)
     {
         lock (_lock)
         {
+            var before = Book.ToJson();
             if (!Book.Forget(topic))
             {
-                return false;
+                return MemoryForget.NotFound;
             }
 
-            Save();
+            if (!Save())
+            {
+                Book.RestoreFrom(before);
+                return MemoryForget.WriteFailed;
+            }
+        }
+
+        Changed?.Invoke();
+        return MemoryForget.Removed;
+    }
+
+    /// <summary>Hafızayı boşaltır; dosyaya yazılamazsa hiçbir şey silinmez ve false.</summary>
+    public bool Clear()
+    {
+        lock (_lock)
+        {
+            var before = Book.ToJson();
+            Book.Clear();
+            if (!Save())
+            {
+                Book.RestoreFrom(before);
+                return false;
+            }
         }
 
         Changed?.Invoke();
         return true;
     }
 
-    public void Clear()
-    {
-        lock (_lock)
-        {
-            Book.Clear();
-            Save();
-        }
-
-        Changed?.Invoke();
-    }
+    public const string WriteFailed = "hafıza dosyasına yazılamadı";
 
     /// <summary>Talimata eklenecek kopya.</summary>
     public IReadOnlyList<MemoryItem> Snapshot()
@@ -113,19 +133,42 @@ public sealed class MemoryFile
         }
     }
 
-    private void Save()
+    private bool Save()
     {
+        var temp = _path + ".tmp";
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             var bytes = ProtectedData.Protect(Encoding.UTF8.GetBytes(Book.ToJson()), null, DataProtectionScope.CurrentUser);
-            var temp = _path + ".tmp";
             File.WriteAllBytes(temp, bytes);
             File.Move(temp, _path, overwrite: true);
+            return true;
         }
         catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException)
         {
             Debug.WriteLine($"Ada hafızası kaydedilemedi: {ex.GetType().Name}");
+            TryDelete(temp);
+            return false;
         }
     }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+}
+
+public enum MemoryForget
+{
+    Removed,
+    NotFound,
+
+    /// <summary>Dosyaya yazılamadı; madde yerinde kaldı.</summary>
+    WriteFailed,
 }

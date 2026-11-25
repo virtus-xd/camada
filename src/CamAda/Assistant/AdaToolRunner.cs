@@ -536,7 +536,12 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         _ => "hata: kaydedilmedi",
     };
 
-    private string Forget(string topic) => ctx.Memory.Forget(topic) ? "tamam: silindi" : $"hata: '{topic}' adlı kayıt yok";
+    private string Forget(string topic) => ctx.Memory.Forget(topic) switch
+    {
+        MemoryForget.Removed => "tamam: silindi",
+        MemoryForget.WriteFailed => "hata: silinemedi: " + MemoryFile.WriteFailed,
+        _ => $"hata: '{topic}' adlı kayıt yok",
+    };
 
     // --- Yardımcılar ---
 

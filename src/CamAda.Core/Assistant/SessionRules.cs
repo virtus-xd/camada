@@ -23,7 +23,7 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
     private DateTimeOffset? _adaFinishedAt;
     private DateTimeOffset? _toolFinishedAt;
     private bool _adaSpeaking;
-    private bool _toolRunning;
+    private int _toolsRunning;
 
     public void Started()
     {
@@ -32,7 +32,7 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
         _adaFinishedAt = null;
         _toolFinishedAt = null;
         _adaSpeaking = false;
-        _toolRunning = false;
+        _toolsRunning = 0;
     }
 
     public void UserSpoke() => _lastUserSpokeAt = time.GetUtcNow();
@@ -45,15 +45,21 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
         _adaFinishedAt = time.GetUtcNow();
     }
 
-    /// <summary>İşlev başladı ya da bitti; bitiş etkinlik sayılır (yavaş işlevden sonra Ada'nın sonucu söylemesine zaman kalır).</summary>
+    /// <summary>
+    /// Bir işlev grubu başladı ya da bitti (gruplar üst üste gelebilir: sayılır). Bitiş etkinlik sayılır (yavaş işlevden
+    /// sonra Ada'nın sonucu söylemesine zaman kalır).
+    /// </summary>
     public void ToolRunning(bool running)
     {
-        if (_toolRunning && !running)
+        if (running)
         {
+            _toolsRunning++;
+        }
+        else if (_toolsRunning > 0)
+        {
+            _toolsRunning--;
             _toolFinishedAt = time.GetUtcNow();
         }
-
-        _toolRunning = running;
     }
 
     public SessionEnd? Check()
@@ -64,7 +70,7 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
             return SessionEnd.MaxDuration;
         }
 
-        if (_adaSpeaking || _toolRunning)
+        if (_adaSpeaking || _toolsRunning > 0)
         {
             return null;
         }

@@ -18,6 +18,18 @@ public class LiveErrorsTests
         Assert.Equal(expected, LiveErrors.FromClose(description));
 
     [Theory]
+    [InlineData("Internal error encountered.", 1011, AssistantError.Network)]   // sunucu hatası oturum sürerken: bağlantı koptu
+    [InlineData("Service is currently unavailable.", 1013, AssistantError.Network)]
+    [InlineData("Going away", 1001, AssistantError.Network)]
+    [InlineData("anything", 1006, AssistantError.Network)]
+    [InlineData("You exceeded your current quota, please check billing.", 1011, AssistantError.QuotaExceeded)] // metin önce
+    [InlineData("API key not valid.", 1007, AssistantError.InvalidKey)]
+    [InlineData("Something else happened", 1008, AssistantError.Unknown)]
+    [InlineData("Something else happened", null, AssistantError.Unknown)]
+    public void From_close_with_status(string description, int? status, AssistantError expected) =>
+        Assert.Equal(expected, LiveErrors.FromClose(description, status));
+
+    [Theory]
     [InlineData(400, """{"error":{"message":"API key not valid."}}""", AssistantError.InvalidKey)]
     [InlineData(400, """{"error":{"message":"bad request"}}""", AssistantError.Unknown)]
     [InlineData(403, null, AssistantError.InvalidKey)]

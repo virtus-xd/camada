@@ -22,7 +22,7 @@ internal sealed class CurrentInfoClient(Func<string?> apiKey, Func<string> model
 
     public async Task<LookupResult> AskAsync(string question, CancellationToken ct)
     {
-        if (apiKey() is not { Length: > 0 } key)
+        if (apiKey() is not { Length: > 0 } key || !ApiKeyText.IsWellFormed(key))
         {
             return Failed(AssistantError.InvalidKey);
         }

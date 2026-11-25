@@ -62,6 +62,12 @@ public static class LiveMessages
         },
     };
 
+    /// <summary>Yazılı tur (ör. 10 dk sınırında Ada'nın sesli vedası için sistem notu).</summary>
+    public static JsonObject Text(string text) => new()
+    {
+        ["realtimeInput"] = new JsonObject { ["text"] = text },
+    };
+
     public static JsonObject ToolResponse(IReadOnlyList<ToolResult> results)
     {
         var responses = new JsonArray();

@@ -180,7 +180,11 @@ public partial class App : Application
         _spotify = new SpotifyClient(() => _settings.SpotifyClientId, new SpotifyTokenStore(LocalDir), TimeProvider.System);
         _spotifyExtras = new SpotifyExtras(_spotify, _media!, Dispatcher);
         _island.MusicExtras = _spotifyExtras;
-        _island.MusicFooter = () => _spotify.IsConnected && !_spotify.NeedsReconnect ? null : new SpotifyConnectView(_spotify, SaveSpotifyClientId);
+        // "İzni yenile" yalnız Ada açıkken: eski izin beğen ve sıradakiler için yeterli.
+        _island.MusicFooter = () =>
+            Core.Spotify.SpotifyFooter.For(_spotify.IsConnected, !_spotify.NeedsReconnect, _settings.Assistant.Enabled) == Core.Spotify.SpotifyFooterKind.None
+                ? null
+                : new SpotifyConnectView(_spotify, SaveSpotifyClientId, () => _settings.Assistant.Enabled);
 
         if (_settings.Record.Enabled)
         {
@@ -229,6 +233,10 @@ public partial class App : Application
             Debug.WriteLine($"Ada: {state}");
             _island?.ShowAda(state);
             _island?.Bar.ShowAssistantActive(_ada?.IsSessionActive == true);
+            if (state is AdaState.Failed { Error: AssistantError.InvalidKey } && _strip?.IsFullScreenActive != true)
+            {
+                OpenAssistantPanel(); // tasarım: "Gemini anahtarı geçersiz" ve ayarlar paneli (tam ekranda oyunu bölmez)
+            }
         };
         _island.Bar.AssistantClicked += (_, _) => OnAssistantClicked();
         _island.AdaRowClicked += (_, _) => _ada?.Trigger();

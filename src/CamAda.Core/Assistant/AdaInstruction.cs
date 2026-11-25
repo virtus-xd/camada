@@ -14,6 +14,11 @@ public static class AdaInstruction
 {
     private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
+    /// <summary>Oturum en uzun süreye varınca modele giden not (tasarım: "uzun sürdü, yeniden çağırabilirsin" deyip kapanır).</summary>
+    public const string MaxDurationGoodbye =
+        "(Sistem notu, kullanıcı söylemedi: oturum süresi doldu. Yalnız 'Uzun sürdü, yeniden çağırabilirsin.' de; " +
+        "başka bir şey söyleme ve işlev çağırma.)";
+
     public static string Build(DateTime now, IReadOnlyList<MemoryItem> memory)
     {
         var text = new StringBuilder();

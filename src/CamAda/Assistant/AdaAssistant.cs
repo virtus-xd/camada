@@ -33,9 +33,13 @@ internal sealed class AdaAssistant : IDisposable
     private static readonly TimeSpan HalfDuplexTail = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan TriggerDebounce = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan GoodbyeWait = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan MaxDurationGoodbyeCap = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan BargeInQuiet = TimeSpan.FromMilliseconds(700);
+    private static readonly TimeSpan BargeInMaxHold = TimeSpan.FromSeconds(3);
     private const double BargeInRms = 0.04;
     private const int BargeInChunks = 2; // mikrofon parçaları ~100 ms: art arda iki parça ≥ 150 ms
     private const double DuckFactor = 0.3;
+    private const string MaxDurationNotice = "Uzun sürdü — yeniden çağırabilirsin";
 
     private readonly Dispatcher _dispatcher;
     private readonly AdaDependencies _deps;
@@ -50,6 +54,7 @@ internal sealed class AdaAssistant : IDisposable
     private bool _disposed;
     private DateTime _lastTrigger = DateTime.MinValue;
     private bool _micFailureShown;
+    private readonly HashSet<string> _halfDuplexNoticed = []; // yankı engelleyicisi açılamayan mikrofonlar (bilgi bir kez)
 
     public AdaAssistant(Dispatcher dispatcher, AdaDependencies deps)
     {
@@ -74,6 +79,9 @@ internal sealed class AdaAssistant : IDisposable
 
     /// <summary>Bir kez gösterilecek bilgi ("yankı engelleyici açılamadı" gibi; arayüz iş parçacığında).</summary>
     public event EventHandler<string>? Notice;
+
+    /// <summary>Yalnız Debug denemeleri için iç olaylar (ön kayıt, söz kesme…); Release'te hiç yayımlanmaz.</summary>
+    internal event Action<string>? Trace;
 
     public bool IsSessionActive => _session is not null;
 
@@ -270,6 +278,9 @@ internal sealed class AdaAssistant : IDisposable
         }
     }
 
+    [System.Diagnostics.Conditional("DEBUG")]
+    private void TraceDebug(string text) => Trace?.Invoke(text);
+
     private static bool IsFatal(Exception ex) => ex is OutOfMemoryException or StackOverflowException or AccessViolationException;
 
     private void StopListening() => _listener?.Stop();
@@ -336,9 +347,20 @@ internal sealed class AdaAssistant : IDisposable
         _runner.ResetConfirmations(); // önceki oturumdan kalan "emin misin?" bu oturumda geçmez
         SetState(new AdaState.Connecting());
 
+        // "Hey Ada" ile: uyandırma sözünün sonundan (algılamadan 0,8 sn önce) bugüne kadar duyulan ilk gönderilir; öncesi
+        // bilgisayarda kalır. Kısayolla: basıştan öncesi hiç gitmez. Dinleyici, oturum mikrofonu ilk sesini verene kadar kayda
+        // devam eder (OnMicSamples aradaki sesi sıraya ekleyip onu durdurur): "Hey Ada, sesi kıs" tek nefeste söylenebilir.
+        var preRoll = fromWake ? _listener?.DrainFromWake() : null;
+        if (!fromWake)
+        {
+            _listener?.DrainPreRoll();
+        }
+
+        session.BridgeFromListener = _listener?.IsListening == true;
+        TraceDebug($"ön kayıt {(preRoll?.Length ?? 0) / 16} ms, köprü {(session.BridgeFromListener ? "var" : "yok")}");
+
         // Ses cihazlarına dokunan her şey (çözme, WASAPI hoparlörü kurma ~0,3 sn) arka planda, tek COM dairesinde (MTA):
         // NAudio'nun cihaz nesneleri daireler arasında geçemiyor (E_NOINTERFACE); arayüze yalnız kimlik ve dizinler gelir.
-        // Bu sırada uyandırma dinleyicisi kayda devam eder; ön kayıt mikrofon açılmadan hemen önce alınır, söz arada kopmaz.
         var audioSetup = await Task.Run(() => PrepareAudio(settings.Microphone));
         if (session.Closing)
         {
@@ -346,8 +368,6 @@ internal sealed class AdaAssistant : IDisposable
             return;
         }
 
-        var preRoll = fromWake ? _listener?.DrainPreRoll() : null;
-        StopListening();
         if (audioSetup.MicId is null)
         {
             DisposeInBackground(audioSetup.Speaker);
@@ -396,8 +416,8 @@ internal sealed class AdaAssistant : IDisposable
             }
 
             session.Client = client;
-            client.Received += e => _dispatcher.BeginInvoke(() => OnEvent(session, e));
-            client.Closed += error => _dispatcher.BeginInvoke(() => OnClientClosed(session, error));
+            client.Attach(e => _dispatcher.BeginInvoke(() => OnEvent(session, e)),
+                error => _dispatcher.BeginInvoke(() => OnClientClosed(session, error)));
 
             // Bağlantı kurulurken biriken ses (ön kayıt dahil) sırayla gider; bu arada gelen parçalar da kuyruğa eklenir.
             while (session.Pending.Count > 0 && !session.Closing)
@@ -450,7 +470,7 @@ internal sealed class AdaAssistant : IDisposable
         }
     }
 
-    private PlainMic? CreatePlainMic(string micId)
+    private IAdaMic? CreatePlainMic(string micId)
     {
         if (MicDevices.ById(micId) is not { } device)
         {
@@ -459,7 +479,7 @@ internal sealed class AdaAssistant : IDisposable
 
         try
         {
-            var mic = new PlainMic(device);
+            var mic = MicFactory.Plain(device);
             mic.Start();
             return mic;
         }
@@ -487,7 +507,7 @@ internal sealed class AdaAssistant : IDisposable
         IAdaMic mic;
         if (tryEchoCancel && capture >= 0 && render >= 0)
         {
-            mic = new EchoCancelledMic(capture, render);
+            mic = MicFactory.EchoCancelled(capture, render);
             Wire(session, mic);
             mic.Start();
             return;
@@ -522,11 +542,14 @@ internal sealed class AdaAssistant : IDisposable
         session.HalfDuplex = !mic.EchoCancelled;
     }
 
+    /// <summary>
+    /// Bilgi her mikrofon için, uygulama açık kaldıkça bir kez: yankı engelleyiciyi hiç açamayan mikrofonda her oturumda
+    /// yinelenmez.
+    /// </summary>
     private void NotifyHalfDuplex(Session session)
     {
-        if (!session.HalfDuplexNoticeShown)
+        if (_halfDuplexNoticed.Add(session.MicId ?? ""))
         {
-            session.HalfDuplexNoticeShown = true;
             Notice?.Invoke(this, "Yankı engelleyici açılamadı — Ada konuşurken araya giremezsin");
         }
     }
@@ -558,6 +581,21 @@ internal sealed class AdaAssistant : IDisposable
             return;
         }
 
+        if (session.BridgeFromListener)
+        {
+            // Oturum mikrofonunun ilk sesi: dinleyicinin o ana kadar duyduğu sıraya girer, dinleyici durur. Son parça kadarı
+            // iki mikrofonda da var (aynı anı duydular): kırpılır.
+            session.BridgeFromListener = false;
+            var bridge = _listener?.DrainPreRoll() ?? [];
+            StopListening();
+            if (bridge.Length > samples.Length)
+            {
+                Queue(session, bridge[..^samples.Length]);
+            }
+
+            TraceDebug($"köprü: dinleyiciden {Math.Max(0, bridge.Length - samples.Length) / 16} ms");
+        }
+
         var now = DateTime.UtcNow;
         var adaTalking = session.ModelSpeaking && session.Speaker?.IsPlaying == true;
         if (adaTalking)
@@ -574,33 +612,46 @@ internal sealed class AdaAssistant : IDisposable
                 toSend = new short[samples.Length];
             }
         }
-        else if (adaTalking && Pcm.Rms(samples) > BargeInRms)
-        {
-            // Yerel söz kesme: Google'ın "kesildi"sini beklemeden sus; o yanıtın kalan sesi atılır.
-            if (++session.LoudChunks >= BargeInChunks)
-            {
-                session.Speaker!.Clear();
-                session.DropAudio = true;
-                session.ModelSpeaking = false;
-                session.LoudChunks = 0;
-            }
-        }
         else
         {
-            session.LoudChunks = 0;
+            // Yerel söz kesme: Google'ın "kesildi"sini beklemeden susar; Google onaylamazsa (öksürük) kaldığı yerden sürer.
+            switch (session.BargeIn.OnMic(Pcm.Rms(samples), adaTalking))
+            {
+                case BargeInAction.Hold:
+                    session.Speaker?.Hold();
+                    TraceDebug("yerel söz kesme: Ada tutuldu");
+                    break;
+                case BargeInAction.Resume:
+                    session.Speaker?.Resume();
+                    TraceDebug("yerel söz kesme: Ada sürdü");
+                    break;
+            }
         }
 
+        Queue(session, toSend);
+    }
+
+    /// <summary>Bağlantı hazır değilse sıraya, hazırsa doğrudan Google'a.</summary>
+    private static void Queue(Session session, short[] samples)
+    {
         if (!session.Connected)
         {
-            session.Pending.Add(toSend);
+            session.Pending.Add(samples);
             return;
         }
 
-        _ = session.Client?.SendAudioAsync(toSend);
+        _ = session.Client?.SendAudioAsync(samples);
     }
 
     private void OnEvent(Session session, LiveEvent e)
     {
+        if (e is LiveEvent.Usage usage)
+        {
+            // Kapanış sürerken ya da sonra gelen kullanım da harcamaya girer.
+            AddCost(session, CostTable.Live(usage.Report, DateOnly.FromDateTime(DateTime.Now)), 0);
+            return;
+        }
+
         if (session != _session || session.Closing)
         {
             return;
@@ -611,58 +662,45 @@ internal sealed class AdaAssistant : IDisposable
             case LiveEvent.InputText input:
                 session.Rules.UserSpoke();
                 _runner.UserSpoke();
-                if (session.UserTurnDone)
-                {
-                    session.UserLine = "";
-                    session.UserTurnDone = false;
-                }
-
-                session.UserLine += input.Text;
-                SetState(new AdaState.Listening(session.UserLine.Trim()));
+                session.Transcript.UserText(input.Text);
+                SetState(new AdaState.Listening(session.Transcript.User.Trim()));
                 break;
             case LiveEvent.AudioChunk audio:
-                if (session.DropAudio)
-                {
-                    break;
-                }
-
                 session.Speaker?.Add(audio.Pcm24k);
                 session.ModelSpeaking = true;
                 session.TurnDone = false;
                 session.AudioAfterEndRequest |= session.EndRequested;
                 session.Rules.AdaSpeaking();
+                session.Transcript.AdaAudio(); // yeni yanıt: satır bir önceki cümleyi göstermesin
                 if (State is not AdaState.Speaking)
                 {
-                    SetState(new AdaState.Speaking(session.AdaLine.Trim()));
+                    SetState(new AdaState.Speaking(session.Transcript.Ada.Trim()));
                 }
 
                 break;
             case LiveEvent.OutputText output:
-                if (session.AdaTurnDone)
-                {
-                    session.AdaLine = "";
-                    session.AdaTurnDone = false;
-                }
-
-                session.AdaLine += output.Text;
-                if (!session.DropAudio)
-                {
-                    SetState(new AdaState.Speaking(session.AdaLine.Trim()));
-                }
-
+                session.Transcript.AdaText(output.Text);
+                SetState(new AdaState.Speaking(session.Transcript.Ada.Trim()));
                 break;
             case LiveEvent.Interrupted:
+                TraceDebug("Google: kesildi");
                 session.Speaker?.Clear();
+                session.BargeIn.Interrupted();
                 session.ModelSpeaking = false;
-                session.DropAudio = false;
                 session.TurnDone = true;
-                session.AdaTurnDone = true;
+                session.AudioAfterEndRequest = false; // kesilen yanıt veda değildi
+                if (session.EndRequested && session.MaxReachedAt is null)
+                {
+                    // Kullanıcı vedanın sözünü kesti ("teşekkürler" sonrası "bir şey daha"): oturum sürer. 10 dk sınırında sürmez.
+                    session.EndRequested = false;
+                    TraceDebug("veda kesildi: oturum sürüyor");
+                }
+
+                session.Transcript.Interrupted();
                 break;
             case LiveEvent.TurnComplete:
                 session.TurnDone = true;
-                session.DropAudio = false;
-                session.AdaTurnDone = true;
-                session.UserTurnDone = true;
+                session.Transcript.TurnComplete();
                 break;
             case LiveEvent.ToolCalls calls:
                 _ = RunToolsAsync(session, calls.Calls);
@@ -670,11 +708,9 @@ internal sealed class AdaAssistant : IDisposable
             case LiveEvent.ToolCancelled cancelled:
                 session.CancelledTools.UnionWith(cancelled.Ids);
                 break;
-            case LiveEvent.Usage usage:
-                session.Cost += CostTable.Live(usage.Report, DateOnly.FromDateTime(DateTime.Now));
-                break;
             case LiveEvent.GoAway:
-                _ = CloseAsync(session);
+                // Google bağlantıyı birazdan kapatacak: Ada'nın sesi bitince kapanır, adada neden yazar.
+                _ = CloseAsync(session, notice: "Bağlantı sona erdi — yeniden çağırabilirsin");
                 break;
         }
     }
@@ -721,16 +757,32 @@ internal sealed class AdaAssistant : IDisposable
         }
     }
 
+    /// <summary>Arama maliyeti; oturum o arada kapandıysa doğrudan bu ayın kaydına.</summary>
     private void OnLookup(LookupResult result)
     {
-        if (_session is not { } session)
+        var session = _session is { UsageRecorded: false } open ? open : null;
+        var before = (_deps.Usage.Current?.Searches ?? 0) + (session?.Searches ?? 0);
+        var searches = result.Searched ? 1 : 0;
+        var cost = CostTable.Lookup(result.PromptTokens, result.OutputTokens, before, searches);
+        if (session is null)
         {
+            _deps.Usage.Add(DateOnly.FromDateTime(DateTime.Now), cost, 0, searches);
             return;
         }
 
-        var before = (_deps.Usage.Current?.Searches ?? 0) + session.Searches;
-        var searches = result.Searched ? 1 : 0;
-        session.Cost += CostTable.Lookup(result.PromptTokens, result.OutputTokens, before, searches);
+        AddCost(session, cost, searches);
+    }
+
+    /// <summary>Oturumun harcaması kapanışta bir kez yazılır; ondan sonra gelen her kalem doğrudan eklenir.</summary>
+    private void AddCost(Session session, decimal usd, int searches)
+    {
+        if (session.UsageRecorded)
+        {
+            _deps.Usage.Add(DateOnly.FromDateTime(DateTime.Now), usd, 0, searches);
+            return;
+        }
+
+        session.Cost += usd;
         session.Searches += searches;
     }
 
@@ -762,22 +814,44 @@ internal sealed class AdaAssistant : IDisposable
             session.Rules.AdaFinished();
             if (session.EndRequested && session.AudioAfterEndRequest)
             {
-                _ = CloseAsync(session); // veda bitti
+                _ = CloseAsync(session, notice: session.EndNotice); // veda bitti
                 return;
+            }
+
+            if (State is AdaState.Speaking)
+            {
+                SetState(new AdaState.Listening(null)); // Ada sustu, dinliyor
             }
         }
 
         if (session.EndRequested && !session.AudioAfterEndRequest && !playing
             && DateTime.UtcNow - session.EndRequestedAt > GoodbyeWait)
         {
-            _ = CloseAsync(session); // model veda etmedi
+            _ = CloseAsync(session, notice: session.EndNotice); // model veda etmedi
             return;
         }
 
         switch (session.Rules.Check())
         {
-            case SessionEnd.MaxDuration:
-                _ = CloseAsync(session, notice: "Uzun sürdü — yeniden çağırabilirsin");
+            case SessionEnd.MaxDuration when session.MaxReachedAt is null:
+                // Tasarım: Ada "uzun sürdü, yeniden çağırabilirsin" deyip kapanır (tam ekranda da duyulur).
+                session.MaxReachedAt = DateTime.UtcNow;
+                session.EndNotice = MaxDurationNotice;
+                TraceDebug("en uzun süre: veda istendi");
+                if (session.Client is { } client && session.Connected)
+                {
+                    session.EndRequested = true;
+                    session.EndRequestedAt = DateTime.UtcNow;
+                    _ = client.SendTextAsync(AdaInstruction.MaxDurationGoodbye);
+                }
+                else
+                {
+                    _ = CloseAsync(session, notice: MaxDurationNotice);
+                }
+
+                break;
+            case SessionEnd.MaxDuration when DateTime.UtcNow - session.MaxReachedAt > MaxDurationGoodbyeCap:
+                _ = CloseAsync(session, notice: MaxDurationNotice); // veda uzadı
                 break;
             case SessionEnd.NoSpeech or SessionEnd.Silence:
                 _ = CloseAsync(session);
@@ -799,6 +873,7 @@ internal sealed class AdaAssistant : IDisposable
 
         session.Closing = true;
         session.Cancel.Cancel();
+        session.Speaker?.Resume(); // yerel söz kesmede tutulan ses kalmasın: mikrofon kapanınca onu bırakacak kimse yok
         if (immediate)
         {
             // Düğme, kısayol, kilit, uyku ya da uygulamadan çıkış: ses hemen kesilir, öbür uygulamaların sesi ilk beklemeden
@@ -865,6 +940,8 @@ internal sealed class AdaAssistant : IDisposable
             {
                 _deps.Usage.Add(DateOnly.FromDateTime(DateTime.Now), session.Cost, 1, session.Searches);
             }
+
+            session.UsageRecorded = true;
 
             if (_session == session)
             {
@@ -990,6 +1067,13 @@ internal sealed class AdaAssistant : IDisposable
 
         public SessionRules Rules { get; } = rules;
 
+        public BargeInGate BargeIn { get; } = new(TimeProvider.System, BargeInRms, BargeInChunks, BargeInQuiet, BargeInMaxHold);
+
+        public SessionTranscript Transcript { get; } = new();
+
+        /// <summary>Uyandırma dinleyicisi, oturum mikrofonunun ilk sesine kadar aradaki sesi tutuyor.</summary>
+        public bool BridgeFromListener { get; set; }
+
         public CancellationTokenSource Cancel { get; } = new();
 
         public GeminiLiveClient? Client { get; set; }
@@ -1013,27 +1097,12 @@ internal sealed class AdaAssistant : IDisposable
 
         public bool HalfDuplex { get; set; }
 
-        public bool HalfDuplexNoticeShown { get; set; }
-
         /// <summary>Hoparlörde modelin sesi var (bipler sayılmaz: söz kesme ve yarı çift yönlü yalnız buna bakar).</summary>
         public bool ModelSpeaking { get; set; }
 
         public DateTime LastAdaAudioAt { get; set; } = DateTime.MinValue;
 
-        public int LoudChunks { get; set; }
-
-        /// <summary>Yerel söz kesmeden sonra o yanıtın kalan sesi atılır (yeni tur ya da "kesildi" gelene kadar).</summary>
-        public bool DropAudio { get; set; }
-
         public bool TurnDone { get; set; }
-
-        public bool UserTurnDone { get; set; }
-
-        public bool AdaTurnDone { get; set; }
-
-        public string UserLine { get; set; } = "";
-
-        public string AdaLine { get; set; } = "";
 
         public bool EndRequested { get; set; }
 
@@ -1041,8 +1110,16 @@ internal sealed class AdaAssistant : IDisposable
 
         public bool AudioAfterEndRequest { get; set; }
 
+        /// <summary>Veda ile kapanınca adada görünecek bilgi (10 dk sınırı).</summary>
+        public string? EndNotice { get; set; }
+
+        public DateTime? MaxReachedAt { get; set; }
+
         public decimal Cost { get; set; }
 
         public int Searches { get; set; }
+
+        /// <summary>Harcama bu ayın kaydına yazıldı; bundan sonraki kalemler doğrudan eklenir.</summary>
+        public bool UsageRecorded { get; set; }
     }
 }

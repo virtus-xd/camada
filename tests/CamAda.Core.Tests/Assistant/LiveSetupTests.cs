@@ -61,6 +61,14 @@ public class LiveSetupTests
     }
 
     [Fact]
+    public void Text_goes_as_realtime_input()
+    {
+        var message = LiveMessages.Text(AdaInstruction.MaxDurationGoodbye);
+        Assert.Equal(AdaInstruction.MaxDurationGoodbye, (string?)message["realtimeInput"]!["text"]);
+        Assert.Contains("yeniden çağırabilirsin", AdaInstruction.MaxDurationGoodbye);
+    }
+
+    [Fact]
     public void Tool_response_keeps_ids()
     {
         var responses = LiveMessages.ToolResponse(

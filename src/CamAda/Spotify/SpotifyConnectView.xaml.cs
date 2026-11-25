@@ -18,12 +18,15 @@ public sealed partial class SpotifyConnectView : UserControl
 
     private readonly SpotifyClient _client;
     private readonly Action<string> _saveClientId;
+    private readonly Func<bool> _assistantEnabled;
 
-    public SpotifyConnectView(SpotifyClient client, Action<string> saveClientId)
+    /// <param name="assistantEnabled">Ada açık mı: "İzni yenile" yalnız o zaman istenir.</param>
+    public SpotifyConnectView(SpotifyClient client, Action<string> saveClientId, Func<bool> assistantEnabled)
     {
         InitializeComponent();
         _client = client;
         _saveClientId = saveClientId;
+        _assistantEnabled = assistantEnabled;
         ShowSummary();
     }
 
@@ -31,8 +34,9 @@ public sealed partial class SpotifyConnectView : UserControl
 
     private void ShowSummary(string? note = null)
     {
-        Visibility = _client.IsConnected && !_client.NeedsReconnect ? Visibility.Collapsed : Visibility.Visible;
-        if (_client.NeedsReconnect)
+        var kind = SpotifyFooter.For(_client.IsConnected, !_client.NeedsReconnect, _assistantEnabled());
+        Visibility = kind == SpotifyFooterKind.None ? Visibility.Collapsed : Visibility.Visible;
+        if (kind == SpotifyFooterKind.RenewForAda)
         {
             // Bağlantı var ama Ada'nın çalma izni eklenmeden önce alınmış: aynı giriş akışı yeni izinle yeniden çalışır.
             SummaryText.Text = note ?? "Spotify izni yenilenmeli (Ada'nın çalabilmesi için).";

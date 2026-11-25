@@ -25,20 +25,30 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly CancellationTokenSource _stop = new();
     private readonly TaskCompletionSource<AssistantError> _setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly LiveDelivery _delivery = new();
     private Task? _receiving;
     private bool _closing;
-    private int _closedRaised;
 
     private GeminiLiveClient(ClientWebSocket socket)
     {
         _socket = socket;
     }
 
-    /// <summary>Sunucu iletisinden çıkan olay (alma iş parçacığında).</summary>
-    public event Action<LiveEvent>? Received;
+    /// <summary>
+    /// Sunucu olaylarını ve kapanışı dinleyiciye bağlar (alma iş parçacığında çağrılır). Bağlanmadan önce gelenler
+    /// bekletilir: aradaki bir kopma kaybolmaz. Kapanış bir kez; bizim kapatmamızda <see cref="AssistantError.None"/>.
+    /// </summary>
+    public void Attach(Action<LiveEvent> received, Action<AssistantError> closed) => _delivery.Attach(received, closed);
 
-    /// <summary>Bağlantı kapandı; bizim kapatmamızda <see cref="AssistantError.None"/> (alma iş parçacığında).</summary>
-    public event Action<AssistantError>? Closed;
+    /// <summary>
+    /// İnternet takılınca (soket hatası olmadan) bağlantı sessizce asılı kalmasın: saniyede bir ping, 3 sn içinde pong
+    /// gelmezse bağlantı kesilir ve oturum "Bağlantı koptu" ile kapanır (~4–5 sn; 8 sn'lik sessizlik kapanışından önce).
+    /// </summary>
+    internal static void ConfigureKeepAlive(ClientWebSocketOptions options)
+    {
+        options.KeepAliveInterval = TimeSpan.FromSeconds(1);
+        options.KeepAliveTimeout = TimeSpan.FromSeconds(3);
+    }
 
     /// <summary>
     /// Bağlanır, kurulumu gönderir ve <c>setupComplete</c> bekler; başaramazsa <see cref="AssistantException"/>. Anahtar
@@ -46,9 +56,15 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
     /// </summary>
     public static async Task<GeminiLiveClient> ConnectAsync(string apiKey, JsonObject setup, CancellationToken ct)
     {
+        if (!ApiKeyText.IsWellFormed(apiKey))
+        {
+            throw new AssistantException(AssistantError.InvalidKey, "Gemini anahtarı biçimce geçersiz.");
+        }
+
         var socket = new ClientWebSocket();
         socket.Options.CollectHttpResponseDetails = true;
         socket.Options.SetRequestHeader("x-goog-api-key", apiKey);
+        ConfigureKeepAlive(socket.Options);
         // Oturumun iptali bağlanma adımına geçirilmez: TCP kurulurken iptal edilen ClientWebSocket atılsa da .NET'in iç
         // bağlantısı açık kalıyordu (deneme: kapanıştan 13 sn sonra Google'a açık bağlantı). Bağlanma kendi zaman aşımıyla
         // biter, iptal hemen ardından fark edilip bağlantı düzgünce kapatılır.
@@ -96,6 +112,8 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
     public Task SendAudioAsync(short[] pcm16k) => SendAsync(LiveMessages.Audio(Pcm.ToBytes(pcm16k)));
 
     public Task SendToolResultsAsync(IReadOnlyList<ToolResult> results) => SendAsync(LiveMessages.ToolResponse(results));
+
+    public Task SendTextAsync(string text) => SendAsync(LiveMessages.Text(text));
 
     /// <summary>Bağlantıyı düzgünce kapatır (en çok 2 sn bekler).</summary>
     public async Task CloseAsync()
@@ -171,7 +189,7 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
                     result = await _socket.ReceiveAsync(buffer, _stop.Token);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        error = _closing ? AssistantError.None : LiveErrors.FromClose(_socket.CloseStatusDescription);
+                        error = _closing ? AssistantError.None : LiveErrors.FromClose(_socket.CloseStatusDescription, (int?)_socket.CloseStatus);
                         return;
                     }
 
@@ -186,7 +204,7 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
                         _setup.TrySetResult(AssistantError.None);
                     }
 
-                    Received?.Invoke(e);
+                    _delivery.Post(e);
                 }
             }
         }
@@ -201,11 +219,5 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
         }
     }
 
-    private void RaiseClosed(AssistantError error)
-    {
-        if (Interlocked.Exchange(ref _closedRaised, 1) == 0)
-        {
-            Closed?.Invoke(error);
-        }
-    }
+    private void RaiseClosed(AssistantError error) => _delivery.Close(error);
 }

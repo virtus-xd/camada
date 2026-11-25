@@ -65,6 +65,36 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-esmik-sina"))
+        {
+            await OverlapAsync();
+            return true;
+        }
+
+        if (args.Contains("--ada-oda-sina"))
+        {
+            await RoomAsync(args);
+            return true;
+        }
+
+        if (args.Contains("--ada-hafiza-sina"))
+        {
+            await MemoryWriteAsync();
+            return true;
+        }
+
+        if (args.Contains("--ada-takilma-sina"))
+        {
+            await StallAsync();
+            return true;
+        }
+
+        if (args.Contains("--ada-metin-sina"))
+        {
+            await TextTurnAsync();
+            return true;
+        }
+
         if (args.Contains("--ada-uyandirma-stres"))
         {
             await WakeStressAsync();

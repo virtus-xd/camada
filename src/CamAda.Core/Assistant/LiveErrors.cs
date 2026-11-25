@@ -16,8 +16,17 @@ public enum AssistantError
 /// <summary>Google'ın kapanış açıklamalarını ve HTTP durumlarını hata türüne çevirir.</summary>
 public static class LiveErrors
 {
-    /// <summary>WebSocket kapanış açıklaması; boşsa bağlantı sorunu sayılır.</summary>
-    public static AssistantError FromClose(string? description)
+    /// <summary>
+    /// WebSocket kapanışı: önce açıklama (kota, anahtar, ödeme, model); açıklama bunlardan değilse sunucu tarafı kapanış
+    /// kodları (1001 ayrılma, 1006 kopma, 1011 iç hata, 1013/1014 hizmet yok) bağlantı sorunu sayılır. Boş açıklama da.
+    /// </summary>
+    public static AssistantError FromClose(string? description, int? status = null)
+    {
+        var error = FromDescription(description);
+        return error == AssistantError.Unknown && status is 1001 or 1006 or 1011 or 1013 or 1014 ? AssistantError.Network : error;
+    }
+
+    private static AssistantError FromDescription(string? description)
     {
         if (string.IsNullOrWhiteSpace(description))
         {

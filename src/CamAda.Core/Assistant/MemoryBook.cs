@@ -18,13 +18,14 @@ public abstract record MemoryChange
 }
 
 /// <summary>
-/// Ada'nın hafızası (tasarım "Hafıza"): en çok 50 madde, madde başı en çok 200 karakter. Aynı konu (tr-TR, büyük/küçük
+/// Ada'nın hafızası (tasarım "Hafıza"): en çok 50 madde, madde başı en çok 200 karakter, konu adı en çok 60 karakter. Aynı konu (tr-TR, büyük/küçük
 /// harf yok sayılır) güncellenir; hassas bilgi reddedilir. Saklama şifreli dosyada (uygulamadaki <c>MemoryFile</c>).
 /// </summary>
 public sealed class MemoryBook
 {
     public const int MaxItems = 50;
     public const int MaxFactLength = 200;
+    public const int MaxTopicLength = 60;
 
     private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
     private readonly List<MemoryItem> _items = new();
@@ -43,6 +44,11 @@ public sealed class MemoryBook
         if (fact.Length > MaxFactLength)
         {
             return new MemoryChange.Rejected("çok uzun");
+        }
+
+        if (topic.Length > MaxTopicLength)
+        {
+            return new MemoryChange.Rejected("konu adı çok uzun");
         }
 
         if (SensitiveText.Looks(topic + " " + fact))
@@ -83,6 +89,14 @@ public sealed class MemoryBook
     public void Clear() => _items.Clear();
 
     public string ToJson() => JsonSerializer.Serialize(_items);
+
+    /// <summary><see cref="ToJson"/> ile alınmış duruma döner (dosyaya yazılamayan değişiklik geri alınır).</summary>
+    public void RestoreFrom(string json)
+    {
+        var saved = FromJson(json);
+        _items.Clear();
+        _items.AddRange(saved._items);
+    }
 
     /// <summary>Kayıtlı hafızayı okur; bozuksa <see cref="FormatException"/>.</summary>
     public static MemoryBook FromJson(string json)

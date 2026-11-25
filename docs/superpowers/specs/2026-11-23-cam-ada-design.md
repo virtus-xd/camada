@@ -167,9 +167,10 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 - **Sesli asistan Ada (Plan 5):**
   - Konuşma ve anlama: Google Gemini Live (ham WebSocket, `models/gemini-3.8-live`, ses "Kore", bağlam sıkıştırma). Kullanıcının kendi API anahtarı, DPAPI ile `%LOCALAPPDATA%\CamAda\gemini-key.bin`.
   - Güncel bilgi (döviz, altın, maç, hava): ayrı REST isteği, `gemini-3.5-flash-lite` + Google araması; Ada bunu `guncel_bilgi` işleviyle çağırır.
-  - Uyandırma: sherpa-onnx anahtar sözcük algılayıcısı (gigaspeech KWS 3.3M int8, Apache 2.0), tek çekirdeğin ~%3–4'ü; ses bilgisayarda kalır.
-  - Yankı engelleme: Windows Voice Capture DSP (`CLSID_CWMAudioAEC`, kaynak modu); açılamazsa düz mikrofon ve yarı çift yönlü.
-  - İşlevler (ses, cihaz, parlaklık, telsizler, medya, Spotify çalma, uygulama aç/kapat, site, Google, WhatsApp bağlantısı, kilit/uyku, iki adımlı kapatma, hafıza) mevcut servislerin üstüne bağlanır; Spotify çalma için `user-modify-playback-state` izni eklendi ("İzni yenile").
+  - Uyandırma: sherpa-onnx anahtar sözcük algılayıcısı (gigaspeech KWS 3.3M int8, Apache 2.0), tek çekirdeğin ~%3–4'ü; ses bilgisayarda kalır. Oturuma yalnız algılamadan 0,8 sn öncesinden sonrası gider; dinleyici oturum mikrofonu ilk sesini verene kadar kayda devam eder ("Hey Ada, sesi kıs" tek nefeste).
+  - Yankı engelleme: Windows Voice Capture DSP (`CLSID_CWMAudioAEC`, kaynak modu); açılamazsa düz mikrofon ve yarı çift yönlü (bilgi her mikrofon için bir kez). Yerel söz kesmede Ada hemen susar; Google onaylamazsa (öksürük) kaldığı yerden sürer.
+  - Bağlantı: saniyede bir ping, 3 sn'de pong gelmezse "Bağlantı koptu". 10 dk sınırında Ada "Uzun sürdü, yeniden çağırabilirsin" der ve kapanır.
+  - İşlevler (ses, cihaz, parlaklık, telsizler, medya, Spotify çalma, uygulama aç/kapat, site, Google, WhatsApp bağlantısı, kilit/uyku, iki adımlı kapatma, hafıza) mevcut servislerin üstüne bağlanır; Spotify çalma için `user-modify-playback-state` izni eklendi ("İzni yenile", yalnız Ada açıkken istenir).
   - Hafıza: en çok 50 madde, DPAPI ile `ada-hafiza.bin`; kullanım tahmini `ada-kullanim.json`.
 
 ## 9. Riskler ve ilk deneme (spike)

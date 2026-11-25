@@ -275,7 +275,7 @@ internal sealed partial class AdaPanel : UserControl
     }
 
     private void ClearMemory_Click(object sender, RoutedEventArgs e) =>
-        Confirm(ClearMemoryButton, _clearMemoryGate, "Hafızayı temizle", _services.Memory.Clear);
+        Confirm(ClearMemoryButton, _clearMemoryGate, "Hafızayı temizle", () => _services.Memory.Clear()); // yazılamazsa liste olduğu gibi kalır
 
     /// <summary>İki adımlı düğme: ilk basış "Emin misin?" der, süre içindeki ikinci basış işlemi yapar.</summary>
     private void Confirm(Button button, ConfirmGate gate, string label, Action action)

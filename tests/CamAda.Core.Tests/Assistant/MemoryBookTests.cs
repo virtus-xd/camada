@@ -70,4 +70,27 @@ public class MemoryBookTests
         Assert.Equal(book.Items, MemoryBook.FromJson(book.ToJson()).Items);
         Assert.Throws<FormatException>(() => MemoryBook.FromJson("{"));
     }
+
+    [Fact]
+    public void Long_topic_is_rejected()
+    {
+        var book = new MemoryBook();
+        Assert.IsType<MemoryChange.Rejected>(book.Remember(new string('k', MemoryBook.MaxTopicLength + 1), "bilgi", Tick()));
+        Assert.IsType<MemoryChange.Saved>(book.Remember(new string('k', MemoryBook.MaxTopicLength), "bilgi", Tick()));
+    }
+
+    [Fact]
+    public void Restore_puts_back_saved_state()
+    {
+        var book = new MemoryBook();
+        book.Remember("şehir", "Ankara", Tick());
+        var saved = book.ToJson();
+        book.Remember("şehir", "İzmir", Tick());
+        book.Remember("takım", "Ankaraspor", Tick());
+
+        book.RestoreFrom(saved);
+
+        var item = Assert.Single(book.Items);
+        Assert.Equal("Ankara", item.Fact);
+    }
 }

@@ -91,4 +91,22 @@ public class SessionRulesTests
         Wait(600);
         Assert.Equal(SessionEnd.MaxDuration, rules.Check());
     }
+
+    [Fact]
+    public void Overlapping_tool_batches_hold_until_last_finishes()
+    {
+        var rules = Make();
+        rules.UserSpoke();
+        rules.ToolRunning(true);  // ilk işlev grubu (ör. Spotify'ı açıp çalma)
+        rules.ToolRunning(true);  // ikinci grup ilki bitmeden geldi
+        Wait(3);
+        rules.ToolRunning(false); // ilki bitti; ikincisi sürüyor
+        Wait(30);
+        Assert.Null(rules.Check());
+        rules.ToolRunning(false);
+        Wait(7.9);
+        Assert.Null(rules.Check());
+        Wait(0.2);
+        Assert.Equal(SessionEnd.Silence, rules.Check());
+    }
 }

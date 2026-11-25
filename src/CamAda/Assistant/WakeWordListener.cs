@@ -11,20 +11,24 @@ namespace CamAda.Assistant;
 /// <summary>
 /// "Hey Ada" dinleyicisi: seçili mikrofonu 16 kHz'te dinler ve sherpa-onnx anahtar sözcük algılayıcısına verir (eğitimsiz,
 /// gigaspeech 3.3M int8; tek iş parçacığı, tek çekirdeğin ~%3–4'ü). Ses bilgisayarda kalır. Son 2 sn ön kayıtta tutulur:
-/// "Hey Ada, sesi kıs" tek nefeste söylenince komut kaybolmasın.
+/// "Hey Ada, sesi kıs" tek nefeste söylenince komut kaybolmasın. Oturuma yalnız algılamadan 0,8 sn öncesinden sonrası
+/// gider (algılama "Ada"nın bitişinden ~0,3 sn sonra gelir; TTS ölçümü): uyandırma sözünden önceki konuşma bilgisayarda
+/// kalır. Oturum mikrofonu ilk sesini verene kadar dinleyici kayda devam eder, aradaki söz de kaybolmaz.
 /// </summary>
 internal sealed class WakeWordListener : IDisposable
 {
     private const string Encoder = "encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx";
     private const string Decoder = "decoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx";
     private const string Joiner = "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx";
+    private const int WakeLeadSamples = 16000 * 8 / 10;
 
     private readonly KeywordSpotter _spotter;
     private readonly Func<MMDevice?> _mic;
     private readonly PreRollBuffer _preRoll = new(32000);
     private readonly object _lock = new();
-    private PlainMic? _capture;
+    private IAdaMic? _capture;
     private OnlineStream? _stream;
+    private long _detectedAt = -1;
 
     public WakeWordListener(string modelDir, double threshold, Func<MMDevice?> mic)
     {
@@ -96,7 +100,7 @@ internal sealed class WakeWordListener : IDisposable
             return false;
         }
 
-        var capture = new PlainMic(device);
+        var capture = MicFactory.Plain(device);
         capture.Samples += OnSamples; // akış kurulana kadar gelen parçalar atılır
         capture.Failed += OnCaptureFailed;
         try
@@ -114,6 +118,7 @@ internal sealed class WakeWordListener : IDisposable
             if (_capture is null)
             {
                 _preRoll.Drain(); // önceki dinlemeden kalan ses yeni oturuma gitmesin
+                _detectedAt = -1;
                 _stream = _spotter.CreateStream();
                 _capture = capture;
                 return true;
@@ -130,7 +135,7 @@ internal sealed class WakeWordListener : IDisposable
     /// </summary>
     public void Stop()
     {
-        PlainMic? capture;
+        IAdaMic? capture;
         OnlineStream? stream;
         lock (_lock)
         {
@@ -139,6 +144,7 @@ internal sealed class WakeWordListener : IDisposable
             _capture = null;
             _stream = null;
             _preRoll.Drain();
+            _detectedAt = -1;
         }
 
         if (capture is not null)
@@ -149,7 +155,7 @@ internal sealed class WakeWordListener : IDisposable
         stream?.Dispose(); // kilit bırakıldıktan sonra hiçbir OnSamples artık bu akışa dokunmaz
     }
 
-    private void Release(PlainMic capture)
+    private void Release(IAdaMic capture)
     {
         capture.Samples -= OnSamples;
         capture.Failed -= OnCaptureFailed;
@@ -158,12 +164,26 @@ internal sealed class WakeWordListener : IDisposable
 
     private void OnCaptureFailed(string message) => Failed?.Invoke(message);
 
-    /// <summary>Son 2 sn'lik ön kayıt (16 kHz mono), eskiden yeniye; arabellek boşalır.</summary>
+    /// <summary>Son boşaltmadan bu yana duyulan (en çok 2 sn, 16 kHz mono), eskiden yeniye; arabellek boşalır.</summary>
     public short[] DrainPreRoll()
     {
         lock (_lock)
         {
             return _preRoll.Drain();
+        }
+    }
+
+    /// <summary>
+    /// "Hey Ada" ile açılan oturumun ilk sesi: son algılamadan 0,8 sn öncesinden bugüne; daha öncesi atılır (bilgisayarda
+    /// kalır). Algılama yoksa boş. Arabellek boşalır.
+    /// </summary>
+    public short[] DrainFromWake()
+    {
+        lock (_lock)
+        {
+            var from = _detectedAt < 0 ? long.MaxValue : _detectedAt - WakeLeadSamples;
+            _detectedAt = -1;
+            return _preRoll.DrainFrom(from);
         }
     }
 
@@ -196,6 +216,7 @@ internal sealed class WakeWordListener : IDisposable
                 _spotter.Decode(_stream);
                 if (!string.IsNullOrEmpty(_spotter.GetResult(_stream).Keyword))
                 {
+                    _detectedAt = _preRoll.Total;
                     _spotter.Reset(_stream);
                     detected = true;
                 }
