@@ -27,6 +27,12 @@ internal static class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-baglanti-sina"))
+        {
+            await ConnectionAsync();
+            return true;
+        }
+
         if (args.Contains("--ada-uyandirma-sina"))
         {
             await WakeAsync(Seconds(args, 60));
@@ -73,6 +79,53 @@ internal static class AdaProbes
 
         listener.Stop();
         Log($"ada-uyandirma-sina: bitti, {count} algılama");
+    }
+
+    /// <summary>
+    /// Eski düz anahtarı içeri alır; ses göndermeden Live kurulumu yapıp kapatır; gerçek bir güncel bilgi araması ve
+    /// geçersiz anahtarla bir arama dener; dosyaları ve anahtar sızıntısını denetler.
+    /// </summary>
+    private static async Task ConnectionAsync()
+    {
+        var settings = Settings();
+        var keys = new GeminiKeyStore(LocalDir);
+        var legacy = Path.Combine(LocalDir, "gemini-anahtar.txt");
+        var imported = keys.ImportLegacy(legacy);
+        var key = keys.Load();
+        Log($"ada-baglanti-sina: eski anahtar içeri alındı={imported}, anahtar var={key is not null}");
+        if (key is null)
+        {
+            return;
+        }
+
+        var setup = Core.Assistant.LiveSetup.Build(new Core.Assistant.LiveSetupOptions(settings.Model, settings.Voice,
+            Core.Assistant.AdaInstruction.Build(DateTime.Now, []), Core.Assistant.AdaTools.Declarations()));
+        try
+        {
+            await using var client = await GeminiLiveClient.ConnectAsync(key, setup, CancellationToken.None);
+            Log($"kurulum tamam (yol: başlık, model {settings.Model})");
+            await client.CloseAsync();
+        }
+        catch (AssistantException ex)
+        {
+            Log($"kurulum başarısız: {ex.Error}");
+        }
+
+        var info = new CurrentInfoClient(() => key, () => settings.LookupModel);
+        var answer = await info.AskAsync("Bugün 1 ABD doları kaç Türk lirası?", CancellationToken.None);
+        Log($"arama: Ok={answer.Ok}, Searched={answer.Searched}, tokenlar {answer.PromptTokens}/{answer.OutputTokens}, " +
+            $"hata {answer.Error}: {answer.Text.ReplaceLineEndings(" ")[..Math.Min(160, answer.Text.Length)]}");
+
+        var bad = await new CurrentInfoClient(() => "x", () => settings.LookupModel).AskAsync("deneme", CancellationToken.None);
+        Log($"geçersiz anahtar: {bad.Error}");
+
+        Log($"dosyalar: gemini-anahtar.txt var={File.Exists(legacy)}, gemini-key.bin var={File.Exists(Path.Combine(LocalDir, "gemini-key.bin"))}");
+        var probe = key[..Math.Min(8, key.Length)];
+        var leaked = new[] { "ada-deneme.log", "crash.log" }
+            .Select(f => Path.Combine(LocalDir, f))
+            .Where(File.Exists)
+            .Any(f => File.ReadAllText(f).Contains(probe, StringComparison.Ordinal));
+        Log($"anahtar sızıntısı: {(leaked ? "VAR" : "yok")}");
     }
 
     private static AssistantSettings Settings()
