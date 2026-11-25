@@ -27,10 +27,54 @@ internal static class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-uyandirma-sina"))
+        {
+            await WakeAsync(Seconds(args, 60));
+            return true;
+        }
+
         return false;
     }
 
     /// <summary>Ayarlar; <c>CAMADA_ADA_MIC</c> verilmişse mikrofon ondan (kullanıcının ayar dosyasına dokunmadan).</summary>
+    /// <summary>"--sure=N" (saniye) verilmişse o, yoksa varsayılan.</summary>
+    private static int Seconds(string[] args, int fallback) =>
+        args.FirstOrDefault(a => a.StartsWith("--sure=", StringComparison.Ordinal)) is { } s && int.TryParse(s[7..], out var n) ? n : fallback;
+
+    private static string ModelDir => Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord");
+
+    /// <summary>"Hey Ada" dinleyicisi: algılamalar ve 15 sn'de bir tek çekirdek işlemci yüzdesi.</summary>
+    private static async Task WakeAsync(int seconds)
+    {
+        var settings = Settings();
+        using var listener = new WakeWordListener(ModelDir, settings.WakeThreshold, () => MicDevices.ResolveMic(settings.Microphone));
+        var count = 0;
+        listener.Detected += () => Log($"ALGILANDI #{Interlocked.Increment(ref count)}");
+        listener.Failed += message => Log("uyandırma hata: " + message);
+        if (!listener.Start())
+        {
+            Log("ada-uyandirma-sina: mikrofon yok");
+            return;
+        }
+
+        Log($"ada-uyandirma-sina: dinliyor ({seconds} sn, eşik {settings.WakeThreshold}, mikrofon {MicDevices.ResolveMic(settings.Microphone)?.FriendlyName})");
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        var end = DateTime.UtcNow.AddSeconds(seconds);
+        while (DateTime.UtcNow < end)
+        {
+            var cpuBefore = process.TotalProcessorTime;
+            var wallBefore = DateTime.UtcNow;
+            var wait = TimeSpan.FromSeconds(Math.Min(15, (end - DateTime.UtcNow).TotalSeconds));
+            await Task.Delay(wait);
+            process.Refresh();
+            var cpu = (process.TotalProcessorTime - cpuBefore).TotalMilliseconds / (DateTime.UtcNow - wallBefore).TotalMilliseconds * 100;
+            Log($"İŞLEMCİ %{cpu:F1} (tek çekirdek)");
+        }
+
+        listener.Stop();
+        Log($"ada-uyandirma-sina: bitti, {count} algılama");
+    }
+
     private static AssistantSettings Settings()
     {
         var settings = new SettingsStore(RoamingDir).Load().Assistant;

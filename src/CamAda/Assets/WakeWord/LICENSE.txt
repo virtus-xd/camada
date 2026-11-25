@@ -1,0 +1,6 @@
+sherpa-onnx anahtar sözcük modeli (keyword spotting)
+Model: sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01 (int8 encoder/decoder/joiner ve tokens.txt)
+Kaynak: https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2
+Eğitim: GigaSpeech XL (10.000 saat), icefall ile; k2-fsa / sherpa-onnx projesi.
+Lisans: Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+CamAda bu dosyaları değiştirmeden kullanır.
