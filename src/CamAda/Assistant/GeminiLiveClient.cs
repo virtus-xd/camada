@@ -19,6 +19,7 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
         "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 
     private static readonly TimeSpan SetupTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(10);
 
     private readonly ClientWebSocket _socket;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
@@ -48,26 +49,26 @@ internal sealed class GeminiLiveClient : IAsyncDisposable
         var socket = new ClientWebSocket();
         socket.Options.CollectHttpResponseDetails = true;
         socket.Options.SetRequestHeader("x-goog-api-key", apiKey);
+        // Oturumun iptali bağlanma adımına geçirilmez: TCP kurulurken iptal edilen ClientWebSocket atılsa da .NET'in iç
+        // bağlantısı açık kalıyordu (deneme: kapanıştan 13 sn sonra Google'a açık bağlantı). Bağlanma kendi zaman aşımıyla
+        // biter, iptal hemen ardından fark edilip bağlantı düzgünce kapatılır.
+        using var connectTimeout = new CancellationTokenSource(ConnectTimeout);
         try
         {
-            await socket.ConnectAsync(new Uri(Endpoint), ct);
+            await socket.ConnectAsync(new Uri(Endpoint), connectTimeout.Token);
         }
-        catch (Exception ex) when (ex is WebSocketException or HttpRequestException or IOException)
+        catch (Exception ex) when (ex is WebSocketException or HttpRequestException or IOException or OperationCanceledException)
         {
             var status = (int)socket.HttpStatusCode;
             socket.Dispose();
             throw new AssistantException(status == 0 ? AssistantError.Network : LiveErrors.FromHttp(status, null), "Gemini'ye bağlanılamadı.");
-        }
-        catch (OperationCanceledException)
-        {
-            socket.Dispose(); // bağlanırken kapatıldı: yarım bağlantı açık kalmasın
-            throw;
         }
 
         var client = new GeminiLiveClient(socket);
         client._receiving = Task.Run(client.ReceiveLoopAsync);
         try
         {
+            ct.ThrowIfCancellationRequested();
             await client.SendAsync(setup);
             var done = await Task.WhenAny(client._setup.Task, Task.Delay(SetupTimeout, ct));
             var error = done == client._setup.Task ? client._setup.Task.Result : AssistantError.Network;

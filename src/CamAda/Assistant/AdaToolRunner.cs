@@ -4,7 +4,6 @@ using System.Text.Json.Nodes;
 using CamAda.Core.Assistant;
 using CamAda.Core.Diagnostics;
 using CamAda.Core.Media;
-using CamAda.Core.Power;
 using CamAda.Core.Search;
 using CamAda.Interop;
 using CamAda.Panels;
@@ -41,8 +40,22 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
     private static readonly string LocalDir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CamAda");
 
-    private readonly ConfirmGate _shutdownGate = new(time, ConfirmWindow);
-    private readonly ConfirmGate _rebootGate = new(time, ConfirmWindow);
+    private readonly UserConfirmGate _shutdownGate = new(time, ConfirmWindow);
+    private readonly UserConfirmGate _rebootGate = new(time, ConfirmWindow);
+
+    /// <summary>Kullanıcının sözü geldi (canlı yazı): kapatma onayı yalnız sorudan sonra konuşulduysa geçer.</summary>
+    public void UserSpoke()
+    {
+        _shutdownGate.UserSpoke();
+        _rebootGate.UserSpoke();
+    }
+
+    /// <summary>Yeni oturum: önceki oturumda sorulan "emin misin?" geçerli değildir.</summary>
+    public void ResetConfirmations()
+    {
+        _shutdownGate.Reset();
+        _rebootGate.Reset();
+    }
 
     public async Task<string> RunAsync(ToolCall call)
     {
@@ -351,8 +364,8 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
     }
 
     /// <summary>
-    /// Önce uygulama adı ya da dosya adıyla eşler ve o uygulamanın tüm pencerelerine kapatma isteği gönderir; bulunmazsa
-    /// pencere başlığıyla tek pencereyi kapatır. Asla zorla öldürmez (uygulama "kaydet?" diye sorabilir).
+    /// Uygulama adı, dosya adı ya da Türkçe takma adıyla eşler ve o uygulamanın tüm pencerelerine kapatma isteği gönderir.
+    /// Asla zorla öldürmez (uygulama "kaydet?" diye sorabilir).
     /// </summary>
     private string CloseApp(string spoken)
     {
@@ -406,17 +419,9 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
             return $"tamam: {chosen} için {targets.Count} pencereye kapatma isteği gönderildi";
         }
 
-        var titles = windows.Select(w => w.Title).ToList();
-        switch (NameMatch.Best(spoken, titles))
-        {
-            case NameMatchResult.Found found:
-                Native.RequestClose(windows[found.Index].Hwnd);
-                return $"tamam: '{windows[found.Index].Title}' penceresine kapatma isteği gönderildi";
-            case NameMatchResult.Ambiguous ambiguous:
-                return $"hata: birden fazla pencere uyuyor: {string.Join(", ", ambiguous.Indexes.Take(5).Select(i => titles[i]))}; hangisi?";
-            default:
-                return $"hata: açık '{spoken}' penceresi yok";
-        }
+        // Pencere başlığıyla eşlenmez: "Discord'u kapat" derken başlığında Discord geçen bütün bir tarayıcı penceresi
+        // (sekmeleriyle) kapanmasın.
+        return $"hata: açık '{spoken}' uygulaması yok";
     }
 
     private static string GroupOf(OpenWindow w) => w.AppName.Length > 0 ? w.AppName : w.ExeName;
@@ -495,10 +500,12 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
 
     private string Power(bool restart)
     {
-        var gate = restart ? _rebootGate : _shutdownGate;
-        if (!gate.Press())
+        switch ((restart ? _rebootGate : _shutdownGate).Press())
         {
-            return "onay gerekiyor: kullanıcıya 'emin misin?' diye sor; onaylarsa 30 sn içinde yeniden çağır";
+            case ConfirmStep.Ask:
+                return "onay gerekiyor: kullanıcıya 'emin misin?' diye sor; onaylarsa 30 sn içinde yeniden çağır";
+            case ConfirmStep.WaitForUser:
+                return "onay gerekiyor: kullanıcı henüz yanıt vermedi; önce sor ve yanıtını bekle, yalnız 'evet' derse yeniden çağır";
         }
 
         ctx.EndSessionAfterSpeech();

@@ -21,6 +21,7 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
     private DateTimeOffset _startedAt;
     private DateTimeOffset? _lastUserSpokeAt;
     private DateTimeOffset? _adaFinishedAt;
+    private DateTimeOffset? _toolFinishedAt;
     private bool _adaSpeaking;
     private bool _toolRunning;
 
@@ -29,6 +30,7 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
         _startedAt = time.GetUtcNow();
         _lastUserSpokeAt = null;
         _adaFinishedAt = null;
+        _toolFinishedAt = null;
         _adaSpeaking = false;
         _toolRunning = false;
     }
@@ -43,7 +45,16 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
         _adaFinishedAt = time.GetUtcNow();
     }
 
-    public void ToolRunning(bool running) => _toolRunning = running;
+    /// <summary>İşlev başladı ya da bitti; bitiş etkinlik sayılır (yavaş işlevden sonra Ada'nın sonucu söylemesine zaman kalır).</summary>
+    public void ToolRunning(bool running)
+    {
+        if (_toolRunning && !running)
+        {
+            _toolFinishedAt = time.GetUtcNow();
+        }
+
+        _toolRunning = running;
+    }
 
     public SessionEnd? Check()
     {
@@ -58,12 +69,12 @@ public sealed class SessionRules(TimeProvider time, TimeSpan silence, TimeSpan n
             return null;
         }
 
-        if (_lastUserSpokeAt is null && _adaFinishedAt is null)
+        if (_lastUserSpokeAt is null && _adaFinishedAt is null && _toolFinishedAt is null)
         {
             return now - _startedAt >= noSpeech ? SessionEnd.NoSpeech : null;
         }
 
-        var reference = Latest(_lastUserSpokeAt, _adaFinishedAt);
+        var reference = Latest(Latest(_lastUserSpokeAt, _adaFinishedAt), _toolFinishedAt);
         return now - reference >= silence ? SessionEnd.Silence : null;
     }
 

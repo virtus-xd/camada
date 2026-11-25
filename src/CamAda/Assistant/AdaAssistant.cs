@@ -49,6 +49,7 @@ internal sealed class AdaAssistant : IDisposable
     private bool _fullScreen;
     private bool _disposed;
     private DateTime _lastTrigger = DateTime.MinValue;
+    private bool _micFailureShown;
 
     public AdaAssistant(Dispatcher dispatcher, AdaDependencies deps)
     {
@@ -175,7 +176,20 @@ internal sealed class AdaAssistant : IDisposable
         return settings.Enabled && (!_fullScreen || settings.ListenInFullScreen) && _deps.Keys.Load() is not null;
     }
 
+    /// <summary>Dinlemenin gerekip gerekmediğine bakar; hiçbir hata uygulamayı düşürmez (async void).</summary>
     private async void UpdateListening()
+    {
+        try
+        {
+            await UpdateListeningCoreAsync();
+        }
+        catch (Exception ex) when (!IsFatal(ex))
+        {
+            _deps.Log(ex);
+        }
+    }
+
+    private async Task UpdateListeningCoreAsync()
     {
         if (!ShouldListen())
         {
@@ -200,7 +214,7 @@ internal sealed class AdaAssistant : IDisposable
                 _listener.Detected += () => _dispatcher.BeginInvoke(OnWake);
                 _listener.Failed += message => _dispatcher.BeginInvoke(() => OnListenerFailed(message));
             }
-            catch (Exception ex) when (ex is not OutOfMemoryException)
+            catch (Exception ex) when (!IsFatal(ex))
             {
                 _deps.Log(ex);
                 Notice?.Invoke(this, "Ada'nın uyandırma sözcüğü yüklenemedi; kısayol çalışıyor");
@@ -219,12 +233,7 @@ internal sealed class AdaAssistant : IDisposable
             }
         }
 
-        if (!ShouldListen())
-        {
-            return;
-        }
-
-        if (_listener.IsListening)
+        if (!ShouldListen() || _listener.IsListening)
         {
             return;
         }
@@ -234,17 +243,34 @@ internal sealed class AdaAssistant : IDisposable
         {
             started = _listener.Start();
         }
-        catch (Exception ex) when (ex is COMException or InvalidOperationException or ArgumentException)
+        catch (Exception ex) when (!IsFatal(ex))
         {
+            // Ör. Windows gizlilik ayarı masaüstü uygulamalarına mikrofonu kapatmış (E_ACCESSDENIED → UnauthorizedAccessException).
             _deps.Log(ex);
             started = false;
         }
 
-        if (!started)
+        if (started)
         {
+            _micFailureShown = false;
+        }
+        else
+        {
+            ShowMicFailureOnce();
+        }
+    }
+
+    /// <summary>"Mikrofon bulunamadı" bir kez görünür; mikrofon yeniden dinlenene kadar (tam ekrandan çıkış, cihaz olayları) tekrarlanmaz.</summary>
+    private void ShowMicFailureOnce()
+    {
+        if (!_micFailureShown)
+        {
+            _micFailureShown = true;
             ShowFailed(AssistantError.Microphone, AdaState.MessageFor(AssistantError.Microphone, false));
         }
     }
+
+    private static bool IsFatal(Exception ex) => ex is OutOfMemoryException or StackOverflowException or AccessViolationException;
 
     private void StopListening() => _listener?.Stop();
 
@@ -265,7 +291,7 @@ internal sealed class AdaAssistant : IDisposable
         StopListening();
         if (_session is null)
         {
-            ShowFailed(AssistantError.Microphone, AdaState.MessageFor(AssistantError.Microphone, false));
+            ShowMicFailureOnce(); // mikrofon geri gelince cihaz olayıyla yeniden denenir
         }
     }
 
@@ -307,6 +333,7 @@ internal sealed class AdaAssistant : IDisposable
             TimeSpan.FromSeconds(settings.NoSpeechSeconds), TimeSpan.FromMinutes(settings.MaxSessionMinutes)));
         _session = session;
         _failedTimer.Stop();
+        _runner.ResetConfirmations(); // önceki oturumdan kalan "emin misin?" bu oturumda geçmez
         SetState(new AdaState.Connecting());
 
         // Ses cihazlarına dokunan her şey (çözme, WASAPI hoparlörü kurma ~0,3 sn) arka planda, tek COM dairesinde (MTA):
@@ -336,9 +363,9 @@ internal sealed class AdaAssistant : IDisposable
 
         session.Speaker = output;
         output.PlayCue(AdaCue.Wake);
-        if (settings.DuckOthers && _deps.Audio is { } audio)
+        if (settings.DuckOthers)
         {
-            session.Ducker = new AudioDucker(audio);
+            session.Ducker = new AudioDucker(output.DeviceId);
             session.Ducker.Duck(DuckFactor);
         }
 
@@ -416,7 +443,7 @@ internal sealed class AdaAssistant : IDisposable
         {
             return new AdaSpeaker(device);
         }
-        catch (Exception ex) when (ex is COMException or InvalidOperationException or ArgumentException)
+        catch (Exception ex) when (!IsFatal(ex))
         {
             _deps.Log(ex);
             return null;
@@ -436,7 +463,7 @@ internal sealed class AdaAssistant : IDisposable
             mic.Start();
             return mic;
         }
-        catch (Exception ex) when (ex is COMException or InvalidOperationException or ArgumentException)
+        catch (Exception ex) when (!IsFatal(ex))
         {
             _deps.Log(ex);
             return null;
@@ -583,6 +610,7 @@ internal sealed class AdaAssistant : IDisposable
         {
             case LiveEvent.InputText input:
                 session.Rules.UserSpoke();
+                _runner.UserSpoke();
                 if (session.UserTurnDone)
                 {
                     session.UserLine = "";
@@ -771,6 +799,14 @@ internal sealed class AdaAssistant : IDisposable
 
         session.Closing = true;
         session.Cancel.Cancel();
+        if (immediate)
+        {
+            // Düğme, kısayol, kilit, uyku ya da uygulamadan çıkış: ses hemen kesilir, öbür uygulamaların sesi ilk beklemeden
+            // önce geri gelir (çıkışta süreç bu metodun sonunu görmeyebilir).
+            session.Speaker?.Clear();
+            session.Ducker?.Restore();
+        }
+
         if (failure is { } f)
         {
             session.Speaker?.Clear();
@@ -782,50 +818,67 @@ internal sealed class AdaAssistant : IDisposable
             ShowFailed(AssistantError.None, notice);
         }
 
-        if (session.Mic is { } mic)
+        try
         {
-            session.Mic = null;
-            await Task.Run(mic.Dispose);
-        }
+            if (session.Mic is { } mic)
+            {
+                session.Mic = null;
+                await Task.Run(mic.Dispose);
+            }
 
-        if (session.Client is { } client)
+            if (session.Client is { } client)
+            {
+                session.Client = null;
+                await client.DisposeAsync();
+            }
+
+            for (var i = 0; i < 80 && session.Speaker?.IsPlaying == true; i++)
+            {
+                await Task.Delay(100);
+            }
+        }
+        catch (Exception ex) when (!IsFatal(ex))
         {
-            session.Client = null;
-            await client.DisposeAsync();
+            _deps.Log(ex);
         }
-
-        if (immediate)
+        finally
         {
-            session.Speaker?.Clear();
-        }
+            // Ne olursa olsun oturum bırakılır: yoksa Ada bir daha açılmaz, uyandırma dinlemez.
+            session.Ducker?.Restore();
+            if (session.Speaker is { } speaker)
+            {
+                session.Speaker = null;
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        speaker.Dispose();
+                    }
+                    catch (Exception ex) when (!IsFatal(ex))
+                    {
+                        _deps.Log(ex); // ör. cihaz oturum sırasında çıkarıldı
+                    }
+                });
+            }
 
-        for (var i = 0; i < 80 && session.Speaker?.IsPlaying == true; i++)
-        {
-            await Task.Delay(100);
-        }
+            if (session.Connected)
+            {
+                _deps.Usage.Add(DateOnly.FromDateTime(DateTime.Now), session.Cost, 1, session.Searches);
+            }
 
-        session.Ducker?.Restore();
-        if (session.Speaker is { } speaker)
-        {
-            await Task.Run(speaker.Dispose);
-        }
+            if (_session == session)
+            {
+                _session = null;
+            }
 
-        if (session.Connected)
-        {
-            _deps.Usage.Add(DateOnly.FromDateTime(DateTime.Now), session.Cost, 1, session.Searches);
-        }
+            if (State is not AdaState.Failed)
+            {
+                State = new AdaState.Idle();
+            }
 
-        if (_session == session)
-        {
-            _session = null;
+            StateChanged?.Invoke(this, State); // durum aynı kalsa da (hata satırı erken bittiyse) düğme ve satır oturumun bittiğini öğrenir
+            UpdateListening();
         }
-
-        if (State is not AdaState.Failed)
-        {
-            SetState(new AdaState.Idle());
-        }
-
-        UpdateListening();
     }
 
     // --- Çıkış cihazı değişimi ---
@@ -836,6 +889,29 @@ internal sealed class AdaAssistant : IDisposable
     /// </summary>
     private async void OnDevicesChanged(object? sender, EventArgs e)
     {
+        try
+        {
+            await OnDevicesChangedCoreAsync();
+        }
+        catch (Exception ex) when (!IsFatal(ex))
+        {
+            _deps.Log(ex);
+        }
+    }
+
+    private async Task OnDevicesChangedCoreAsync()
+    {
+        if (_session is null)
+        {
+            // Boşta: mikrofon sonradan takıldıysa ya da yeniden bağlandıysa uyandırma kendiliğinden geri gelir.
+            if (_running && !_disposed && _listener?.IsListening != true)
+            {
+                UpdateListening();
+            }
+
+            return;
+        }
+
         if (_session is not { Closing: false, Speaker: { } old } session)
         {
             return;

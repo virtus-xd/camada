@@ -50,14 +50,21 @@ internal static partial class AdaProbes
         await Task.Delay(2500);
         Log($"başlangıçta uyandırma dinliyor={ada.IsWakeListening}");
 
+        string Volumes() => string.Join(", ", audio.Apps().Select(a => $"{a.Name} %{Math.Round(a.Volume * 100)}"));
+        Log($"uygulama sesleri önce: [{Volumes()}]");
         started = DateTime.UtcNow;
         ada.Trigger();
         ada.Trigger(); // çift basış: ikinci basış yok sayılmalı (tek oturum)
         Log($"tetiklendi; oturum var={ada.IsSessionActive}, uyandırma dinliyor={ada.IsWakeListening}");
+        await Task.Delay(2500);
+        Log($"uygulama sesleri oturumda: [{Volumes()}]");
         await Task.WhenAny(idle.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        Log($"uygulama sesleri sonra: [{Volumes()}]");
         await Task.Delay(1500);
         Log($"kapanıştan sonra: oturum var={ada.IsSessionActive}, uyandırma dinliyor={ada.IsWakeListening}, " +
             $"açık TCP={EstablishedTcp()}");
+        await Task.Delay(10000);
+        Log($"10 sn sonra açık TCP=[{EstablishedTcp()}]");
         var after = usage.Current;
         Log($"kullanım: oturum {before?.Sessions ?? 0}→{after?.Sessions ?? 0}, tahmini ${after?.EstimatedUsd - (before?.EstimatedUsd ?? 0):F4}");
         ada.Stop();
@@ -69,7 +76,7 @@ internal static partial class AdaProbes
         try
         {
             using var shell = Process.Start(new ProcessStartInfo("powershell.exe",
-                $"-NoProfile -Command \"@(Get-NetTCPConnection -OwningProcess {Environment.ProcessId} -State Established -ErrorAction SilentlyContinue).Count\"")
+                $"-NoProfile -Command \"(@(Get-NetTCPConnection -OwningProcess {Environment.ProcessId} -State Established -ErrorAction SilentlyContinue) | ForEach-Object {{ $_.RemoteAddress + ':' + $_.RemotePort }}) -join ' '\"")
             {
                 RedirectStandardOutput = true,
                 UseShellExecute = false,

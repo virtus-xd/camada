@@ -29,6 +29,15 @@ internal sealed class WakeWordListener : IDisposable
     public WakeWordListener(string modelDir, double threshold, Func<MMDevice?> mic)
     {
         _mic = mic;
+        // Eksik ya da silinmiş model dosyasıyla yerel kitaplık geçersiz tutamaçla sürüp süreci düşürebilir: önceden denetlenir.
+        foreach (var file in new[] { Encoder, Decoder, Joiner, "tokens.txt" })
+        {
+            if (!File.Exists(Path.Combine(modelDir, file)))
+            {
+                throw new FileNotFoundException("Uyandırma modeli eksik: " + file, Path.Combine(modelDir, file));
+            }
+        }
+
         var keywords = WakeWord.KeywordLine(threshold);
         var config = new KeywordSpotterConfig();
         config.FeatConfig.SampleRate = 16000;
@@ -68,7 +77,10 @@ internal sealed class WakeWordListener : IDisposable
         }
     }
 
-    /// <summary>Dinlemeye başlar; zaten dinliyorsa dokunmaz. Mikrofon yoksa false.</summary>
+    /// <summary>
+    /// Dinlemeye başlar; zaten dinliyorsa dokunmaz. Mikrofon yoksa false; açılamazsa (ör. gizlilik ayarı masaüstü
+    /// uygulamalarına mikrofonu kapatmış) atar ve yarım kayıt bırakmaz.
+    /// </summary>
     public bool Start()
     {
         lock (_lock)
@@ -77,33 +89,74 @@ internal sealed class WakeWordListener : IDisposable
             {
                 return true;
             }
-
-            if (_mic() is not { } device)
-            {
-                return false;
-            }
-
-            var capture = new PlainMic(device); // açılamazsa atar; akış yarım kalmasın diye önce
-            _stream = _spotter.CreateStream();
-            _capture = capture;
-            _capture.Samples += OnSamples;
-            _capture.Failed += message => Failed?.Invoke(message);
-            _capture.Start();
-            return true;
         }
-    }
 
-    /// <summary>Dinlemeyi bırakır ve mikrofonu serbest bırakır (oturum mikrofonu kendisi açar).</summary>
-    public void Stop()
-    {
+        if (_mic() is not { } device)
+        {
+            return false;
+        }
+
+        var capture = new PlainMic(device);
+        capture.Samples += OnSamples; // akış kurulana kadar gelen parçalar atılır
+        capture.Failed += OnCaptureFailed;
+        try
+        {
+            capture.Start();
+        }
+        catch
+        {
+            Release(capture);
+            throw;
+        }
+
         lock (_lock)
         {
-            _capture?.Dispose();
-            _capture = null;
-            _stream?.Dispose();
-            _stream = null;
+            if (_capture is null)
+            {
+                _preRoll.Drain(); // önceki dinlemeden kalan ses yeni oturuma gitmesin
+                _stream = _spotter.CreateStream();
+                _capture = capture;
+                return true;
+            }
         }
+
+        Release(capture); // bu arada başka bir çağrı başlattı
+        return true;
     }
+
+    /// <summary>
+    /// Dinlemeyi bırakır ve mikrofonu serbest bırakır (oturum mikrofonu kendisi açar). Yakalama kilit dışında atılır:
+    /// NAudio atarken kayıt iş parçacığını süresiz bekler, o da <see cref="OnSamples"/>'ta bu kilidi bekliyor olabilir.
+    /// </summary>
+    public void Stop()
+    {
+        PlainMic? capture;
+        OnlineStream? stream;
+        lock (_lock)
+        {
+            capture = _capture;
+            stream = _stream;
+            _capture = null;
+            _stream = null;
+            _preRoll.Drain();
+        }
+
+        if (capture is not null)
+        {
+            Release(capture);
+        }
+
+        stream?.Dispose(); // kilit bırakıldıktan sonra hiçbir OnSamples artık bu akışa dokunmaz
+    }
+
+    private void Release(PlainMic capture)
+    {
+        capture.Samples -= OnSamples;
+        capture.Failed -= OnCaptureFailed;
+        capture.Dispose();
+    }
+
+    private void OnCaptureFailed(string message) => Failed?.Invoke(message);
 
     /// <summary>Son 2 sn'lik ön kayıt (16 kHz mono), eskiden yeniye; arabellek boşalır.</summary>
     public short[] DrainPreRoll()

@@ -521,6 +521,7 @@ public partial class IslandWindow : Window
             };
         }
 
+        AdaRow.IsHitTestVisible = show;
         AdaRow.BeginAnimation(OpacityProperty, fade);
         if (_flashKind == FlashKind.None)
         {
@@ -587,7 +588,7 @@ public partial class IslandWindow : Window
             return;
         }
 
-        var flash = _flashKind != FlashKind.None ? _flashKind : _adaShown ? FlashKind.Passive : FlashKind.None;
+        var flash = _flashKind != FlashKind.None ? _flashKind : _adaShown ? FlashKind.Interactive : FlashKind.None;
         var presence = IslandPresenceRule.Decide(_fullScreen, _smartHide.IsOccluded, _hover.IsExpanded, flash);
 
         if (presence == IslandPresence.Hidden)
@@ -885,6 +886,18 @@ public partial class IslandWindow : Window
         _commands.SetRecordHidden(HideRecordItem.IsChecked);
 
     private void ExitItem_Click(object sender, RoutedEventArgs e) => _commands.Exit();
+
+    /// <summary>Ada satırına tıklandı (oturumu bitirmek için).</summary>
+    public event EventHandler? AdaRowClicked;
+
+    private void AdaRow_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_adaShown && _ada is not AdaState.Failed)
+        {
+            e.Handled = true;
+            AdaRowClicked?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     private void AssistantItem_Click(object sender, RoutedEventArgs e) =>
         _commands.SetAssistantEnabled(AssistantItem.IsChecked);

@@ -54,6 +54,21 @@ public class SessionRulesTests
     }
 
     [Fact]
+    public void Tool_finish_counts_as_activity()
+    {
+        // Yavaş işlev (Spotify'ı açıp beklemek, güncel bilgi zaman aşımı): bitince Ada'nın sonucu söylemesine zaman kalır.
+        var rules = Make();
+        rules.UserSpoke();
+        rules.ToolRunning(true);
+        Wait(10);
+        rules.ToolRunning(false);
+        Wait(1);
+        Assert.Null(rules.Check());
+        Wait(7.1);
+        Assert.Equal(SessionEnd.Silence, rules.Check());
+    }
+
+    [Fact]
     public void Tool_running_holds_session()
     {
         var rules = Make();

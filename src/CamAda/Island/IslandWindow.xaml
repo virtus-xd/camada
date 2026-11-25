@@ -166,10 +166,11 @@
                     </Button>
                 </Grid>
 
-                <!-- Ada'nın oturum satırı (Plan 5): nokta (dinlerken nabız atar), ✦ ya da ⚠ ve tek satır metin. Tıklama
-                     geçirir; ada bu sırada fareyle genişlemez. -->
+                <!-- Ada'nın oturum satırı (Plan 5): nokta (dinlerken nabız atar), ✦ ya da ⚠ ve tek satır metin. Tıklayınca
+                     oturum biter; ada bu sırada fareyle genişlemez. -->
                 <Grid x:Name="AdaRow" Margin="18,0" Opacity="0" Visibility="Collapsed" VerticalAlignment="Center"
-                      IsHitTestVisible="False">
+                      Background="Transparent" Cursor="Hand" ToolTip="Ada'yı sustur ve oturumu bitir"
+                      MouseLeftButtonUp="AdaRow_MouseLeftButtonUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />

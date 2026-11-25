@@ -59,6 +59,18 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-kisma-sina"))
+        {
+            DuckProbe();
+            return true;
+        }
+
+        if (args.Contains("--ada-uyandirma-stres"))
+        {
+            await WakeStressAsync();
+            return true;
+        }
+
         return false;
     }
 

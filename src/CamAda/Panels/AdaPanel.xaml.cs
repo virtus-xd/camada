@@ -99,6 +99,21 @@ internal sealed partial class AdaPanel : UserControl
 
     private async void SaveKey_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
+            await SaveKeyAsync();
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+        {
+            // Anahtar dosyası yazılamadı: uygulama düşmesin, kullanıcı görsün.
+            SaveKeyButton.IsEnabled = true;
+            KeyStatus.Visibility = Visibility.Visible;
+            KeyStatus.Text = "Anahtar kaydedilemedi: " + ex.Message;
+        }
+    }
+
+    private async Task SaveKeyAsync()
+    {
         var key = KeyBox.Password.Trim();
         if (key.Length == 0)
         {

@@ -39,7 +39,17 @@ internal sealed class PlainMic : IAdaMic
 
     public bool EchoCancelled => false;
 
-    public void Start() => _capture.StartRecording();
+    public void Start()
+    {
+#if DEBUG
+        if (Environment.GetEnvironmentVariable("CAMADA_ADA_MIC_DENIED") == "1")
+        {
+            // Windows gizlilik ayarı masaüstü uygulamalarına mikrofonu kapatınca WASAPI E_ACCESSDENIED verir.
+            throw new UnauthorizedAccessException("deneme: mikrofon izni kapalı sayıldı");
+        }
+#endif
+        _capture.StartRecording();
+    }
 
     public void Dispose()
     {

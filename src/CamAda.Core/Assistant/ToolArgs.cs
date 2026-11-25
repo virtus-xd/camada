@@ -95,8 +95,11 @@ public static class ToolArgs
             return null;
         }
 
-        var host = trimmed.ToLowerInvariant();
-        return "https://" + (host.Contains('.') ? host : host + ".com");
+        // Yalnız alan adı küçültülür: yol ve sorgu büyük/küçük harfe duyarlı olabilir (YouTube video kimliği).
+        var slash = trimmed.IndexOfAny(['/', '?', '#']);
+        var host = (slash < 0 ? trimmed : trimmed[..slash]).ToLowerInvariant();
+        var rest = slash < 0 ? "" : trimmed[slash..];
+        return "https://" + (host.Contains('.') ? host : host + ".com") + rest;
     }
 
     public static string GoogleSearchUrl(string query) => "https://www.google.com/search?q=" + Uri.EscapeDataString(query.Trim());

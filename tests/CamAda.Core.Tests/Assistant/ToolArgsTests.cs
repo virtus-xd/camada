@@ -44,6 +44,7 @@ public class ToolArgsTests
     [InlineData("https://www.youtube.com", "https://www.youtube.com")]
     [InlineData("youtube.com", "https://youtube.com")]
     [InlineData("YouTube", "https://youtube.com")]
+    [InlineData("YouTube.com/watch?v=dQw4w9WgXcQ", "https://youtube.com/watch?v=dQw4w9WgXcQ")]
     [InlineData("http://a.b/c?d=1", "http://a.b/c?d=1")]
     [InlineData("file:///C:/x", null)]
     [InlineData("javascript:alert(1)", null)]

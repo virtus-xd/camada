@@ -67,6 +67,7 @@ public partial class App : Application
     private MemoryFile? _adaMemory;
     private UsageFile? _adaUsage;
     private bool _adaHotkeyRegistered;
+    private bool _sessionLocked;
     private readonly List<DateTime> _watchdogStarts = new();
     private TaskbarSafetyStore _safety = null!;
     private SettingsStore _settingsStore = null!;
@@ -230,6 +231,7 @@ public partial class App : Application
             _island?.Bar.ShowAssistantActive(_ada?.IsSessionActive == true);
         };
         _island.Bar.AssistantClicked += (_, _) => OnAssistantClicked();
+        _island.AdaRowClicked += (_, _) => _ada?.Trigger();
         _strip!.FullScreenChanged += (_, fullScreen) => _ada?.SetFullScreen(fullScreen);
         _ada.SetFullScreen(_strip.IsFullScreenActive);
         Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitchForAda;
@@ -358,23 +360,34 @@ public partial class App : Application
     {
         if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
         {
+            _sessionLocked = true;
             _ada?.Stop();
         }
-        else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock && _settings.Assistant.Enabled)
+        else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
         {
-            _ada?.Start();
+            _sessionLocked = false;
+            if (_settings.Assistant.Enabled)
+            {
+                _ada?.Start();
+            }
         }
     });
 
-    private void OnPowerModeForAda(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e) => Dispatcher.BeginInvoke(() =>
+    private void OnPowerModeForAda(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e) => Dispatcher.BeginInvoke(async () =>
     {
         if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
         {
             _ada?.Stop();
         }
-        else if (e.Mode == Microsoft.Win32.PowerModes.Resume && _settings.Assistant.Enabled)
+        else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
         {
-            _ada?.Start(); // uyandırma yeniden kurulur (mikrofon uykuda kopmuş olabilir)
+            // Uyandırma yeniden kurulur (mikrofon uykuda kopmuş olabilir), ama kilit ekranında asla: biri "Hey Ada, benim
+            // hakkımda ne biliyorsun" diyemesin. Windows kilit olayını uyanıştan hemen sonra da gönderebildiği için beklenir.
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            if (!_sessionLocked && !_exiting && _settings.Assistant.Enabled)
+            {
+                _ada?.Start();
+            }
         }
     });
 

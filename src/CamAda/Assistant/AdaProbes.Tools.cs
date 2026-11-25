@@ -136,6 +136,8 @@ internal static partial class AdaProbes
         if (power is RecordingPowerActions)
         {
             await Call(AdaTools.BilgisayariKapat, """{"yeniden_baslat":false}""");
+            await Call(AdaTools.BilgisayariKapat, """{"yeniden_baslat":false}"""); // kullanıcı konuşmadan: geçmemeli
+            runner.UserSpoke(); // kullanıcı "evet" dedi (canlı yazı geldi)
             await Call(AdaTools.BilgisayariKapat, """{"yeniden_baslat":false}""");
             Log("sahte güç günlüğü: " + File.ReadAllText(Environment.GetEnvironmentVariable("CAMADA_FAKE_POWER")!).ReplaceLineEndings(" ").Trim());
         }
