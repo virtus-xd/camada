@@ -30,6 +30,7 @@ Başarı tanımı: Kullanıcı Windows görev çubuğunu kapatıp günlük işle
 - İkincil monitörlerde ada ya da üst şerit.
 - Açık tema. Sadece koyu görünüm.
 - **Bildirimler (Plan 4.4, kullanıcı kararıyla iptal, 25.11.2026).** Diğer uygulamaların bildirimlerini okumak Windows'ta paket kimliği istiyor. Deneme: imzasız seyrek paket reddedildi ("unsigned package cannot include Executable activations", 0x80073D2B); imzalı paket kurulumun kendinden imzalı bir sertifikayı güven deposuna eklemesini gerektiriyor. Kullanıcı projeyi ileride açık (public) yapmayı düşündüğü için bu, kurulumun güvenilirliğini zedeleyeceğinden bırakıldı. Yerine düşünülen zil düğmesi (Windows'un bildirim merkezini `ms-actioncenter:` ile açmak) görev çubuğu gizliyken hiçbir pencere açmadı; o da bırakıldı. Bildirimler Windows'un kendi balonlarıyla gelir. §7.1'deki bildirim sayısı, §7.2'deki bildirim düğmesi, §7.4'teki Bildirimler paneli ve §7.5'teki "Bildirim geldi" genişlemesi bu yüzden yapılmadı.
+- **Sesli asistan Ada'da (Plan 5) yerel dil modeli ve bildirim okumak.** Performans önce geldiği için bilgisayarda dil modeli çalıştırılmaz; anlama ve konuşma Google Gemini Live'dadır, bilgisayarda yalnız "Hey Ada" algılayıcısı çalışır. Ada bildirimleri okumaz (bildirimler yukarıdaki nedenle kapsam dışı).
 
 ## 4. Anti-hedefler (çalışsa bile başarısızlık sayılacak durumlar)
 
@@ -68,6 +69,7 @@ Seçim gerekçesi: Görev çubuğu tamamen kapatıldığı için pencere listesi
 - Ana ekranın üst ortasında, üstten 8 px boşlukla, 400×40 px hap.
 - İçerik: dönen mini plak (albüm kapağıyla) + şarkı adı ve sanatçı + çalarken oynayan ekolayzır çubukları; mikrofon kapalıysa kırmızımsı mikrofon işareti; bildirim sayısı; saat.
 - Müzik çalmıyorsa: tarih, hava durumu ve saat ("Cam ada: durumlar" artboard'undaki "Boşta").
+- **Sesli asistan Ada (Plan 5):** oturum sürerken (mikrofon Google'a açıkken) küçük adada kırmızımsı bir nokta durur (gizlilik işareti). Genişlemiş satırda ^'nin solunda mikrofon glifli Ada düğmesi var; oturumda glif vurgu renginde. Sağ tık menüsünde "Sesli asistan" (aç/kapat) ve "Ada ayarları…" (anahtar, mikrofon, aylık tahmini harcama, hafıza) bulunur. Ayrıntılar: [sesli asistan tasarımı](2026-11-25-sesli-asistan-design.md).
 
 ### 7.2 Ada: fareyle genişleyen hâl
 
@@ -102,6 +104,7 @@ Hepsi adanın altında, ortalı açılır; dışarı tıklayınca kapanır. Tek 
 - Bildirim geldi: ada genişleyip bildirimi gösterir, birkaç saniye sonra sayaca döner.
 - Ekran görüntüsü alındı (Win+Shift+S ya da Print Screen): küçük önizleme, Kopyala / Düzenle.
 - Ses ya da parlaklık değişti: ada içinde yatay gösterge (Windows'un kendi ses penceresinin yerine).
+- **Ada oturumu (Plan 5):** ada ekran görüntüsü önizlemesi gibi genişler (560×46) ve tek satır gösterir: "Dinliyorum…" ya da kullanıcının sözü (nokta hafifçe nabız atar), Ada konuşurken ✦ ve son cümlesi, hatada ⚠ ve ileti ("Bağlantı koptu", "Gemini anahtarı geçersiz"…; 4 sn). Satır oturum boyunca durur, örtülü yerde de görünür ama tıklamayı geçirir; bu sırada ada fareyle genişlemez. Kısa gösterge satırın üstüne gelir, bitince satır geri döner. Tam ekranda ada gizlidir; oturum yalnız sesle sürer.
 - Dosya rafı fikri v1 kapsamı dışında.
 
 ### 7.6 Akıllı gizlenme ve tam ekran (kullanıcı kararı, 23.11.2026)
@@ -161,6 +164,13 @@ Kullanıcının tarifi: sol alt tarafta, köşenin biraz üstüne gömülü, epe
 - Ekran görüntüleri: Resimler\Ekran Görüntüleri klasörünü izleme + panoya gelen görüntüleri yakalama.
 - Ayarlar: JSON dosyası (sabitlenmiş uygulamalar, kısayol tuşları, hava durumu konumu, Spotify Client ID).
 - Oturum açılışında otomatik başlama.
+- **Sesli asistan Ada (Plan 5):**
+  - Konuşma ve anlama: Google Gemini Live (ham WebSocket, `models/gemini-3.8-live`, ses "Kore", bağlam sıkıştırma). Kullanıcının kendi API anahtarı, DPAPI ile `%LOCALAPPDATA%\CamAda\gemini-key.bin`.
+  - Güncel bilgi (döviz, altın, maç, hava): ayrı REST isteği, `gemini-3.5-flash-lite` + Google araması; Ada bunu `guncel_bilgi` işleviyle çağırır.
+  - Uyandırma: sherpa-onnx anahtar sözcük algılayıcısı (gigaspeech KWS 3.3M int8, Apache 2.0), tek çekirdeğin ~%3–4'ü; ses bilgisayarda kalır.
+  - Yankı engelleme: Windows Voice Capture DSP (`CLSID_CWMAudioAEC`, kaynak modu); açılamazsa düz mikrofon ve yarı çift yönlü.
+  - İşlevler (ses, cihaz, parlaklık, telsizler, medya, Spotify çalma, uygulama aç/kapat, site, Google, WhatsApp bağlantısı, kilit/uyku, iki adımlı kapatma, hafıza) mevcut servislerin üstüne bağlanır; Spotify çalma için `user-modify-playback-state` izni eklendi ("İzni yenile").
+  - Hafıza: en çok 50 madde, DPAPI ile `ada-hafiza.bin`; kullanım tahmini `ada-kullanim.json`.
 
 ## 9. Riskler ve ilk deneme (spike)
 
