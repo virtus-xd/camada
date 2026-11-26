@@ -23,8 +23,11 @@ public sealed record AppSettings
 
     public int SettingsVersion { get; init; } = CurrentVersion;
 
-    /// <summary>Windows görev çubuğu gizlensin mi (ada onun yerini alır).</summary>
-    public bool HideWindowsTaskbar { get; init; } = true;
+    /// <summary>
+    /// Windows görev çubuğu gizlensin mi (ada onun yerini alır). Yeni kullanıcıda kapalı: kullanıcı ada menüsünden
+    /// (ileride ilk açılış ekranından) seçmeden sistem arayüzü gizlenmez.
+    /// </summary>
+    public bool HideWindowsTaskbar { get; init; }
 
     /// <summary>Oturum açılınca otomatik başlasın mı (HKCU\...\Run).</summary>
     public bool StartWithWindows { get; init; } = true;

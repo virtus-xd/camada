@@ -624,15 +624,18 @@ public partial class App : Application
             Launcher = CreateQuickLauncher(),
             Radios = IsAbsentForTest("radios") ? null : _radios,
             Brightness = _brightness,
-            Wifi = await CreateWifiAsync(),
+            Wifi = await CreateWifiAsync(_radios?.HasWifi ?? false),
             Bluetooth = _bluetooth = IsAbsentForTest("bluetooth") ? null : new BluetoothService(Dispatcher),
         };
         _island.Bar.WifiClicked += (_, _) => OpenQuickSettings();
         _island.Bar.BatteryClicked += (_, _) => OpenQuickSettings();
     }
 
-    /// <summary>Wi‑Fi listesi; adaptör yoksa ya da kurulamazsa null (kutucukta liste oku görünmez).</summary>
-    private static async Task<WifiService?> CreateWifiAsync()
+    /// <summary>
+    /// Wi‑Fi listesi; adaptör yoksa ya da kurulamazsa null (kutucukta liste oku görünmez). Paketliyken erişim izni
+    /// açılışta değil, liste ilk açıldığında istenir.
+    /// </summary>
+    private static async Task<WifiService?> CreateWifiAsync(bool hasWifiRadio)
     {
         if (IsAbsentForTest("wifi"))
         {
@@ -641,7 +644,12 @@ public partial class App : Application
 
         try
         {
-            return await WifiService.CreateAsync();
+            return WifiStartup.Decide(PackageContext.IsPackaged, hasWifiRadio) switch
+            {
+                WifiStartupMode.RequestNow => await WifiService.CreateAsync(),
+                WifiStartupMode.Deferred => WifiService.CreateDeferred(),
+                _ => null,
+            };
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
         {

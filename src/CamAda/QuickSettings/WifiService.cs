@@ -47,6 +47,12 @@ public sealed class WifiService
         return adapters.Count == 0 ? null : new WifiService(adapters[0]);
     }
 
+    /// <summary>
+    /// Adaptörsüz kurar: erişim izni ilk taramada, yani Wi‑Fi listesi ilk açıldığında istenir. Paketli uygulamada izin
+    /// "konum" penceresi açtığı için açılışta istenmez.
+    /// </summary>
+    public static WifiService CreateDeferred() => new(null);
+
     public async Task<WifiScan> ScanAsync(CancellationToken cancellation)
     {
         try
