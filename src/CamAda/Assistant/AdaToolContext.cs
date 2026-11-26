@@ -39,6 +39,9 @@ internal sealed record AdaToolContext(
 
     /// <summary>Hatırlatmalar (Plan 9); null ise işlevler "kullanılamıyor" der.</summary>
     public ReminderFile? Reminders { get; init; }
+
+    /// <summary>Hava durumu (Plan 9, Open-Meteo); null ise işlev "kullanılamıyor" der.</summary>
+    public CamAda.Weather.WeatherLookup? Weather { get; init; }
 }
 
 public static class OpenWindowNames

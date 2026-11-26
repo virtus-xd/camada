@@ -134,6 +134,9 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         AdaTools.HatirlaticiKur => Done(SetReminder(Text(args, "metin"), ToolArgs.Int(args, "dakika", int.MinValue, int.MaxValue).Value,
             ToolArgs.Text(args, "saat").Value, ToolArgs.Text(args, "tarih").Value)),
         AdaTools.HatirlaticilariListele => Done(ListReminders()),
+        AdaTools.HavaDurumu => ctx.Weather is { } weather
+            ? weather.AnswerAsync(ToolArgs.Text(args, "sehir").Value, ToolArgs.Text(args, "gun").Value, CancellationToken.None)
+            : Done("hata: hava durumu şu an kullanılamıyor"),
         AdaTools.HatirlaticiIptal => Done(CancelReminder(Text(args, "metin"))),
         AdaTools.HatirlaticiErtele => Done(SnoozeReminder(ToolArgs.Int(args, "dakika", int.MinValue, int.MaxValue).Value)),
         _ => Done("hata: böyle bir işlev yok"),
