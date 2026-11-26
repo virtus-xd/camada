@@ -28,6 +28,26 @@ Windows görev çubuğunu gizlemek tamamen sizin seçiminizdir ve tek tıkla ger
 "Görev çubuğunu geri getir" girişi her zaman görev çubuğunu geri getirir; uygulamayı kaldırdığınızda görev çubuğu
 kendiliğinden geri gelir.
 
+## Ürün özellikleri (Product features)
+
+- Görev çubuğunun yerine ekranın üstünde duran cam ada
+- Çalan müzik, saat ve bildirimler bir bakışta
+- Sabitlenmiş uygulamalar, açık pencereler ve sistem tepsisi
+- Wi‑Fi, Bluetooth, ses ve parlaklık için hızlı ayarlar
+- Pano geçmişi (Win+Alt+V) ve ekran görüntüleri
+- "Hey Ada" ile isteğe bağlı sesli asistan
+- Görev çubuğu tek tıkla geri gelir
+
+## Arama terimleri (Search terms, en çok 7)
+
+görev çubuğu, taskbar, kişiselleştirme, dock, sesli asistan, masaüstü, customization
+
+## Diğer alanlar
+
+- Telif hakkı: © 2026 VirtusTech
+- Geliştiren: VirtusTech
+- Ek sistem gereksinimleri: Windows 11 (64 bit)
+
 ## Sertifikasyon notları (Notes for certification)
 
 Camada is a desktop shell that replaces the Windows taskbar with a floating "island" at the top of the screen.
