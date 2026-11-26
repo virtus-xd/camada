@@ -79,4 +79,17 @@ public class LiveSetupTests
         Assert.Equal("tamam", (string?)responses[0]!["response"]!["sonuc"]);
         Assert.False(responses[1]!.AsObject().ContainsKey("id"));
     }
+
+    [Fact]
+    public void Speak_only_setup_has_voice_but_no_tools_or_listening()
+    {
+        var setup = LiveSetup.BuildSpeakOnly("models/gemini-3.8-live", "Kore", "söyle")["setup"]!.AsObject();
+
+        Assert.Equal("models/gemini-3.8-live", (string?)setup["model"]);
+        Assert.Equal("Kore", (string?)setup["generationConfig"]!["speechConfig"]!["voiceConfig"]!["prebuiltVoiceConfig"]!["voiceName"]);
+        Assert.Equal("söyle", (string?)setup["systemInstruction"]!["parts"]![0]!["text"]);
+        Assert.False(setup.ContainsKey("tools"));
+        Assert.False(setup.ContainsKey("inputAudioTranscription"));
+        Assert.False(setup.ContainsKey("realtimeInputConfig"));
+    }
 }

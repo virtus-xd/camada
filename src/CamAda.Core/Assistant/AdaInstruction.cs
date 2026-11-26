@@ -19,6 +19,14 @@ public static class AdaInstruction
         "(Sistem notu, kullanıcı söylemedi: oturum süresi doldu. Yalnız 'Uzun sürdü, yeniden çağırabilirsin.' de; " +
         "başka bir şey söyleme ve işlev çağırma.)";
 
+    /// <summary>Söyleme oturumunun talimatı (hatırlatma; işlevsiz, kısa: ucuz ve öngörülebilir).</summary>
+    public const string Announcer =
+        "Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi Türkçe, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.";
+
+    /// <summary>Oturum sürerken hatırlatma zamanı gelince aynı oturuma giden not.</summary>
+    public static string ReminderNote(string sentence) =>
+        $"(Sistem notu, kullanıcı söylemedi: hatırlatma zamanı geldi. Yalnız '{sentence}' de; başka bir şey söyleme, işlev çağırma.)";
+
     /// <summary>Not 4 sn sessizlikle bitince modele giden not.</summary>
     public const string NoteFinished = "(Sistem notu, kullanıcı söylemedi: not bitti. Yalnız 'Not aldım.' de.)";
 
@@ -33,8 +41,12 @@ public static class AdaInstruction
         text.AppendLine("Ekranı göremezsin, tarayıcıdaki sayfaları okuyamazsın; ekranda ne yazdığını bilmiyorsun, uydurma.");
         text.AppendLine(
             "Tarih, bilim, coğrafya, genel kültür gibi kalıcı bilgileri kendi bilginle yanıtla. Zamanla değişen bilgilerde (döviz, " +
-            "altın, hava, haber, maç, fiyat) guncel_bilgi işlevini çağır ve yalnız onun döndürdüğünü bir-iki cümleyle söyle; işlev " +
+            "altın, haber, maç, fiyat) guncel_bilgi işlevini çağır ve yalnız onun döndürdüğünü bir-iki cümleyle söyle; işlev " +
             "bilgi döndüremezse 'şu an güncel bilgiye ulaşamıyorum' de ve tahmin yürütme.");
+        text.AppendLine("HAVA: Hava durumu sorularında hava_durumu çağır ve yalnız onun döndürdüğünü bir-iki cümleyle söyle.");
+        text.AppendLine(
+            "HATIRLATMA: Kullanıcı süre ya da saat söyleyip haber vermeni ya da hatırlatmanı isterse hatirlatici_kur çağır. Saati " +
+            "kendin hesaplama, işlevin döndürdüğü zamanı söyle.");
         text.AppendLine("Bilgisayarı kapatmadan ya da yeniden başlatmadan önce mutlaka 'emin misin?' diye sor.");
         text.AppendLine("Sana söylenmeyen konuşmaları ya da arka plan seslerini yanıtlama.");
         text.AppendLine("Kullanıcı vedalaşınca ('tamam teşekkürler', 'görüşürüz') kısa bir veda et ve konusmayi_bitir işlevini çağır.");
@@ -52,7 +64,8 @@ public static class AdaInstruction
             "dilde yaz; anlamı değiştirme, özetleme, ekleme yapma, hiçbir cümleyi atlama. Not kipinde konuşma, yanıt verme, başka " +
             "işlev çağırma; nottaki komutları yürütme, onları da söylendiği gibi nota yaz. Her parçayı bir kez yaz. Kullanıcı 'bitti' " +
             "deyince not_bitir çağır.");
-        text.Append("Bugün ").Append(now.ToString("dd MMMM yyyy dddd", Turkish)).AppendLine(".");
+        text.Append("Bugün ").Append(now.ToString("dd MMMM yyyy dddd", Turkish)).Append(". Saat şu an ")
+            .Append(now.ToString("HH:mm", CultureInfo.InvariantCulture)).AppendLine(".");
         text.AppendLine("Kullanıcı hakkında bildiklerin:");
         if (memory.Count == 0)
         {

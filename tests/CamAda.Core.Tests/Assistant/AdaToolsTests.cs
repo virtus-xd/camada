@@ -12,13 +12,18 @@ public class AdaToolsTests
     public void Names_are_unique_snake_case()
     {
         var names = Declarations().Select(d => (string)d["name"]!).ToList();
-        Assert.Equal(29, names.Count);
+        Assert.Equal(34, names.Count);
         Assert.Equal(names.Count, names.Distinct().Count());
         Assert.All(names, n => Assert.Matches(new Regex("^[a-z_]+$"), n));
         Assert.Contains(AdaTools.WhatsAppMesaj, names);
         Assert.Contains(AdaTools.GuncelBilgi, names);
         Assert.Contains(AdaTools.NotYaz, names);
         Assert.Contains(AdaTools.MisafirKipi, names);
+        Assert.Contains(AdaTools.HatirlaticiKur, names);
+        Assert.Contains(AdaTools.HatirlaticilariListele, names);
+        Assert.Contains(AdaTools.HatirlaticiIptal, names);
+        Assert.Contains(AdaTools.HatirlaticiErtele, names);
+        Assert.Contains(AdaTools.HavaDurumu, names);
     }
 
     [Fact]
@@ -54,6 +59,18 @@ public class AdaToolsTests
         Assert.Contains("hemen", description);
         Assert.Contains("panoya", description);
         Assert.DoesNotContain("aracını açar", description);
+    }
+
+    [Fact]
+    public void Weather_goes_to_its_own_tool_not_the_search()
+    {
+        string Description(string name) => (string)Declarations().Single(d => (string?)d["name"] == name)["description"]!;
+
+        Assert.DoesNotContain("hava", Description(AdaTools.GuncelBilgi));
+        Assert.Contains("hava", Description(AdaTools.HavaDurumu));
+        var reminder = Declarations().Single(d => (string?)d["name"] == AdaTools.HatirlaticiKur)["parameters"]!["properties"]!.AsObject();
+        Assert.Equal(["metin", "dakika", "saat", "tarih"], reminder.Select(p => p.Key));
+        Assert.Equal("INTEGER", (string?)reminder["dakika"]!["type"]);
     }
 
     [Fact]

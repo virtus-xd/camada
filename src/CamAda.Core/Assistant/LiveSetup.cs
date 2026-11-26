@@ -44,6 +44,29 @@ public static class LiveSetup
             ["realtimeInputConfig"] = new JsonObject { ["automaticActivityDetection"] = new JsonObject() },
         },
     };
+
+    /// <summary>
+    /// Söyleme oturumu (hatırlatma, Plan 9): yalnız Ada'nın sesi ve yazılı dökümü; işlev, dinleme ve konuşma algısı yok
+    /// (Google'a yalnız yazı gider).
+    /// </summary>
+    public static JsonObject BuildSpeakOnly(string model, string voice, string instruction) => new()
+    {
+        ["setup"] = new JsonObject
+        {
+            ["model"] = model,
+            ["generationConfig"] = new JsonObject
+            {
+                ["responseModalities"] = new JsonArray("AUDIO"),
+                ["speechConfig"] = new JsonObject
+                {
+                    ["voiceConfig"] = new JsonObject { ["prebuiltVoiceConfig"] = new JsonObject { ["voiceName"] = voice } },
+                },
+                ["thinkingConfig"] = new JsonObject { ["includeThoughts"] = false },
+            },
+            ["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray(new JsonObject { ["text"] = instruction }) },
+            ["outputAudioTranscription"] = new JsonObject(),
+        },
+    };
 }
 
 /// <summary>İstemcinin Live'a gönderdiği ileti biçimleri.</summary>

@@ -37,6 +37,11 @@ public static class AdaTools
     public const string NotYaz = "not_yaz";
     public const string NotBitir = "not_bitir";
     public const string MisafirKipi = "misafir_kipi";
+    public const string HatirlaticiKur = "hatirlatici_kur";
+    public const string HatirlaticilariListele = "hatirlaticilari_listele";
+    public const string HatirlaticiIptal = "hatirlatici_iptal";
+    public const string HatirlaticiErtele = "hatirlatici_ertele";
+    public const string HavaDurumu = "hava_durumu";
 
     public static JsonArray Declarations() =>
     [
@@ -63,7 +68,7 @@ public static class AdaTools
             "Bilgi sorularında ASLA kullanma; onlar için guncel_bilgi'yi kullan.",
             ("sorgu", "STRING", "aranacak metin")),
         Fn(GuncelBilgi,
-            "YALNIZ zamanla değişen bilgiler için çağır: döviz, altın, borsa, hava durumu, maç sonucu, haber, güncel fiyat, son olaylar. " +
+            "YALNIZ zamanla değişen bilgiler için çağır: döviz, altın, borsa, maç sonucu, haber, güncel fiyat, son olaylar. " +
             "Tarih, bilim, coğrafya, genel kültür gibi kalıcı bilgiler için ÇAĞIRMA; onları kendi bilginle yanıtla.",
             ("soru", "STRING", "aranacak soru, Türkçe")),
         Fn(WhatsAppMesaj, "WhatsApp'ta rehberdeki bir kişiyle sohbeti mesaj hazır yazılmış olarak açar; göndermek kullanıcıdadır.",
@@ -89,6 +94,21 @@ public static class AdaTools
             "Misafir kipini açar ya da kapatır. Kullanıcı 'misafir modunu aç', 'kalabalık bir ortamdayım', 'yanımda biri var' derse " +
             "true, 'misafir modunu kapat', 'yalnızım' derse false ile çağır. Açıkken yalnız 'Ada' diye başlayan sözler dinlenir.",
             ("acik", "BOOLEAN", "true: açık")),
+        Fn(HatirlaticiKur,
+            "Kullanıcı bir süre ya da saat sonra haber vermeni, hatırlatmanı ya da zamanlayıcı kurmanı isterse çağır ('10 dakika sonra " +
+            "haber ver', 'yarın 9'da toplantıyı hatırlat'). Saati kendin hesaplama: süreyi dakika olarak ya da saati ve tarihi ver.",
+            ("metin", "STRING", "neyin hatırlatılacağı, kısa (ör. 'makarna', 'toplantı')"),
+            ("dakika", "INTEGER", "şimdiden kaç dakika sonra (1-1440); saat verilecekse 0"),
+            ("saat", "STRING", "'HH:MM' (ör. '17:00'); dakika verildiyse boş"),
+            ("tarih", "STRING", "'YYYY-MM-DD'; bugün ya da en yakın zaman için boş")),
+        Fn(HatirlaticilariListele, "Bekleyen hatırlatmaları ve zamanlayıcıları listeler."),
+        Fn(HatirlaticiIptal, "Bir hatırlatmayı ya da zamanlayıcıyı adıyla iptal eder; 'hepsi' hepsini siler.",
+            ("metin", "STRING", "hatırlatmanın adı ya da 'hepsi'")),
+        Fn(HatirlaticiErtele, "Az önce dolan hatırlatmayı erteler ('5 dakika ertele').", ("dakika", "INTEGER", "kaç dakika sonra (1-1440)")),
+        Fn(HavaDurumu,
+            "Hava durumu sorularında çağır: anlık hava, bugün, yarın ya da 7 güne kadar tahmin; başka bir şehir de sorulabilir.",
+            ("sehir", "STRING", "şehir adı; kullanıcı söylemediyse boş (kayıtlı şehir)"),
+            ("gun", "STRING", "'bugün', 'yarın', 'YYYY-MM-DD' (7 gün içinde) ya da 'hafta'; anlık hava için boş")),
     ];
 
     private static JsonObject Fn(string name, string description, params (string Name, string Type, string Description)[] parameters)
