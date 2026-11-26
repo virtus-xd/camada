@@ -7,7 +7,8 @@ Partner Center'daki alanlara kopyalanacak metinler. İlk gönderim gizli (özel 
 - Fiyat: Ücretsiz
 - Görünürlük: Özel hedef kitle (yalnız geliştiricinin Microsoft hesabı); "Store'da bulunabilir" kapalı
 - Kategori: Kişiselleştirme (yoksa: Yardımcı programlar ve araçlar)
-- Gizlilik politikası adresi: geçici gizlilik sayfasının yayımlandığı adres (`site/gizlilik.html`)
+- Gizlilik politikası adresi: https://camada-azure.vercel.app/gizlilik (geçici; Vercel projesi "camada", `site/gizlilik.html`)
+- Destek iletişimi: erdemoz2003@gmail.com
 
 ## Kısa açıklama
 
