@@ -7,7 +7,7 @@ public class VoiceGateTests
     // Testler kendi değerleriyle: ölçümle değişen varsayılanlar testleri değiştirmez.
     private static readonly VoiceGateOptions Options = new(
         ChunkSamples: 1600, LookbackSamples: 8000, DecideAfterSamples: 12800, RecheckEverySamples: 16000,
-        NameWindowSamples: 24000, MinVerifySamples: 8000, MinSpeechRms: 0.02);
+        NameWindowSamples: 24000, MinVerifySamples: 8000, MinSpeechRms: 0.02, ContinueWithinSamples: 4800);
 
     private const short Quiet = 50;     // konuşma algılayıcı duymaz
     private const short Soft = 300;     // konuşma ama çok kısık (RMS ~0,009)
@@ -212,6 +212,50 @@ public class VoiceGateTests
         var outputs = Push(User, 12, Guest);
 
         Assert.Equal(12, Raw(outputs, User));
+    }
+
+    [Fact]
+    public void Name_then_pause_then_command_passes_in_guest_mode()
+    {
+        // "Ada, … saat kaç": algılayıcı virgüldeki duraklamada sözü böler; ikinci parça birincinin devamıdır.
+        var name = Push(UserName, 1, Guest).Concat(Push(User, 2, Guest)).Concat(Push(Quiet, 6, Guest)).ToList();
+        var command = Push(User, 12, Guest);
+
+        Assert.Equal(1, Raw(name, UserName));
+        Assert.Equal(12, Raw(command, User));
+    }
+
+    [Fact]
+    public void Continuation_ends_after_a_long_pause()
+    {
+        Push(UserName, 1, Guest);
+        Push(User, 2, Guest);
+        Push(Quiet, 20, Guest);
+        var later = Push(User, 12, Guest).Concat(Push(Quiet, 1, Guest)).ToList();
+
+        Assert.Equal(0, Raw(later, User));
+    }
+
+    [Fact]
+    public void Continuation_still_checks_the_voice()
+    {
+        Push(UserName, 1, Guest);
+        Push(User, 2, Guest);
+        Push(Quiet, 4, Guest);
+        var guest = Push(Other, 12, Guest);
+
+        Assert.Equal(0, Raw(guest, Other));
+        Assert.Equal(1, Reports(guest));
+    }
+
+    [Fact]
+    public void Blocked_sentence_gives_no_continuation()
+    {
+        Push(User, 20, Guest);
+        Push(Quiet, 3, Guest);
+        var next = Push(User, 12, Guest).Concat(Push(Quiet, 1, Guest)).ToList();
+
+        Assert.Equal(0, Raw(next, User));
     }
 
     [Fact]

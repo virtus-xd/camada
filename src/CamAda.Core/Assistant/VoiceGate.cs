@@ -31,6 +31,9 @@ public interface IVoiceAnalyzer
 /// <param name="NameWindowSamples">"Ada" parçanın başından bu kadar içinde bitmeli (geriye bakış dahil).</param>
 /// <param name="MinVerifySamples">Bundan kısa konuşma ses iziyle denetlenmez (gömme güvenilmez).</param>
 /// <param name="MinSpeechRms">Bundan kısık konuşma (Ada'nın yankı kırıntısı) yok sayılır.</param>
+/// <param name="ContinueWithinSamples">Geçen sözün bitişinden bu kadar içinde başlayan söz onun devamıdır ("Ada, … saat kaç":
+/// algılayıcı virgülde böler); "Ada" gerekmez, ses yine denetlenir. Geriye bakış (0,5 sn) yüzünden ~0,8 sn'ye kadar duraklama
+/// devam sayılır; daha uzun pencere kullanıcının misafire hemen verdiği yanıtı da geçirirdi.</param>
 public sealed record VoiceGateOptions(
     int ChunkSamples = 1600,
     int LookbackSamples = 8000,
@@ -38,7 +41,8 @@ public sealed record VoiceGateOptions(
     int RecheckEverySamples = 16000,
     int NameWindowSamples = 24000,
     int MinVerifySamples = 8000,
-    double MinSpeechRms = 0.006);
+    double MinSpeechRms = 0.006,
+    int ContinueWithinSamples = 4800);
 
 /// <summary>O anki kip: misafir kipi açık mı, not alınıyor mu (oturum yöneticisi her parçayla verir).</summary>
 public readonly record struct GateInput(bool GuestMode, bool NoteActive);
@@ -71,6 +75,7 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
     private long _clock;
     private long _freeUntil = -1;
     private long _lastNameEnd = -1;
+    private long _continueUntil = -1;
     private State _state;
     private int _heldLookback;
     private long _segStart;
@@ -109,6 +114,11 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
 
         if (_state != State.Idle && !speech)
         {
+            if (_state == State.Passing)
+            {
+                _continueUntil = _clock + options.ContinueWithinSamples;
+            }
+
             var other = _state == State.Holding && Decide(input, ended: true, send);
             _state = State.Idle;
             Idle(chunk, send);
@@ -158,7 +168,7 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         _recent.Clear();
         Remember(chunk);
         _segStart = _clock - chunk.Length - lookbackSamples;
-        _free = _freeUntil >= 0 && _freeUntil >= _segStart;
+        _free = (_freeUntil >= 0 && _freeUntil >= _segStart) || (_continueUntil >= 0 && _segStart <= _continueUntil);
         _speech = chunk.Length;
         _initial = null;
         _sinceCheck = 0;
@@ -234,6 +244,10 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         _initial = initial;
         _sinceCheck = 0;
         _state = ended ? State.Idle : State.Passing;
+        if (ended)
+        {
+            _continueUntil = _clock + options.ContinueWithinSamples;
+        }
     }
 
     private void Block(bool ended, List<short[]> send)
@@ -244,6 +258,7 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         }
 
         _held.Clear();
+        _continueUntil = -1;
         _state = ended ? State.Idle : State.Blocking;
     }
 
@@ -258,6 +273,7 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
             if (analyzer.Verify(_recent.SelectMany(c => c).ToArray()) == SpeakerVerdict.Other)
             {
                 _state = State.Blocking;
+                _continueUntil = -1;
                 send.Add(new short[chunk.Length]);
                 return true;
             }
