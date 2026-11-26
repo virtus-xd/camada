@@ -179,13 +179,17 @@ yok, betik denemede kanıtlandı ve neyin pakete girdiği açıkça görülüyor
 
 ## 8. Doğrulama listesi
 
-Yerel (gevşek kayıt, geliştirici modu yalnız deneme süresince):
-- [ ] İlk açılış: çökme yok, izin penceresi yok, görev çubuğu gizlenmiyor (yeni varsayılan).
-- [ ] Menüden gizle → kurtarma girişi → görev çubuğu geri, süreç yok.
-- [ ] Gizliyken kaldır → görev çubuğu geri, süreç yok, gerçek Run değeri yok/değişmemiş.
-- [ ] 1.0.0 kuruluyken 1.0.1 kaydı (güncelleme) → görev çubuğu geri gelir, CamAda yeniden açılır.
-- [ ] Hızlı ayarlar paneli ilk açılışta konum izni sorar; Wi‑Fi, Bluetooth, ses, parlaklık çalışır.
-- [ ] Uygulama arama (son kullanılanlar dahil), pano, ekran görüntüsü, takvim, medya kartı çalışır.
+Yerel (gevşek kayıt, geliştirici modu yalnız deneme süresince) — 26.11 20:57–21:04, `tools/test-package.ps1`, hepsi
+BEKLENEN; temizlik sonrası veri dosyaları 606/3 (başlangıçla aynı), Run değeri aynı, geliştirici modu kapatıldı:
+- [x] İlk açılış: çökme yok, izin penceresi yok (ekran görüntüsü), görev çubuğu gizlenmiyor; CamAda + bekçi çalışıyor;
+  başlangıç görevi `State=2`; gerçek Run değeri değişmedi.
+- [x] Gizle (ayar) → kurtarma girişi → görev çubuğu geri, süreç yok.
+- [x] Gizliyken kaldır → görev çubuğu geri, süreç yok, Run değişmedi, paket verisi silindi.
+- [x] 1.0.0 gizliyken 1.0.1 kaydı (`-ForceApplicationShutdown`) → 2 sn aralıklı 20 örneğin hiçbirinde görev çubuğu
+  CamAda'sız gizli değil; CamAda yeni sürümden kendiliğinden yeniden açıldı (`RegisterApplicationRestart`).
+- [x] Konum izni Wi‑Fi listesi açılınca soruldu; reddedince uyarı, izin verince liste (kullanıcı elle). Bluetooth, ses,
+  parlaklık çalışıyor.
+- [x] Uygulama arama (son kullanılanlar dahil), pano, ekran görüntüsü, takvim, medya kartı çalışıyor (kullanıcı elle).
 
 Gerçek Store kurulumu (gizli yayın):
 - [ ] Kurulum uyarısız; bekçi `WindowsApps` klasöründen başlıyor.
