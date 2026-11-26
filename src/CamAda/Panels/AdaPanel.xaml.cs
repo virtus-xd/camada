@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CamAda.Assistant;
+using CamAda.Assistant.Audio;
 using CamAda.Core.Audio;
 using CamAda.Core.Assistant;
 using CamAda.Core.Power;
@@ -19,6 +20,8 @@ namespace CamAda.Panels;
 /// <param name="ValidateKey">Anahtarla bir Live kurulumu dener (ses göndermeden); sorun yoksa <see cref="AssistantError.None"/>.</param>
 /// <param name="SetEnabled">Ada'yı açar/kapatır (ayar, kısayol, dinleme).</param>
 /// <param name="KeyChanged">Anahtar eklendi ya da silindi: dinleme yeniden değerlendirilir.</param>
+/// <param name="Voiceprint">Kullanıcının ses izi (misafir kipi, Plan 8).</param>
+/// <param name="ReserveMic">Tanıtma için mikrofonu Ada'dan alır; oturum sürüyorsa null.</param>
 internal sealed record AdaPanelServices(
     GeminiKeyStore Keys,
     MemoryFile Memory,
@@ -28,7 +31,9 @@ internal sealed record AdaPanelServices(
     Func<IReadOnlyList<AudioOutput>> Microphones,
     Func<string, Task<AssistantError>> ValidateKey,
     Action<bool> SetEnabled,
-    Action KeyChanged);
+    Action KeyChanged,
+    VoiceprintFile Voiceprint,
+    Func<IDisposable?> ReserveMic);
 
 /// <summary>
 /// Ada ayarları (tasarım "Anahtar ve ayarlar paneli"): anahtar yokken açıklama, AI Studio bağlantısı, gizli kutu ve
@@ -45,13 +50,19 @@ internal sealed partial class AdaPanel : UserControl
     private readonly AdaPanelServices _services;
     private readonly ConfirmGate _forgetKeyGate = new(TimeProvider.System, ConfirmWindow);
     private readonly ConfirmGate _clearMemoryGate = new(TimeProvider.System, ConfirmWindow);
+    private readonly ConfirmGate _deleteVoiceGate = new(TimeProvider.System, ConfirmWindow);
+    private CancellationTokenSource? _enrolling;
 
     public AdaPanel(AdaPanelServices services)
     {
         InitializeComponent();
         _services = services;
         Loaded += (_, _) => _services.Memory.Changed += OnMemoryChanged;
-        Unloaded += (_, _) => _services.Memory.Changed -= OnMemoryChanged;
+        Unloaded += (_, _) =>
+        {
+            _services.Memory.Changed -= OnMemoryChanged;
+            _enrolling?.Cancel(); // panel kapandı: tanıtma yarıda kalır, mikrofon bırakılır
+        };
         Refresh();
     }
 
@@ -70,9 +81,133 @@ internal sealed partial class AdaPanel : UserControl
         EnabledState.Foreground = settings.Enabled ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextSecondaryBrush");
         AutomationProperties.SetName(EnabledButton, settings.Enabled ? "Sesli asistan açık" : "Sesli asistan kapalı");
         ShowMicrophones(settings);
+        ShowVoice();
         ShowUsage();
         ShowMemory();
     }
+
+    // --- Sesim (misafir kipi, Plan 8) ---
+
+    private void ShowVoice()
+    {
+        var status = _services.Voiceprint.Status(VoiceModels.SpeakerModel);
+        VoiceStatus.Text = status switch
+        {
+            VoiceprintStatus.Ready => "Sesin tanıtıldı",
+            VoiceprintStatus.Stale => "Ses izi eski — yeniden tanıt",
+            _ => "Henüz tanıtılmadı",
+        };
+        if (_enrolling is null)
+        {
+            EnrollButton.Content = status == VoiceprintStatus.Ready ? "Yeniden tanıt" : "Sesimi tanıt";
+        }
+
+        DeleteVoiceButton.Visibility = status == VoiceprintStatus.None ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private async void Enroll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_enrolling is { } running)
+        {
+            running.Cancel(); // "Vazgeç"
+            return;
+        }
+
+        try
+        {
+            await EnrollAsync();
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Mikrofon ya da model beklenmedik biçimde düştü: uygulama düşmesin, kullanıcı yeniden denesin.
+            Debug.WriteLine($"Ses tanıtılamadı: {ex.Message}");
+            EnrollArea.Visibility = Visibility.Visible;
+            EnrollStatus.Text = "Tanıtılamadı — yeniden dene";
+        }
+    }
+
+    /// <summary>Beş cümle sırayla; kısık ya da kısa okunan cümle en çok üç kez denenir. Yalnız gömmeler kaydedilir.</summary>
+    private async Task EnrollAsync()
+    {
+        using var reservation = _services.ReserveMic();
+        EnrollArea.Visibility = Visibility.Visible;
+        EnrollProgress.Text = "";
+        EnrollSentence.Text = "";
+        if (reservation is null)
+        {
+            EnrollStatus.Text = "Ada konuşurken tanıtılamaz";
+            return;
+        }
+
+        using var cancel = new CancellationTokenSource();
+        _enrolling = cancel;
+        EnrollButton.Content = "Vazgeç";
+        DeleteVoiceButton.IsEnabled = false;
+        EnrollStatus.Text = "Mikrofon açılıyor…";
+        try
+        {
+            using var enrollment = await VoiceEnrollment.OpenAsync(_services.Settings().Microphone, VoiceModels.Dir);
+            if (enrollment is null)
+            {
+                EnrollStatus.Text = "Mikrofon açılamadı";
+                return;
+            }
+
+            var sentences = VoiceEnrollmentText.Sentences;
+            var embeddings = new List<float[]>();
+            for (var i = 0; i < sentences.Count; i++)
+            {
+                EnrollProgress.Text = $"{i + 1}/{sentences.Count}";
+                EnrollSentence.Text = sentences[i];
+                EnrollStatus.Text = "Dinliyorum — cümleyi oku";
+                float[]? embedding = null;
+                for (var attempt = 0; attempt < 3 && embedding is null; attempt++)
+                {
+                    var result = await enrollment.RecordSentenceAsync(cancel.Token);
+                    embedding = result.Embedding;
+                    EnrollStatus.Text = result.Check switch
+                    {
+                        SentenceCheck.TooQuiet => "Ses çok kısık — mikrofona biraz yaklaşıp yeniden oku",
+                        SentenceCheck.TooShort => "Cümlenin tamamını oku",
+                        _ => EnrollStatus.Text,
+                    };
+                }
+
+                if (embedding is null)
+                {
+                    EnrollStatus.Text = "Tanıtılamadı — yeniden dene";
+                    return;
+                }
+
+                embeddings.Add(embedding);
+            }
+
+            if (!_services.Voiceprint.Save(new Voiceprint(VoiceModels.SpeakerModel, embeddings)))
+            {
+                EnrollStatus.Text = "Ses izi kaydedilemedi";
+                return;
+            }
+
+            EnrollArea.Visibility = Visibility.Collapsed;
+        }
+        catch (OperationCanceledException)
+        {
+            EnrollArea.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            _enrolling = null;
+            DeleteVoiceButton.IsEnabled = true;
+            ShowVoice();
+        }
+    }
+
+    private void DeleteVoice_Click(object sender, RoutedEventArgs e) => Confirm(DeleteVoiceButton, _deleteVoiceGate, "Sil", () =>
+    {
+        _services.Voiceprint.Delete();
+        EnrollArea.Visibility = Visibility.Collapsed;
+        ShowVoice();
+    });
 
     // --- Anahtar ---
 

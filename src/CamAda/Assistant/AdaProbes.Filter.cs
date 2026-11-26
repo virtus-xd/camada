@@ -147,6 +147,53 @@ internal static partial class AdaProbes
         }
     }
 
+    /// <summary>
+    /// Sesini tanıtma (Plan 8 Görev 8), yalnız sahte odayla: VoiceEnrollment beş cümleyi oturum mikrofon zincirinden kaydeder,
+    /// her cümlenin denetimi yazılır; çıkan ses izi <c>--puanla=wav</c> dosyalarıyla karşılaştırılır. Hiçbir şey kaydedilmez.
+    /// </summary>
+    private static async Task EnrollTrialAsync(string[] args)
+    {
+        if (!FakeRoom.Active)
+        {
+            Log("ada-tanitma-sina: CAMADA_ADA_FAKE_ROOM yok (gerçek mikrofon açılmaz, deneme çıkıyor)");
+            return;
+        }
+
+        using var enrollment = await VoiceEnrollment.OpenAsync(Settings().Microphone, VoiceModels.Dir);
+        if (enrollment is null)
+        {
+            Log("ada-tanitma-sina: tanıtma açılamadı");
+            return;
+        }
+
+        var embeddings = new List<float[]>();
+        for (var i = 0; i < VoiceEnrollmentText.Sentences.Count; i++)
+        {
+            var result = await enrollment.RecordSentenceAsync(CancellationToken.None);
+            Log($"cümle {i + 1}: {result.Check}, oda {FakeRoom.Now() / 16000.0:F1} sn");
+            if (result.Embedding is { } embedding)
+            {
+                embeddings.Add(embedding);
+            }
+        }
+
+        if (embeddings.Count == 0)
+        {
+            Log("ada-tanitma-sina: hiç geçerli cümle yok");
+            return;
+        }
+
+        var print = new Voiceprint(VoiceModels.SpeakerModel, embeddings);
+        using var embedder = new SpeakerEmbedder(Path.Combine(VoiceModels.Dir, VoiceModels.SpeakerModel));
+        foreach (var scoreArg in args.Where(a => a.StartsWith("--puanla=", StringComparison.Ordinal)))
+        {
+            var file = scoreArg["--puanla=".Length..];
+            var scores = Segments(ReadWav(file), Path.Combine(VoiceModels.Dir, VoiceModels.Vad))
+                .Where(s => s.Length >= 8000).Select(s => print.Score(embedder.Compute(s)).ToString("F2", Inv));
+            Log($"puan {Path.GetFileName(file)}: [{string.Join(" ", scores)}]");
+        }
+    }
+
     private sealed record RoomPiece(string Name, int Start, int Length, bool Gap);
 
     /// <summary>Kullanıcı ve misafir 4'er sn sırayla: ilk beş tur 1 sn arayla, sonraki beş arasız; kipte ada.wav sonda.</summary>

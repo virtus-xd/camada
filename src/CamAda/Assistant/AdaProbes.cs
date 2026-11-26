@@ -112,6 +112,12 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-tanitma-sina"))
+        {
+            await EnrollTrialAsync(args);
+            return true;
+        }
+
         if (args.Contains("--ada-suzgec-sina"))
         {
             await FilterTrialAsync(args);

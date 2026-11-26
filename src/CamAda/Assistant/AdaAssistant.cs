@@ -67,6 +67,7 @@ internal sealed class AdaAssistant : IDisposable
     private SherpaVoiceAnalyzer? _voice;
     private Task? _voiceLoad;
     private bool _guestShown;
+    private bool _micReserved;
 
     public AdaAssistant(Dispatcher dispatcher, AdaDependencies deps)
     {
@@ -145,9 +146,47 @@ internal sealed class AdaAssistant : IDisposable
         StopListening();
     }
 
+    /// <summary>
+    /// Sesini tanıtma mikrofonu kullanırken (Ada paneli): "Hey Ada" dinlemesi durur, kısayol ve uyanma oturum açmaz. Oturum
+    /// sürüyorsa ya da başka bir tanıtma varsa null. Dönen nesne bırakılınca dinleme geri gelir.
+    /// </summary>
+    public IDisposable? ReserveMic()
+    {
+        if (_session is not null || _micReserved)
+        {
+            return null;
+        }
+
+        _micReserved = true;
+        StopListening();
+        return new MicReservation(this);
+    }
+
+    private sealed class MicReservation(AdaAssistant owner) : IDisposable
+    {
+        private bool _released;
+
+        public void Dispose()
+        {
+            if (_released)
+            {
+                return;
+            }
+
+            _released = true;
+            owner._micReserved = false;
+            owner.UpdateListening();
+        }
+    }
+
     /// <summary>Kısayol ya da düğme: oturum yoksa açar, varsa kapatır. Basılı tutma ve çift basış tek oturum açar.</summary>
     public void Trigger()
     {
+        if (_micReserved)
+        {
+            return; // ses tanıtılıyor: mikrofon tanıtmada
+        }
+
         var now = DateTime.UtcNow;
         if (now - _lastTrigger < TriggerDebounce)
         {
@@ -352,7 +391,7 @@ internal sealed class AdaAssistant : IDisposable
 
     private bool ShouldListen()
     {
-        if (!_running || _disposed || _session is not null)
+        if (!_running || _disposed || _session is not null || _micReserved)
         {
             return false;
         }

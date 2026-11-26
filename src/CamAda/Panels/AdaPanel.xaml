@@ -55,6 +55,22 @@
             <TextBlock Text="Mikrofon" Style="{StaticResource SectionTitle}" />
             <StackPanel x:Name="MicList" />
 
+            <!-- Misafir kipi (Plan 8): sesini tanıtma -->
+            <TextBlock Text="Sesim" Style="{StaticResource SectionTitle}" />
+            <TextBlock Style="{StaticResource Note}" Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,6"
+                       Text="Ada başka bir ses duyunca yalnız &quot;Ada&quot; diye başlayan sözlerini dinler. Kaydın saklanmaz; yalnız sayısal ses izin bu bilgisayarda şifreli tutulur." />
+            <TextBlock x:Name="VoiceStatus" Style="{StaticResource Note}" FontWeight="SemiBold" />
+            <StackPanel x:Name="EnrollArea" Visibility="Collapsed" Margin="4,8,0,0">
+                <TextBlock x:Name="EnrollProgress" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock x:Name="EnrollSentence" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,4" />
+                <TextBlock x:Name="EnrollStatus" FontSize="12.5" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="4,10,0,0">
+                <Button x:Name="EnrollButton" Style="{StaticResource PanelButton}" Content="Sesimi tanıt" Click="Enroll_Click" />
+                <Button x:Name="DeleteVoiceButton" Style="{StaticResource PanelButton}" Content="Sil" Margin="8,0,0,0"
+                        AutomationProperties.Name="Ses izini sil" Click="DeleteVoice_Click" />
+            </StackPanel>
+
             <TextBlock x:Name="UsageText" Style="{StaticResource Note}" Margin="4,12,0,0"
                        Foreground="{StaticResource TextSecondaryBrush}" />
             <Button x:Name="ForgetKeyButton" Style="{StaticResource PanelButton}" Content="Anahtarı sil" HorizontalAlignment="Left"

@@ -297,13 +297,15 @@ public partial class App : Application
 
     private void OpenAssistantPanel()
     {
-        if (_island is null || _adaKeys is null || _adaMemory is null || _adaUsage is null || _island.Panels.IsOpenWith("ada"))
+        if (_island is null || _adaKeys is null || _adaMemory is null || _adaUsage is null || _adaVoiceprint is null
+            || _island.Panels.IsOpenWith("ada"))
         {
             return;
         }
 
         var services = new Panels.AdaPanelServices(_adaKeys, _adaMemory, _adaUsage, () => _settings.Assistant, SaveAssistantSettings,
-            () => _audio?.Inputs() ?? [], ValidateGeminiKeyAsync, SetAssistantEnabled, () => _ada?.Refresh());
+            () => _audio?.Inputs() ?? [], ValidateGeminiKeyAsync, SetAssistantEnabled, () => _ada?.Refresh(),
+            _adaVoiceprint, () => _ada?.ReserveMic());
         _island.Panels.Show("ada", new Panels.AdaPanel(services), Panels.AdaPanel.PanelWidth);
         _island.ExpandForKeyboard(); // menüden açılınca da panel adaya bağlı kalsın, anahtar kutusuna yazılabilsin
     }
