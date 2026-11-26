@@ -129,6 +129,9 @@ Bulgular (25.11.2026). Hepsi geçici denemelerle ölçüldü; deneme kodu atıld
    - Oturum 10 dk'yı aşarsa (Google'ın oturum sınırından önce) Ada "uzun sürdü, yeniden çağırabilirsin" diyip kapanır.
    - Kapanışta yankı engelleyici kapanır, bağlantı kapanır, algılayıcı yeniden dinlemeye başlar. Mikrofonun internete gitmesi biter.
 5. **Her uyanış yeni oturumdur.** Uzun sohbetlerde maliyeti sınırlamak için Google'ın bağlam sıkıştırması (kayan pencere) açık olur.
+6. **Misafir kipi (Plan 8, 26.11):** Oturumda ses bilgisayarda kullanıcının ses iziyle karşılaştırılır. Başkasının sesi Google'a
+   gitmez, oturumu açık tutmaz. Başka ses duyulunca ya da kullanıcı isteyince yalnız "Ada" ile başlayan sözler dinlenir. Ayrıntı:
+   `docs/superpowers/specs/2026-11-26-ada-misafir-kipi-design.md`.
 
 ### Tam ekran
 
