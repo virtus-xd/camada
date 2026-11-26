@@ -15,6 +15,12 @@ internal static partial class AdaProbes
     /// </summary>
     private static async Task RemindersTrialAsync(string[] args)
     {
+        if (args.Contains("--ucuca"))
+        {
+            await RemindersEndToEndAsync();
+            return;
+        }
+
         var dir = Directory.CreateTempSubdirectory("camada-hatirlatma-").FullName;
         try
         {
@@ -62,6 +68,58 @@ internal static partial class AdaProbes
                 await Task.Delay(TimeSpan.FromSeconds(70));
                 Log($"zamanlayıcı: {fired} kez doldu");
             }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Uçtan uca (Plan 9 Görev 7): gerçek zamanlayıcı + Ada'nın duyurusu, 1 dk'lık hatırlatma; geri sayım metinleri değiştikçe ve
+    /// dolunca tek uyarı yazılır. Ada başlatılmaz (mikrofon açılmaz); söyleme oturumu yalnız yazı gönderir.
+    /// </summary>
+    private static async Task RemindersEndToEndAsync()
+    {
+        var dir = Directory.CreateTempSubdirectory("camada-hatirlatma-").FullName;
+        try
+        {
+            var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            var keys = new GeminiKeyStore(LocalDir);
+            var settings = Settings() with { Enabled = true };
+            var memory = new MemoryFile(dir, TimeProvider.System);
+            var tools = new AdaToolContext(null, null, null, null, null, new AppIndex(), new SystemQuickLauncher(), PowerActions.Create(),
+                () => [], memory, new CurrentInfoClient(keys.Load, () => settings.LookupModel), () => settings, () => { }, _ => { });
+            using var ada = new AdaAssistant(dispatcher, new AdaDependencies(() => settings, keys, tools, memory, new UsageFile(LocalDir),
+                ModelDir, ex => Log("hata günlüğü: " + ex.Message), null));
+            ada.Trace += text => Log("iz: " + text);
+
+            var file = new ReminderFile(dir, TimeProvider.System);
+            file.Add("uçtan uca", DateTimeOffset.Now.AddMinutes(1));
+            using var scheduler = new ReminderScheduler(file, dispatcher);
+            string? lastCountdown = null;
+            var alerts = 0;
+            scheduler.Tick += () =>
+            {
+                var next = file.Book.Pending.FirstOrDefault();
+                var countdown = next is null ? null : ReminderText.Countdown(next.At, DateTimeOffset.Now);
+                if (countdown != lastCountdown && (countdown is null || countdown.EndsWith('0') || lastCountdown is null))
+                {
+                    Log($"geri sayım: {countdown ?? "(yok)"}");
+                }
+
+                lastCountdown = countdown;
+            };
+            scheduler.Due += async due =>
+            {
+                alerts++;
+                var sentence = ReminderText.Announcement(due, DateTimeOffset.Now);
+                Log($"uyarı: adada '{sentence}' (8 sn)");
+                Log($"uyarı: Ada söyledi={await ada.AnnounceAsync(sentence)}");
+            };
+            scheduler.Start();
+            await Task.Delay(TimeSpan.FromSeconds(75));
+            Log($"ada-hatirlatma-sina --ucuca: {alerts} uyarı");
         }
         finally
         {

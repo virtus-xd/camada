@@ -111,6 +111,9 @@
                                        Typography.NumeralAlignment="Tabular" />
                         </StackPanel>
                         <media:EqualizerBars x:Name="CompactEqualizer" Margin="0,0,10,0" VerticalAlignment="Center" Opacity="0" />
+                        <!-- Zamanlayıcı (Plan 9): 60 dk'dan az kalan en yakın hatırlatmanın geri sayımı -->
+                        <TextBlock x:Name="CompactTimer" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="12.5" FontWeight="Bold"
+                                   Typography.NumeralAlignment="Tabular" Visibility="Collapsed" />
                         <TextBlock x:Name="CompactTime" VerticalAlignment="Center"
                                    FontSize="13" FontWeight="ExtraBold" Typography.NumeralAlignment="Tabular" />
                     </StackPanel>

@@ -218,7 +218,8 @@ public partial class IslandWindow : Window
     /// Çizgiye inmiş ada gösterge boyunca görünür, tam ekranda görünmez. Ada genişlemişken ya da panel açıkken bir şey
     /// yapmaz (panel ve satır zaten gösteriyor).
     /// </summary>
-    public void Flash(FlashContent content)
+    /// <param name="hold">Göstergenin kalma süresi; verilmezse 1,5 sn (hatırlatma yazısı 8 sn, Plan 9).</param>
+    public void Flash(FlashContent content, TimeSpan? hold = null)
     {
         if (_closed || _hover.IsExpanded || _panels.IsOpen || _flashKind == FlashKind.Interactive)
         {
@@ -232,6 +233,7 @@ public partial class IslandWindow : Window
         AutomationProperties.SetName(FlashRow, content.Text);
 
         _flashTimer.Stop();
+        _flashTimer.Interval = hold ?? FlashHold;
         _flashTimer.Start();
         if (_flashKind == FlashKind.None)
         {
@@ -239,6 +241,20 @@ public partial class IslandWindow : Window
             FadeFlash(show: true, immediate: false);
             ApplyPresence();
         }
+    }
+
+    /// <summary>Küçük adada saatin solunda zamanlayıcı geri sayımı ("⏱ 9:41"); null ise gizli (Plan 9).</summary>
+    public void ShowTimer(string? countdown, string? accessibleName)
+    {
+        if (countdown is null)
+        {
+            CompactTimer.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        CompactTimer.Text = countdown;
+        AutomationProperties.SetName(CompactTimer, accessibleName ?? countdown);
+        CompactTimer.Visibility = Visibility.Visible;
     }
 
     private void EndFlash(bool immediate)

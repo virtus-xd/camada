@@ -67,6 +67,8 @@ public partial class App : Application
     private MemoryFile? _adaMemory;
     private UsageFile? _adaUsage;
     private VoiceprintFile? _adaVoiceprint;
+    private ReminderFile? _adaReminders;
+    private ReminderScheduler? _reminderScheduler;
     private bool _adaHotkeyRegistered;
     private bool _sessionLocked;
     private readonly List<DateTime> _watchdogStarts = new();
@@ -225,12 +227,22 @@ public partial class App : Application
         _adaUsage = new UsageFile(LocalDir);
         var tools = new AdaToolContext(_audio, _brightness, _radios, _media, _spotify, _appIndex, _quick?.Launcher ?? CreateQuickLauncher(),
             PowerActions.Create(), AdaOpenWindows, memory, new CurrentInfoClient(keys.Load, () => _settings.Assistant.LookupModel),
-            () => _settings.Assistant, EndSessionAfterSpeech: () => { }, LookupUsed: _ => { });
+            () => _settings.Assistant, EndSessionAfterSpeech: () => { }, LookupUsed: _ => { })
+        {
+            Reminders = _adaReminders = new ReminderFile(LocalDir, TimeProvider.System),
+            Weather = new Weather.WeatherLookup(() => _settings.Weather),
+        };
         _adaVoiceprint = new VoiceprintFile(LocalDir);
         _ada = new AdaAssistant(Dispatcher, new AdaDependencies(() => _settings.Assistant, keys, tools, memory, _adaUsage,
             Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord"), LogCrash, _audio) { Voiceprint = _adaVoiceprint });
         _ada.Notice += (_, text) => _island?.Flash(new FlashContent("", null, text));
         _ada.GuestModeChanged += (_, on) => _island?.ShowAdaGuest(on);
+
+        // Hatırlatmalar (Plan 9): Ada kapalıyken de çalışır (yalnız ton ve yazı); CamAda kapalıyken dolanlar açılışta söylenir.
+        _reminderScheduler = new ReminderScheduler(_adaReminders, Dispatcher);
+        _reminderScheduler.Due += OnRemindersDue;
+        _reminderScheduler.Tick += ShowNextTimer;
+        _reminderScheduler.Start();
         _island.ShowAdaGuest(_ada.IsGuestMode);
         _ada.StateChanged += (_, state) =>
         {
@@ -387,6 +399,31 @@ public partial class App : Application
         }
     });
 
+    /// <summary>Hatırlatma zamanı geldi: adada 8 sn yazı, ton ve Ada'nın sesi (Ada'nın sesi yoksa yalnız ton ve yazı).</summary>
+    private void OnRemindersDue(IReadOnlyList<Reminder> due)
+    {
+        var sentence = ReminderText.Announcement(due, DateTimeOffset.Now);
+        _island?.Flash(new Island.FlashContent("", null, sentence), TimeSpan.FromSeconds(8));
+        if (_ada is { } ada)
+        {
+            _ = ada.AnnounceAsync(sentence);
+        }
+    }
+
+    /// <summary>Küçük adada 60 dk'dan az kalan en yakın hatırlatmanın geri sayımı.</summary>
+    private void ShowNextTimer()
+    {
+        var now = DateTimeOffset.Now;
+        if (_adaReminders?.Book.Pending is not [var next, ..] || ReminderText.Countdown(next.At, now) is not { } countdown)
+        {
+            _island?.ShowTimer(null, null);
+            return;
+        }
+
+        var left = next.At - now;
+        _island?.ShowTimer(countdown, $"Zamanlayıcı: {next.Text}, {(int)left.TotalMinutes} dakika {left.Seconds} saniye");
+    }
+
     private void OnPowerModeForAda(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e) => Dispatcher.BeginInvoke(async () =>
     {
         if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
@@ -395,6 +432,7 @@ public partial class App : Application
         }
         else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
         {
+            _reminderScheduler?.CheckNow(); // uykudayken dolanlar "kaçırılan" olarak hemen söylenir
             // Uyandırma yeniden kurulur (mikrofon uykuda kopmuş olabilir), ama kilit ekranında asla: biri "Hey Ada, benim
             // hakkımda ne biliyorsun" diyemesin. Windows kilit olayını uyanıştan hemen sonra da gönderebildiği için beklenir.
             await Task.Delay(TimeSpan.FromSeconds(3));
@@ -1090,6 +1128,7 @@ public partial class App : Application
         TryShowTaskbar();
         Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitchForAda;
         Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeForAda;
+        _reminderScheduler?.Dispose();
         _ada?.Dispose();
         _island?.Close();
         CloseRecord();
