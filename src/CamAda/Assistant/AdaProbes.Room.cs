@@ -133,6 +133,24 @@ internal static partial class AdaProbes
             }
         });
 
+        // Hatırlatma duyurusu (Plan 9): o saniyede oturum sürüyorsa aynı oturuma not gitmeli, ikinci bağlantı açılmamalı.
+        if (Option("duyuru", -1) is var announceAt and >= 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                while (FakeRoom.Now() < announceAt * 16000L)
+                {
+                    await Task.Delay(50);
+                }
+
+                await dispatcher.InvokeAsync(async () =>
+                {
+                    Log($"{At()} duyuru: oturum {(ada.IsSessionActive ? "var" : "yok")}");
+                    Log($"{At()} duyuru sonucu: söyledi={await ada.AnnounceAsync("Süre doldu: deneme.")}");
+                });
+            });
+        }
+
         await Task.WhenAny(done.Task, Task.Delay(TimeSpan.FromSeconds(Option("sure", 60))));
         ada.Stop();
         await Task.Delay(1500);

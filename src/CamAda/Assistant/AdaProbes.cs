@@ -112,6 +112,12 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-duyuru-sina"))
+        {
+            await AnnounceTrialAsync(args);
+            return true;
+        }
+
         if (args.Contains("--ada-hava-sina"))
         {
             await WeatherTrialAsync();

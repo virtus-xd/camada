@@ -416,6 +416,132 @@ internal sealed class AdaAssistant : IDisposable
         }
     }
 
+    // --- Hatırlatma duyurusu (Plan 9) ---
+
+    private static readonly TimeSpan AnnounceCap = TimeSpan.FromSeconds(15);
+    private CancellationTokenSource? _announcing;
+    private Task _announceQueue = Task.CompletedTask;
+
+    /// <summary>
+    /// Hatırlatma zamanı geldi: ton çalar ve Ada <paramref name="sentence"/>'ı kendi sesiyle söyler. Oturum sürüyorsa aynı oturuma
+    /// not gider (not alınıyorsa not bitince). Oturum yoksa mikrofonsuz bir söyleme oturumu açılır: Google'a yalnız yazı gider.
+    /// Ada kapalıysa, anahtar ya da internet yoksa yalnız ton çalar ve false döner (yazıyı adada çağıran gösterir). Durdurulmuşken
+    /// (kilit) de çalışır: durdurma dinlemeyi kapsar, konuşmayı değil.
+    /// </summary>
+    public Task<bool> AnnounceAsync(string sentence)
+    {
+        if (_session is { Closing: false } session)
+        {
+            session.Speaker?.PlayCue(AdaCue.Reminder);
+            if (_runner.Notes.Active || !session.Connected || session.Client is null)
+            {
+                session.PendingReminders.Add(sentence); // OnCheck gönderir
+                return Task.FromResult(true);
+            }
+
+            TraceDebug("duyuru: oturuma not");
+            _ = session.Client.SendTextAsync(AdaInstruction.ReminderNote(sentence));
+            return Task.FromResult(true);
+        }
+
+        // Söyleme oturumları sırayla: art arda dolan hatırlatmalar üst üste konuşmasın.
+        var next = _announceQueue.ContinueWith(_ => SpeakAloneAsync(sentence), TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
+        _announceQueue = next;
+        return next;
+    }
+
+    private async Task<bool> SpeakAloneAsync(string sentence)
+    {
+        if (_disposed)
+        {
+            return false;
+        }
+
+        var settings = _deps.Settings();
+        var speaker = await Task.Run(() => MicDevices.DefaultSpeaker() is { } device ? CreateSpeaker(device) : null);
+        if (speaker is null)
+        {
+            return false;
+        }
+
+        using var cancel = new CancellationTokenSource(AnnounceCap);
+        _announcing = cancel;
+        GeminiLiveClient? client = null;
+        try
+        {
+            speaker.PlayCue(AdaCue.Reminder);
+            if (!settings.Enabled || _deps.Keys.Load() is not { } key)
+            {
+                await WaitForSpeakerAsync(speaker, cancel.Token);
+                return false;
+            }
+
+            var audioBytes = 0L;
+            var turnDone = false;
+            client = await GeminiLiveClient.ConnectAsync(key, LiveSetup.BuildSpeakOnly(settings.Model, settings.Voice, AdaInstruction.Announcer),
+                cancel.Token);
+            client.Attach(e =>
+            {
+                switch (e)
+                {
+                    case LiveEvent.AudioChunk audio:
+                        speaker.Add(audio.Pcm24k);
+                        Interlocked.Add(ref audioBytes, audio.Pcm24k.Length);
+                        break;
+                    case LiveEvent.TurnComplete:
+                        Volatile.Write(ref turnDone, true);
+                        break;
+                    case LiveEvent.Usage usage:
+                        _dispatcher.BeginInvoke(() =>
+                            _deps.Usage.Add(DateOnly.FromDateTime(DateTime.Now), CostTable.Live(usage.Report, DateOnly.FromDateTime(DateTime.Now)), 0, 0));
+                        break;
+                }
+            }, _ => Volatile.Write(ref turnDone, true));
+            await client.SendTextAsync($"(Sistem notu: şunu söyle: '{sentence}')");
+            while (!cancel.IsCancellationRequested && !(Volatile.Read(ref turnDone) && !speaker.IsPlaying))
+            {
+                await Task.Delay(100, CancellationToken.None);
+            }
+
+            TraceDebug($"duyuru: söyleme oturumu, {Interlocked.Read(ref audioBytes)} bayt ses");
+            return Interlocked.Read(ref audioBytes) > 0;
+        }
+        catch (Exception ex) when (ex is AssistantException or OperationCanceledException or System.Net.WebSockets.WebSocketException)
+        {
+            _deps.Log(new InvalidOperationException("Hatırlatma söylenemedi", ex));
+            return false;
+        }
+        finally
+        {
+            if (cancel.IsCancellationRequested)
+            {
+                speaker.Clear(); // normal oturum açılıyor ya da süre aştı: söz yarıda kesilir
+            }
+
+            if (_announcing == cancel)
+            {
+                _announcing = null;
+            }
+
+            if (client is not null)
+            {
+                await client.DisposeAsync();
+            }
+
+            await WaitForSpeakerAsync(speaker, CancellationToken.None);
+            DisposeInBackground(speaker);
+        }
+    }
+
+    /// <summary>Hoparlördeki ses (ton, Ada) bitene kadar, en çok 3 sn.</summary>
+    private static async Task WaitForSpeakerAsync(AdaSpeaker speaker, CancellationToken ct)
+    {
+        for (var i = 0; i < 30 && speaker.IsPlaying && !ct.IsCancellationRequested; i++)
+        {
+            await Task.Delay(100, CancellationToken.None);
+        }
+    }
+
     // --- Uyandırma ---
 
     private bool ShouldListen()
@@ -579,6 +705,7 @@ internal sealed class AdaAssistant : IDisposable
             return;
         }
 
+        _announcing?.Cancel(); // söyleme oturumu sürüyorsa biter: kullanıcı Ada'yla konuşmak istiyor (yazı adada görünmüştü)
         var settings = _deps.Settings();
         if (_deps.Keys.Load() is not { } key)
         {
@@ -1095,6 +1222,15 @@ internal sealed class AdaAssistant : IDisposable
             _ = FinishNoteAfterSilenceAsync(session);
         }
 
+        if (session.PendingReminders.Count > 0 && session.Connected && session.Client is { } reminderClient && !_runner.Notes.Active)
+        {
+            // Not bitti ya da bağlantı kuruldu: bekleyen hatırlatmalar aynı oturuma not olarak gider.
+            var sentence = string.Join(" ", session.PendingReminders);
+            session.PendingReminders.Clear();
+            TraceDebug("duyuru: oturuma not (bekleyen)");
+            _ = reminderClient.SendTextAsync(AdaInstruction.ReminderNote(sentence));
+        }
+
         UpdateGuest(); // kendiliğinden açılan kip son başka sesten 2 dk sonra biter
 
         var playing = session.Speaker?.IsPlaying == true;
@@ -1399,6 +1535,9 @@ internal sealed class AdaAssistant : IDisposable
 
         /// <summary>"Ada sesini tanıyamadı" bilgisi bu oturumda gösterildi.</summary>
         public bool VoiceNotRecognizedShown { get; set; }
+
+        /// <summary>Not alınırken ya da bağlanırken dolan hatırlatmalar (not bitince/bağlanınca söylenir; Plan 9).</summary>
+        public List<string> PendingReminders { get; } = [];
 
         /// <summary>Bağlantı hazır olmadan gelen mikrofon parçaları (ön kayıt dahil), sırayla.</summary>
         public List<short[]> Pending { get; } = [];
