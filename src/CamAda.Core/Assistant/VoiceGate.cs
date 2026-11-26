@@ -27,13 +27,17 @@ public interface IVoiceAnalyzer
 /// <param name="ChunkSamples">Kararın birimi (100 ms).</param>
 /// <param name="LookbackSamples">Konuşma algılanmadan önceki ses (algılayıcı geç fark eder), parçanın başına eklenir.</param>
 /// <param name="DecideAfterSamples">Bu kadar konuşmadan sonra karar verilir (Plan 8 ölçümü: 1,0 sn).</param>
-/// <param name="RecheckEverySamples">Geçen uzun konuşma bu aralıkla, son bu kadarlık sesle yeniden denetlenir.</param>
+/// <param name="RecheckEverySamples">Uzun konuşma bu aralıkla, son bu kadarlık sesle yeniden denetlenir.</param>
 /// <param name="NameWindowSamples">"Ada" parçanın başından bu kadar içinde bitmeli (geriye bakış dahil).</param>
 /// <param name="MinVerifySamples">Bundan kısa konuşma ses iziyle denetlenmez (gömme güvenilmez).</param>
 /// <param name="MinSpeechRms">Bundan kısık konuşma (Ada'nın yankı kırıntısı) yok sayılır.</param>
 /// <param name="ContinueWithinSamples">Geçen sözün bitişinden bu kadar içinde başlayan söz onun devamıdır ("Ada, … saat kaç":
 /// algılayıcı virgülde böler); "Ada" gerekmez, ses yine denetlenir. Geriye bakış (0,5 sn) yüzünden ~0,8 sn'ye kadar duraklama
-/// devam sayılır; daha uzun pencere kullanıcının misafire hemen verdiği yanıtı da geçirirdi.</param>
+/// devam sayılır; daha uzun pencere kullanıcının misafire hemen verdiği yanıtı da geçirirdi. Yalnız sesi doğrulanmış ya da
+/// "Ada" ile geçmiş sözden sonra, bir kez.</param>
+/// <param name="NameOverridesVoice">"Ada" ile başlayan söz ses izine uymasa da geçer mi (yanlış rete karşı güvenlik payı).
+/// Varsayılan kapalı (Plan 8 ölçümü): açıkken misafirin "ada" geçen sözcükle başlayan sözü de geçti (misafir sesinin %9–14'ü),
+/// kullanıcının "Ada, …" cümlelerinden ise hiçbirini kurtarmadı.</param>
 public sealed record VoiceGateOptions(
     int ChunkSamples = 1600,
     int LookbackSamples = 8000,
@@ -42,7 +46,8 @@ public sealed record VoiceGateOptions(
     int NameWindowSamples = 24000,
     int MinVerifySamples = 8000,
     double MinSpeechRms = 0.006,
-    int ContinueWithinSamples = 4800);
+    int ContinueWithinSamples = 4800,
+    bool NameOverridesVoice = false);
 
 /// <summary>O anki kip: misafir kipi açık mı, not alınıyor mu (oturum yöneticisi her parçayla verir).</summary>
 public readonly record struct GateInput(bool GuestMode, bool NoteActive);
@@ -53,8 +58,7 @@ public sealed record GateOutput(IReadOnlyList<short[]> Send, bool OtherVoiceHear
 /// <summary>
 /// Misafir kipinin ses süzgeci (tasarım "Oturumda ses süzgeci"): mikrofonla Google arasında her 100 ms ya olduğu gibi ya da
 /// sıfır gider. Konuşmanın başı karar verilene kadar bekletilir; karar "kullanıcı" ise bekleyen kısım hemen gider. Başkasının
-/// sesi hiç gitmez. Misafir kipinde yalnız başında "Ada" olan söz geçer ("Ada" kimden gelirse gelsin: yanlış rete karşı
-/// güvenlik payı). Saat işlenen örnek sayısıdır (16 kHz).
+/// sesi gitmez. Misafir kipinde yalnız başında "Ada" olan söz geçer. Saat işlenen örnek sayısıdır (16 kHz).
 /// </summary>
 public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
 {
@@ -80,8 +84,11 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
     private int _heldLookback;
     private long _segStart;
     private int _speech;
-    private bool _free;
+    private bool _allowed;
+    private bool _continued;
     private SpeakerVerdict? _initial;
+    private bool _grantsContinuation;
+    private bool _canRecover;
     private int _sinceCheck;
 
     /// <summary>Bundan sonra <paramref name="within"/> içinde başlayan ilk söz "Ada" demeden geçer (ilk söz, sorudan sonraki yanıt).</summary>
@@ -114,12 +121,16 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
 
         if (_state != State.Idle && !speech)
         {
-            if (_state == State.Passing)
+            var other = false;
+            if (_state == State.Holding)
             {
-                _continueUntil = _clock + options.ContinueWithinSamples;
+                other = Decide(input, ended: true, send);
+            }
+            else
+            {
+                _continueUntil = _state == State.Passing && _grantsContinuation ? _clock + options.ContinueWithinSamples : -1;
             }
 
-            var other = _state == State.Holding && Decide(input, ended: true, send);
             _state = State.Idle;
             Idle(chunk, send);
             return other;
@@ -141,7 +152,7 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
             case State.Passing:
                 return Pass(chunk, send);
             default:
-                send.Add(new short[chunk.Length]);
+                Blocked(chunk, input, send);
                 return false;
         }
     }
@@ -168,9 +179,13 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         _recent.Clear();
         Remember(chunk);
         _segStart = _clock - chunk.Length - lookbackSamples;
-        _free = (_freeUntil >= 0 && _freeUntil >= _segStart) || (_continueUntil >= 0 && _segStart <= _continueUntil);
+        _allowed = _freeUntil >= 0 && _freeUntil >= _segStart;
+        _continued = _continueUntil >= 0 && _segStart <= _continueUntil;
+        _continueUntil = -1; // devam hakkı bir kez
         _speech = chunk.Length;
         _initial = null;
+        _grantsContinuation = false;
+        _canRecover = false;
         _sinceCheck = 0;
         _state = State.Holding;
     }
@@ -185,7 +200,7 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         return Decide(input, ended: false, send);
     }
 
-    private bool NeedName(GateInput input) => input.GuestMode && !_free && !input.NoteActive;
+    private bool NeedName(GateInput input) => input.GuestMode && !_allowed && !_continued && !input.NoteActive;
 
     private bool NameOk() => _lastNameEnd >= _segStart && _lastNameEnd <= _segStart + options.NameWindowSamples;
 
@@ -195,14 +210,14 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         var speechPart = _held.Skip(_heldLookback).SelectMany(c => c).ToArray();
         if (Pcm.Rms(speechPart) < options.MinSpeechRms)
         {
-            Block(ended, send); // yankı kırıntısı ya da uzak uğultu: karar yok, rapor yok, hak harcanmaz
+            // Yankı kırıntısı ya da uzak uğultu: karar yok, rapor yok, hak harcanmaz. Ses sonradan yükselirse yeniden denenir.
+            Block(ended, send, canRecover: true);
             return false;
         }
 
         var needName = NeedName(input);
         var nameOk = NameOk();
-        _free = false;
-        if (_freeUntil >= 0 && _freeUntil >= _segStart)
+        if (_allowed)
         {
             _freeUntil = -1; // hak bu sözle kullanıldı
         }
@@ -211,46 +226,55 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         {
             var other = _speech >= options.MinVerifySamples && Verify() == SpeakerVerdict.Other
                 && _speech >= options.DecideAfterSamples;
-            Block(ended, send);
+            Block(ended, send, canRecover: false);
             return other;
         }
 
         if (_speech < options.MinVerifySamples)
         {
-            Release(null, ended, send);
+            // Kısa söz denetlenemez: kip kapalıyken, hakla ya da "Ada" ile geçer; yalnız devam sayıldığı için adsız kalan kısa
+            // söz (misafirin araya girdiği "evet") geçmez.
+            if (input.GuestMode && !input.NoteActive && !_allowed && !nameOk)
+            {
+                Block(ended, send, canRecover: false);
+                return false;
+            }
+
+            Release(null, ended, send, grantsContinuation: nameOk);
             return false;
         }
 
         switch (Verify())
         {
             case SpeakerVerdict.User:
-                Release(SpeakerVerdict.User, ended, send);
+                Release(SpeakerVerdict.User, ended, send, grantsContinuation: true);
                 return false;
-            case SpeakerVerdict.Other when nameOk:
-                Release(SpeakerVerdict.Other, ended, send); // güvenlik payı: "Ada" diyen geçer
+            case SpeakerVerdict.Other when nameOk && options.NameOverridesVoice:
+                Release(SpeakerVerdict.Other, ended, send, grantsContinuation: false); // güvenlik payı: "Ada" diyen geçer
                 return true;
             default:
-                Block(ended, send);
+                Block(ended, send, canRecover: !needName);
                 return _speech >= options.DecideAfterSamples;
         }
     }
 
     private SpeakerVerdict Verify() => analyzer.Verify(_held.SelectMany(c => c).ToArray());
 
-    private void Release(SpeakerVerdict? initial, bool ended, List<short[]> send)
+    private void Release(SpeakerVerdict? initial, bool ended, List<short[]> send, bool grantsContinuation)
     {
         send.AddRange(_held);
         _held.Clear();
         _initial = initial;
+        _grantsContinuation = grantsContinuation;
         _sinceCheck = 0;
         _state = ended ? State.Idle : State.Passing;
-        if (ended)
+        if (ended && grantsContinuation)
         {
             _continueUntil = _clock + options.ContinueWithinSamples;
         }
     }
 
-    private void Block(bool ended, List<short[]> send)
+    private void Block(bool ended, List<short[]> send, bool canRecover)
     {
         foreach (var chunk in _held.Skip(_heldLookback))
         {
@@ -258,7 +282,8 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
         }
 
         _held.Clear();
-        _continueUntil = -1;
+        _canRecover = canRecover;
+        _sinceCheck = 0;
         _state = ended ? State.Idle : State.Blocking;
     }
 
@@ -273,7 +298,8 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
             if (analyzer.Verify(_recent.SelectMany(c => c).ToArray()) == SpeakerVerdict.Other)
             {
                 _state = State.Blocking;
-                _continueUntil = -1;
+                _grantsContinuation = false;
+                _canRecover = true;
                 send.Add(new short[chunk.Length]);
                 return true;
             }
@@ -281,6 +307,31 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
 
         send.Add(chunk);
         return false;
+    }
+
+    /// <summary>
+    /// Engellenen parçada: ses ya da kısıklık yüzünden engellendiyse her aralıkta son ses yeniden denetlenir; misafir susmadan
+    /// kullanıcı konuşmaya başladıysa (ya da kısık başlayan söz yükseldiyse) o andan geçer. Ad kuralıyla engellenen geçmez.
+    /// </summary>
+    private void Blocked(short[] chunk, GateInput input, List<short[]> send)
+    {
+        Remember(chunk);
+        _sinceCheck += chunk.Length;
+        if (_canRecover && !NeedName(input) && _sinceCheck >= options.RecheckEverySamples)
+        {
+            _sinceCheck = 0;
+            var recent = _recent.SelectMany(c => c).ToArray();
+            if (Pcm.Rms(recent) >= options.MinSpeechRms && analyzer.Verify(recent) == SpeakerVerdict.User)
+            {
+                _state = State.Passing;
+                _initial = SpeakerVerdict.User;
+                _grantsContinuation = true;
+                send.Add(chunk);
+                return;
+            }
+        }
+
+        send.Add(new short[chunk.Length]);
     }
 
     private void Remember(short[] chunk)

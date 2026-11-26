@@ -34,15 +34,25 @@ internal sealed class WakeWordListener : IDisposable
     {
         _mic = mic;
         // Eksik ya da silinmiş model dosyasıyla yerel kitaplık geçersiz tutamaçla sürüp süreci düşürebilir: önceden denetlenir.
-        foreach (var file in new[] { Encoder, Decoder, Joiner, "tokens.txt" })
+        if (MissingModelFile(modelDir) is { } missing)
         {
-            if (!File.Exists(Path.Combine(modelDir, file)))
-            {
-                throw new FileNotFoundException("Uyandırma modeli eksik: " + file, Path.Combine(modelDir, file));
-            }
+            throw new FileNotFoundException("Uyandırma modeli eksik: " + missing, Path.Combine(modelDir, missing));
         }
 
-        var keywords = WakeWord.KeywordLine(threshold);
+        _spotter = CreateSpotter(modelDir, WakeWord.KeywordLine(threshold), "ada-uyandirma.txt", threshold, WakeWord.Boost);
+    }
+
+    /// <summary>Uyandırma modelinin eksik ilk dosyası; hepsi varsa null.</summary>
+    internal static string? MissingModelFile(string modelDir) =>
+        new[] { Encoder, Decoder, Joiner, "tokens.txt" }.FirstOrDefault(f => !File.Exists(Path.Combine(modelDir, f)));
+
+    /// <summary>
+    /// Uyandırma modeliyle anahtar sözcük algılayıcısı ("Hey Ada" ve misafir kipindeki "Ada"). Anahtar satırı
+    /// <c>%LOCALAPPDATA%\CamAda\<paramref name="keywordsFileName"/></c> dosyasıyla verilir: KeywordsBuf C# köprüsünde ANSI'ye
+    /// çevriliyor ve "▁" "?" oluyor (Plan 5 Görev 4).
+    /// </summary>
+    internal static KeywordSpotter CreateSpotter(string modelDir, string keywordLine, string keywordsFileName, double threshold, double boost)
+    {
         var config = new KeywordSpotterConfig();
         config.FeatConfig.SampleRate = 16000;
         config.FeatConfig.FeatureDim = 80;
@@ -53,15 +63,14 @@ internal sealed class WakeWordListener : IDisposable
         config.ModelConfig.Provider = "cpu";
         config.ModelConfig.NumThreads = 1;
         config.ModelConfig.Debug = 0;
-        // KeywordsBuf C# köprüsünde ANSI'ye çevriliyor ve "▁" "?" oluyor (Plan 5 Görev 4): satır UTF-8 dosyayla verilir.
         var keywordsPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CamAda", "ada-uyandirma.txt");
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CamAda", keywordsFileName);
         Directory.CreateDirectory(Path.GetDirectoryName(keywordsPath)!);
-        File.WriteAllText(keywordsPath, keywords + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.WriteAllText(keywordsPath, keywordLine + Environment.NewLine, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         config.KeywordsFile = keywordsPath;
         config.KeywordsThreshold = (float)threshold;
-        config.KeywordsScore = (float)WakeWord.Boost;
-        _spotter = new KeywordSpotter(config);
+        config.KeywordsScore = (float)boost;
+        return new KeywordSpotter(config);
     }
 
     /// <summary>"Hey Ada" duyuldu (ses iş parçacığında).</summary>

@@ -96,6 +96,15 @@ ya da sıfır (sessizlik) gider. Akış hiç kesilmez, Google'ın konuşma algı
 - **Güvenlik payı (karar):** "Ada" ile başlayan söz, kimin sesi olursa olsun geçer. Ada kullanıcıyı yanlışlıkla tanımazsa
   (uzaktan, kısık, hastayken) kip açılır ama "Ada, …" demek yine işe yarar. Misafir "Ada, …" derse zaten Ada'ya sesleniyordur.
   Kabul edilen sonuç: misafir "Ada, evet" diyerek bir kapatma onayını geçirebilir (odada, fiziksel olarak orada).
+  **Ölçümden sonra (26.11, Plan 8 Görev 4): varsayılan kapalı** (`VoiceGateOptions.NameOverridesVoice`). Açıkken misafirin
+  "ada" geçen bir sözcükle başlayan sözü de geçti: misafir sesinin %9–14'ü Google'a gitti. Kullanıcının "Ada, …" cümlelerinden
+  ise hiçbirini kurtarmadı. Kullanıcının sesi 1,0 sn'de %96 doğru tanınıyor. Yanlış rete karşı geriye kalan yol: ses izini
+  yeniden tanıtmak ya da silmek (panel).
+- **Devam (ölçümden sonra eklendi):** Konuşma algılayıcı "Ada, … saat kaç"taki virgülde sözü böler. Geçen sözden ~0,8 sn'ye kadar
+  duraklamayla başlayan söz onun devamı sayılır: "Ada" gerekmez, ses yine denetlenir. Devam hakkı yalnız sesi doğrulanmış ya da
+  "Ada" ile geçmiş sözden sonra ve bir kez verilir. Devam sayılan kısa (denetlenemeyen) söz misafir kipinde geçmez.
+- **Kurtarma (ölçümden sonra eklendi):** Kip kapalıyken misafir susmadan kullanıcı konuşmaya başlarsa (tek parça), engellenen
+  parça her 1 sn'de yeniden denetlenir; ses kullanıcıya dönünce o andan geçer.
 - **Yarı çift yönlü yolda** (yankı engelleyici yok) süzgeç aynı çalışır. Ada konuşurken mikrofon zaten sıfır gider.
 
 ### 3. Misafir kipi
@@ -163,7 +172,7 @@ Plan, başka bir şey yapılmadan önce yerel bir ölçümle başlar (Debug dene
 ## Benim kararlarım (kullanıcı düzeltebilir)
 
 - Tanıtma ayarlarda, 4–5 cümle, oturumla aynı mikrofon ve yankı engelleyici. Yalnız ses izi saklanır, DPAPI ile.
-- Güvenlik payı: "Ada" ile başlayan söz kimden gelirse gelsin geçer.
+- Güvenlik payı: "Ada" ile başlayan söz kimden gelirse gelsin geçer. (Ölçümden sonra varsayılan kapalı, yukarıda.)
 - "Hey Ada" sonrası ilk söz, sorudan sonraki yanıt ve not kipi adsız geçer.
 - Kipte yerel söz kesme yalnız "Ada" ile.
 - Elle açılan kip kapatılana ya da CamAda yeniden başlayana kadar sürer. Elle açınca Ada kısaca söyler.

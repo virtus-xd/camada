@@ -29,7 +29,7 @@ public class WakeWordTests
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
             Assert.Equal("▁A D A :1.2 #0.25 @ADA", WakeWord.NameKeywordLine(0.25, 1.2));
-            Assert.Equal("▁A D A :1.5 #0.1 @ADA", WakeWord.NameKeywordLine(WakeWord.NameThreshold, WakeWord.NameBoost));
+            Assert.Equal("▁A D A :1.5 #0.07 @ADA", WakeWord.NameKeywordLine(WakeWord.NameThreshold, WakeWord.NameBoost));
         }
         finally
         {

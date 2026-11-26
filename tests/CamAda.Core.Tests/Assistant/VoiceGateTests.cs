@@ -7,7 +7,7 @@ public class VoiceGateTests
     // Testler kendi değerleriyle: ölçümle değişen varsayılanlar testleri değiştirmez.
     private static readonly VoiceGateOptions Options = new(
         ChunkSamples: 1600, LookbackSamples: 8000, DecideAfterSamples: 12800, RecheckEverySamples: 16000,
-        NameWindowSamples: 24000, MinVerifySamples: 8000, MinSpeechRms: 0.02, ContinueWithinSamples: 4800);
+        NameWindowSamples: 24000, MinVerifySamples: 8000, MinSpeechRms: 0.02, ContinueWithinSamples: 4800, NameOverridesVoice: true);
 
     private const short Quiet = 50;     // konuşma algılayıcı duymaz
     private const short Soft = 300;     // konuşma ama çok kısık (RMS ~0,009)
@@ -247,6 +247,74 @@ public class VoiceGateTests
         Assert.Equal(0, Raw(guest, Other));
         Assert.Equal(1, Reports(guest));
     }
+
+    [Fact]
+    public void Short_continuation_is_not_passed_unverified()
+    {
+        Push(UserName, 1, Guest);
+        Push(User, 2, Guest);
+        Push(Quiet, 4, Guest);
+        var shortGuest = Push(Other, 3, Guest).Concat(Push(Quiet, 1, Guest)).ToList();
+
+        Assert.Equal(0, Raw(shortGuest, Other));
+    }
+
+    [Fact]
+    public void Unverified_short_speech_gives_no_continuation()
+    {
+        _gate.AllowNextWithoutName(TimeSpan.FromSeconds(8));
+        Push(User, 3, Guest);  // kısa, adsız: hakla denetlenmeden geçer
+        Push(Quiet, 4, Guest);
+        var next = Push(User, 12, Guest).Concat(Push(Quiet, 1, Guest)).ToList();
+
+        Assert.Equal(0, Raw(next, User));
+    }
+
+    [Fact]
+    public void Name_from_unknown_voice_gives_no_continuation()
+    {
+        Push(OtherName, 1, Guest);
+        Push(Other, 12, Guest);
+        Push(Quiet, 4, Guest);
+        var next = Push(User, 12, Guest).Concat(Push(Quiet, 1, Guest)).ToList();
+
+        Assert.Equal(0, Raw(next, User));
+    }
+
+    [Fact]
+    public void User_right_after_guest_without_pause_gets_through()
+    {
+        Push(Other, 12);
+        var user = Push(User, 25);
+
+        Assert.InRange(Raw(user, User), 10, 25);
+    }
+
+    [Fact]
+    public void In_guest_mode_user_right_after_guest_stays_blocked()
+    {
+        Push(Other, 12, Guest);
+        var user = Push(User, 25, Guest);
+
+        Assert.Equal(0, Raw(user, User));
+    }
+
+    [Fact]
+    public void Name_from_unknown_voice_is_blocked_when_name_does_not_override()
+    {
+        var gate = new VoiceGate(_analyzer, Options with { NameOverridesVoice = false });
+        var outputs = new List<GateOutput>();
+        foreach (var value in new[] { OtherName }.Concat(Enumerable.Repeat(Other, 12)))
+        {
+            outputs.Add(gate.Push(Enumerable.Repeat(value, 1600).ToArray(), Guest));
+        }
+
+        Assert.Equal(0, Raw(outputs, OtherName) + Raw(outputs, Other));
+        Assert.Equal(1, Reports(outputs));
+    }
+
+    [Fact]
+    public void By_default_name_does_not_override_voice() => Assert.False(new VoiceGateOptions().NameOverridesVoice);
 
     [Fact]
     public void Blocked_sentence_gives_no_continuation()

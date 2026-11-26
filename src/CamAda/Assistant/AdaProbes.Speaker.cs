@@ -43,6 +43,12 @@ internal static partial class AdaProbes
             return;
         }
 
+        if (args.Contains("--olc") && args.Contains("--sadece-ad"))
+        {
+            MeasureNameSweep();
+            return;
+        }
+
         if (args.Contains("--olc") && args.Contains("--ayrinti"))
         {
             MeasureDetail();
@@ -307,6 +313,18 @@ internal static partial class AdaProbes
                     var lines = string.Join(Environment.NewLine, tokens.Select(t => string.Create(Inv, $"{t} :{boost} #{threshold} @ADA")));
                     Log($"\"Ada\" {label} eşik {threshold:F2} güç {boost:F1}: {CountName(lines, threshold, boost)}");
                 }
+            }
+        }
+    }
+
+    /// <summary>"Ada" algılayıcı için düşük eşik taraması (yakalama zamanları ve öbür kayıtlarda yanlış tetiklenme).</summary>
+    private static void MeasureNameSweep()
+    {
+        foreach (var threshold in new[] { 0.03, 0.05, 0.07, 0.10 })
+        {
+            foreach (var boost in new[] { 1.5, 2.0, 2.5, 3.0 })
+            {
+                Log($"\"Ada\" eşik {threshold:F2} güç {boost:F1}: {CountName(WakeWord.NameKeywordLine(threshold, boost), threshold, boost)}");
             }
         }
     }
