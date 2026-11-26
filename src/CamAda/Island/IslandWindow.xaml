@@ -130,8 +130,9 @@
                         <Border x:Name="FlashFill" Background="{StaticResource AccentBrush}" CornerRadius="2"
                                 HorizontalAlignment="Left" Width="0" />
                     </Grid>
-                    <TextBlock x:Name="FlashText" Margin="12,0,0,0" MinWidth="44" VerticalAlignment="Center"
-                               FontSize="12.5" FontWeight="Bold" Typography.NumeralAlignment="Tabular" />
+                    <!-- Uzun metin (hatırlatma, Plan 9) başı görünecek biçimde "…" ile kısalır -->
+                    <TextBlock x:Name="FlashText" Margin="12,0,0,0" MinWidth="44" MaxWidth="320" VerticalAlignment="Center"
+                               FontSize="12.5" FontWeight="Bold" Typography.NumeralAlignment="Tabular" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
 
                 <!-- Ekran görüntüsü önizlemesi (Plan 4.2, spec §7.5): küçük resim + Kopyala / Düzenle; örtülüyken de

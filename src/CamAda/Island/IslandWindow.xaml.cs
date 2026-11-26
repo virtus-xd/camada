@@ -57,6 +57,8 @@ public partial class IslandWindow : Window
     private FlashKind _flashKind;
     private AdaState _ada = new AdaState.Idle();
     private bool _adaGuest;
+    private FlashContent? _longFlash;
+    private DateTime _longFlashUntil = DateTime.MinValue;
     private bool _adaShown;
     private bool _adaSuppressing;
     private bool _adaPulsing;
@@ -163,6 +165,13 @@ public partial class IslandWindow : Window
             }
 
             AnimateTo(_hover.IsExpanded);
+            if (!_hover.IsExpanded && _longFlash is { } pending && DateTime.UtcNow < _longFlashUntil)
+            {
+                // Okumak için fareyle genişletilen hatırlatma yazısı ada daralınca kalan süresiyle geri gelir (Plan 9).
+                var left = _longFlashUntil - DateTime.UtcNow;
+                Flash(pending, left < TimeSpan.FromSeconds(3) ? TimeSpan.FromSeconds(3) : left);
+            }
+
             if (!_hover.IsExpanded)
             {
                 TryBeginAda();
@@ -218,12 +227,27 @@ public partial class IslandWindow : Window
     /// Çizgiye inmiş ada gösterge boyunca görünür, tam ekranda görünmez. Ada genişlemişken ya da panel açıkken bir şey
     /// yapmaz (panel ve satır zaten gösteriyor).
     /// </summary>
-    /// <param name="hold">Göstergenin kalma süresi; verilmezse 1,5 sn (hatırlatma yazısı 8 sn, Plan 9).</param>
-    public void Flash(FlashContent content, TimeSpan? hold = null)
+    /// <param name="hold">
+    /// Göstergenin kalma süresi; verilmezse 1,5 sn. Uzun süreli gösterge (hatırlatma yazısı, Plan 9) süresince kısa göstergeler
+    /// (ses, bilgi) onu silmez; genişleyip daralan ada onu kalan süresiyle geri getirir.
+    /// </param>
+    /// <returns>Gösterildiyse true (ada genişken, panel açıkken ya da etkileşimli gösterge varken false).</returns>
+    public bool Flash(FlashContent content, TimeSpan? hold = null)
     {
         if (_closed || _hover.IsExpanded || _panels.IsOpen || _flashKind == FlashKind.Interactive)
         {
-            return;
+            return false;
+        }
+
+        if (hold is null && _flashKind == FlashKind.Passive && DateTime.UtcNow < _longFlashUntil)
+        {
+            return false; // hatırlatma yazısı ekranda: kısa gösterge onu kesmesin
+        }
+
+        if (hold is { } longHold && longHold > FlashHold)
+        {
+            _longFlash = content;
+            _longFlashUntil = DateTime.UtcNow + longHold;
         }
 
         FlashGlyph.Text = content.Glyph;
@@ -241,6 +265,8 @@ public partial class IslandWindow : Window
             FadeFlash(show: true, immediate: false);
             ApplyPresence();
         }
+
+        return true;
     }
 
     /// <summary>Küçük adada saatin solunda zamanlayıcı geri sayımı ("⏱ 9:41"); null ise gizli (Plan 9).</summary>

@@ -115,39 +115,40 @@ internal static partial class AdaProbes
             Log($"misafir kipi elle: {(ada.SetGuestManual(true) ? "açıldı" : "AÇILAMADI (ses tanıma yok)")}");
         }
 
-        var triggers = args.FirstOrDefault(a => a.StartsWith("--tetik=", StringComparison.Ordinal))?[8..].Split(',').Select(int.Parse).ToList() ?? [];
-        _ = Task.Run(async () =>
-        {
-            foreach (var trigger in triggers)
-            {
-                while (FakeRoom.Now() < trigger * 16000L)
-                {
-                    await Task.Delay(50);
-                }
+        // Saniyeler virgülle ve ondalıklı ("1,1.5"): kısayol ve hatırlatma duyurusu (Plan 9) o oda saatinde.
+        List<double> Times(string name) =>
+            args.FirstOrDefault(a => a.StartsWith($"--{name}=", StringComparison.Ordinal))?[(name.Length + 3)..].Split(',')
+                .Select(s => double.Parse(s, System.Globalization.CultureInfo.InvariantCulture)).ToList() ?? [];
 
-                await dispatcher.InvokeAsync(() =>
-                {
-                    Log($"{At()} kısayol");
-                    ada.Trigger();
-                });
+        void At_(double second, Action action) => _ = Task.Run(async () =>
+        {
+            while (FakeRoom.Now() < (long)(second * 16000))
+            {
+                await Task.Delay(20);
             }
+
+            await dispatcher.InvokeAsync(action);
         });
 
-        // Hatırlatma duyurusu (Plan 9): o saniyede oturum sürüyorsa aynı oturuma not gitmeli, ikinci bağlantı açılmamalı.
-        if (Option("duyuru", -1) is var announceAt and >= 0)
+        foreach (var trigger in Times("tetik"))
         {
-            _ = Task.Run(async () =>
+            At_(trigger, () =>
             {
-                while (FakeRoom.Now() < announceAt * 16000L)
-                {
-                    await Task.Delay(50);
-                }
+                Log($"{At()} kısayol");
+                ada.Trigger();
+            });
+        }
 
-                await dispatcher.InvokeAsync(async () =>
-                {
-                    Log($"{At()} duyuru: oturum {(ada.IsSessionActive ? "var" : "yok")}");
-                    Log($"{At()} duyuru sonucu: söyledi={await ada.AnnounceAsync("Süre doldu: deneme.")}");
-                });
+        // Hatırlatma duyurusu: oturum sürüyorsa aynı oturuma not gitmeli, ikinci bağlantı açılmamalı; kapanan oturumun bekleyeni
+        // kaybolmamalı.
+        var announced = 0;
+        foreach (var announceAt in Times("duyuru"))
+        {
+            var number = ++announced;
+            At_(announceAt, async () =>
+            {
+                Log($"{At()} duyuru {number}: oturum {(ada.IsSessionActive ? "var" : "yok")}");
+                Log($"{At()} duyuru {number} sonucu: {await ada.AnnounceAsync($"Süre doldu: deneme {number}.")}");
             });
         }
 

@@ -27,6 +27,19 @@ internal sealed record AdaDependencies(
     public string VoiceModelDir { get; init; } = VoiceModels.Dir;
 }
 
+/// <summary>Hatırlatma duyurusunun sonucu (Plan 9).</summary>
+public enum AnnounceResult
+{
+    /// <summary>Ada söyledi ya da açık oturuma verildi (orada söylenir).</summary>
+    Spoken,
+
+    /// <summary>Ada kapalı ya da anahtar yok: yalnız ton.</summary>
+    NoVoice,
+
+    /// <summary>Hoparlör, internet ya da Live hatası: söylenemedi (çağıran bir kez daha deneyebilir).</summary>
+    Failed,
+}
+
 /// <summary>
 /// Ada'nın oturum yöneticisi (tasarım "Uyanma ve oturum"): boştayken "Hey Ada" dinler; tetiklenince yankı engelleyicili
 /// mikrofonu açar, Gemini Live'a bağlanır, sesi ve işlevleri yürütür; sessizlik, veda, düğme ya da hata ile kapanır ve
@@ -423,68 +436,96 @@ internal sealed class AdaAssistant : IDisposable
     private Task _announceQueue = Task.CompletedTask;
 
     /// <summary>
-    /// Hatırlatma zamanı geldi: ton çalar ve Ada <paramref name="sentence"/>'ı kendi sesiyle söyler. Oturum sürüyorsa aynı oturuma
-    /// not gider (not alınıyorsa not bitince). Oturum yoksa mikrofonsuz bir söyleme oturumu açılır: Google'a yalnız yazı gider.
-    /// Ada kapalıysa, anahtar ya da internet yoksa yalnız ton çalar ve false döner (yazıyı adada çağıran gösterir). Durdurulmuşken
-    /// (kilit) de çalışır: durdurma dinlemeyi kapsar, konuşmayı değil.
+    /// Hatırlatma zamanı geldi: ton çalar ve Ada <paramref name="sentence"/>'ı kendi sesiyle söyler. Duyurular sırayla yürür ve
+    /// nereye gideceğine sırası geldiğinde karar verilir (son inceleme): oturum sürüyorsa aynı oturuma not (not alınıyorsa,
+    /// bağlanıyorsa ya da veda ediliyorsa bekler; oturum kapanırsa söyleme oturumuna aktarılır), yoksa mikrofonsuz bir söyleme
+    /// oturumu (Google'a yalnız yazı gider). Durdurulmuşken (kilit) de çalışır: durdurma dinlemeyi kapsar, konuşmayı değil.
     /// </summary>
-    public Task<bool> AnnounceAsync(string sentence)
+    /// <param name="tone">Ton çalınsın mı (bekleyen bir duyuru aktarılırken ton zaten çalınmışsa false).</param>
+    public Task<AnnounceResult> AnnounceAsync(string sentence, bool tone = true)
     {
-        if (_session is { Closing: false } session)
-        {
-            session.Speaker?.PlayCue(AdaCue.Reminder);
-            if (_runner.Notes.Active || !session.Connected || session.Client is null)
-            {
-                session.PendingReminders.Add(sentence); // OnCheck gönderir
-                return Task.FromResult(true);
-            }
-
-            TraceDebug("duyuru: oturuma not");
-            _ = session.Client.SendTextAsync(AdaInstruction.ReminderNote(sentence));
-            return Task.FromResult(true);
-        }
-
-        // Söyleme oturumları sırayla: art arda dolan hatırlatmalar üst üste konuşmasın.
-        var next = _announceQueue.ContinueWith(_ => SpeakAloneAsync(sentence), TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
+        var next = _announceQueue.ContinueWith(_ => DeliverAsync(sentence, tone), TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
         _announceQueue = next;
         return next;
     }
 
-    private async Task<bool> SpeakAloneAsync(string sentence)
+    private async Task<AnnounceResult> DeliverAsync(string sentence, bool tone) =>
+        TryDeliverToSession(sentence, tone) ? AnnounceResult.Spoken : await SpeakAloneAsync(sentence, tone);
+
+    /// <summary>Açık bir oturum varsa duyuru ona gider (ton dahil); yoksa false.</summary>
+    private bool TryDeliverToSession(string sentence, bool tone)
+    {
+        if (_session is not { Closing: false } session)
+        {
+            return false;
+        }
+
+        if (tone)
+        {
+            if (session.Speaker is { } speaker)
+            {
+                speaker.PlayCue(AdaCue.Reminder);
+            }
+            else
+            {
+                session.ReminderToneOwed = true; // hoparlör kurulunca çalınır
+            }
+        }
+
+        if (session.EndRequested || _runner.Notes.Active || !session.Connected || session.Client is null)
+        {
+            session.PendingReminders.Add(sentence); // OnCheck gönderir; oturum kapanırsa CloseAsync söyleme oturumuna aktarır
+            return true;
+        }
+
+        TraceDebug("duyuru: oturuma not");
+        _ = session.Client.SendTextAsync(AdaInstruction.ReminderNote(sentence));
+        return true;
+    }
+
+    private async Task<AnnounceResult> SpeakAloneAsync(string sentence, bool tone)
     {
         if (_disposed)
         {
-            return false;
+            return AnnounceResult.Failed;
         }
 
-        var settings = _deps.Settings();
-        var speaker = await Task.Run(() => MicDevices.DefaultSpeaker() is { } device ? CreateSpeaker(device) : null);
-        if (speaker is null)
-        {
-            return false;
-        }
-
+        // İptal hemen kurulur (son inceleme): hoparlör kurulurken açılan normal oturum da bu duyuruyu durdurabilsin.
         using var cancel = new CancellationTokenSource(AnnounceCap);
         _announcing = cancel;
+        var settings = _deps.Settings();
+        var speaker = await Task.Run(() => MicDevices.DefaultSpeaker() is { } device ? CreateSpeaker(device) : null);
+        if (speaker is null || _session is { Closing: false })
+        {
+            // Hoparlör yok ya da bu arada oturum açıldı: duyuru oturuma gider (ikinci bir Live bağlantısı açılmaz).
+            DisposeInBackground(speaker);
+            ClearAnnouncing(cancel);
+            return TryDeliverToSession(sentence, tone) ? AnnounceResult.Spoken : AnnounceResult.Failed;
+        }
+
         GeminiLiveClient? client = null;
+        var audioBytes = 0L;
+        var turnDone = false;
         try
         {
-            speaker.PlayCue(AdaCue.Reminder);
+            if (tone)
+            {
+                speaker.PlayCue(AdaCue.Reminder);
+            }
+
             if (!settings.Enabled || _deps.Keys.Load() is not { } key)
             {
                 await WaitForSpeakerAsync(speaker, cancel.Token);
-                return false;
+                return AnnounceResult.NoVoice;
             }
 
-            var audioBytes = 0L;
-            var turnDone = false;
             client = await GeminiLiveClient.ConnectAsync(key, LiveSetup.BuildSpeakOnly(settings.Model, settings.Voice, AdaInstruction.Announcer),
                 cancel.Token);
             client.Attach(e =>
             {
                 switch (e)
                 {
-                    case LiveEvent.AudioChunk audio:
+                    case LiveEvent.AudioChunk audio when !cancel.IsCancellationRequested: // iptalden sonra gelen ses çalınmaz
                         speaker.Add(audio.Pcm24k);
                         Interlocked.Add(ref audioBytes, audio.Pcm24k.Length);
                         break;
@@ -504,32 +545,54 @@ internal sealed class AdaAssistant : IDisposable
             }
 
             TraceDebug($"duyuru: söyleme oturumu, {Interlocked.Read(ref audioBytes)} bayt ses");
-            return Interlocked.Read(ref audioBytes) > 0;
+            return Interlocked.Read(ref audioBytes) > 0 ? AnnounceResult.Spoken : AnnounceResult.Failed;
         }
         catch (Exception ex) when (ex is AssistantException or OperationCanceledException or System.Net.WebSockets.WebSocketException)
         {
-            _deps.Log(new InvalidOperationException("Hatırlatma söylenemedi", ex));
-            return false;
+            if (!cancel.IsCancellationRequested)
+            {
+                _deps.Log(new InvalidOperationException("Hatırlatma söylenemedi", ex));
+            }
+
+            return AnnounceResult.Failed;
         }
         finally
         {
-            if (cancel.IsCancellationRequested)
+            var interrupted = cancel.IsCancellationRequested;
+            if (interrupted)
             {
                 speaker.Clear(); // normal oturum açılıyor ya da süre aştı: söz yarıda kesilir
             }
 
-            if (_announcing == cancel)
-            {
-                _announcing = null;
-            }
-
+            ClearAnnouncing(cancel);
             if (client is not null)
             {
                 await client.DisposeAsync();
             }
 
-            await WaitForSpeakerAsync(speaker, CancellationToken.None);
+            if (interrupted)
+            {
+                speaker.Clear();
+                if (_session is { Closing: false })
+                {
+                    // Kullanıcı söyleme sırasında Ada'yı çağırdı: hatırlatma kaybolmasın, aynı oturumda söylenir.
+                    TryDeliverToSession(sentence, tone: false);
+                }
+            }
+            else
+            {
+                await WaitForSpeakerAsync(speaker, CancellationToken.None);
+            }
+
             DisposeInBackground(speaker);
+        }
+    }
+
+    private void ClearAnnouncing(CancellationTokenSource cancel)
+    {
+        if (_announcing == cancel)
+        {
+            _announcing = null;
         }
     }
 
@@ -765,6 +828,11 @@ internal sealed class AdaAssistant : IDisposable
 
         session.Speaker = output;
         output.PlayCue(AdaCue.Wake);
+        if (session.ReminderToneOwed)
+        {
+            session.ReminderToneOwed = false;
+            output.PlayCue(AdaCue.Reminder); // bağlanırken dolan hatırlatmanın tonu
+        }
         if (settings.DuckOthers)
         {
             session.Ducker = new AudioDucker(output.DeviceId);
@@ -1222,7 +1290,8 @@ internal sealed class AdaAssistant : IDisposable
             _ = FinishNoteAfterSilenceAsync(session);
         }
 
-        if (session.PendingReminders.Count > 0 && session.Connected && session.Client is { } reminderClient && !_runner.Notes.Active)
+        if (session.PendingReminders.Count > 0 && session.Connected && session.Client is { } reminderClient && !_runner.Notes.Active
+            && !session.EndRequested)
         {
             // Not bitti ya da bağlantı kuruldu: bekleyen hatırlatmalar aynı oturuma not olarak gider.
             var sentence = string.Join(" ", session.PendingReminders);
@@ -1392,6 +1461,15 @@ internal sealed class AdaAssistant : IDisposable
                 _session = null;
             }
 
+            if (session.PendingReminders.Count > 0)
+            {
+                // Bağlantı kurulamadı, not kısayolla bitti, veda ya da kilit: bekleyen hatırlatma kaybolmaz, tek başına söylenir.
+                var pending = string.Join(" ", session.PendingReminders);
+                session.PendingReminders.Clear();
+                TraceDebug("duyuru: oturum kapandı, bekleyen söyleme oturumuna");
+                _ = AnnounceAsync(pending, tone: session.ReminderToneOwed);
+            }
+
             if (State is not AdaState.Failed)
             {
                 State = new AdaState.Idle();
@@ -1536,8 +1614,14 @@ internal sealed class AdaAssistant : IDisposable
         /// <summary>"Ada sesini tanıyamadı" bilgisi bu oturumda gösterildi.</summary>
         public bool VoiceNotRecognizedShown { get; set; }
 
-        /// <summary>Not alınırken ya da bağlanırken dolan hatırlatmalar (not bitince/bağlanınca söylenir; Plan 9).</summary>
+        /// <summary>
+        /// Not alınırken, bağlanırken ya da veda edilirken dolan hatırlatmalar (not bitince/bağlanınca söylenir; oturum kapanırsa
+        /// söyleme oturumuna aktarılır; Plan 9).
+        /// </summary>
         public List<string> PendingReminders { get; } = [];
+
+        /// <summary>Hatırlatma tonu hoparlör kurulmadan istendi: kurulunca çalınır.</summary>
+        public bool ReminderToneOwed { get; set; }
 
         /// <summary>Bağlantı hazır olmadan gelen mikrofon parçaları (ön kayıt dahil), sırayla.</summary>
         public List<short[]> Pending { get; } = [];

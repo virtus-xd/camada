@@ -392,6 +392,7 @@ public partial class App : Application
         else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
         {
             _sessionLocked = false;
+            ShowUnseenReminder(); // kilitliyken dolan hatırlatmanın yazısı
             if (_settings.Assistant.Enabled)
             {
                 _ada?.Start();
@@ -399,20 +400,62 @@ public partial class App : Application
         }
     });
 
-    /// <summary>Hatırlatma zamanı geldi: adada 8 sn yazı, ton ve Ada'nın sesi (Ada'nın sesi yoksa yalnız ton ve yazı).</summary>
-    private void OnRemindersDue(IReadOnlyList<Reminder> due)
+    private static readonly TimeSpan ReminderTextHold = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan ReminderRetryAfter = TimeSpan.FromSeconds(10);
+
+    /// <summary>Gösterilemeyen hatırlatma yazısı (kilit, ada genişken, panel açıkken): kilit açılınca ya da ada boşalınca gösterilir.</summary>
+    private string? _unseenReminder;
+
+    /// <summary>
+    /// Hatırlatma zamanı geldi: adada 8 sn yazı, ton ve Ada'nın sesi (Ada'nın sesi yoksa yalnız ton ve yazı). Söylenemezse (uykudan
+    /// yeni uyanıldı, internet ya da ses cihazı henüz gelmedi) 10 sn sonra bir kez daha denenir; sessizce kaybolmaz (son inceleme).
+    /// </summary>
+    private async void OnRemindersDue(IReadOnlyList<Reminder> due)
     {
         var sentence = ReminderText.Announcement(due, DateTimeOffset.Now);
-        _island?.Flash(new Island.FlashContent("", null, sentence), TimeSpan.FromSeconds(8));
-        if (_ada is { } ada)
+        ShowReminderText(sentence);
+        if (_ada is not { } ada)
         {
-            _ = ada.AnnounceAsync(sentence);
+            return;
+        }
+
+        try
+        {
+            if (await ada.AnnounceAsync(sentence) == AnnounceResult.Failed && !_exiting)
+            {
+                await Task.Delay(ReminderRetryAfter);
+                if (!_exiting)
+                {
+                    ShowReminderText(sentence);
+                    await ada.AnnounceAsync(sentence);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            LogCrash(ex); // duyuru hatası uygulamayı düşürmesin
+        }
+    }
+
+    private void ShowReminderText(string sentence)
+    {
+        var shown = !_sessionLocked && _island?.Flash(new Island.FlashContent("", null, sentence), ReminderTextHold) == true;
+        _unseenReminder = shown ? null : _unseenReminder is null ? sentence : $"{_unseenReminder} {sentence}";
+    }
+
+    /// <summary>Bekleyen hatırlatma yazısını dener (her denetimde ve kilit açılınca).</summary>
+    private void ShowUnseenReminder()
+    {
+        if (_unseenReminder is { } text && !_sessionLocked && _island?.Flash(new Island.FlashContent("", null, text), ReminderTextHold) == true)
+        {
+            _unseenReminder = null;
         }
     }
 
     /// <summary>Küçük adada 60 dk'dan az kalan en yakın hatırlatmanın geri sayımı.</summary>
     private void ShowNextTimer()
     {
+        ShowUnseenReminder();
         var now = DateTimeOffset.Now;
         if (_adaReminders?.Book.Pending is not [var next, ..] || ReminderText.Countdown(next.At, now) is not { } countdown)
         {
