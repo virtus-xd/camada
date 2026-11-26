@@ -17,7 +17,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Hazirla', 'Otomatik', 'Elle', 'Temizle')]
+    [ValidateSet('Hazirla', 'Otomatik', 'Elle', 'Durum', 'Temizle')]
     [string]$Adim
 )
 $ErrorActionPreference = 'Continue'
@@ -61,6 +61,21 @@ public static class CamAdaPackageTest {
   public static int State() { var d = new APPBARDATA(); d.cbSize = Marshal.SizeOf(d); return (int)SHAppBarMessage(4, ref d); }
   public static void SetState(int s) { var d = new APPBARDATA(); d.cbSize = Marshal.SizeOf(d); d.hWnd = FindWindow("Shell_TrayWnd", null); d.lParam = (IntPtr)s; SHAppBarMessage(10, ref d); }
   public static bool TrayVisible() { var h = FindWindow("Shell_TrayWnd", null); return h != IntPtr.Zero && IsWindowVisible(h); }
+  [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern int GetPackageFullName(IntPtr h, ref int len, System.Text.StringBuilder name);
+  // Sürecin paket kimliği: ad, "" (paketsiz) ya da "?" (açılamadı).
+  public static string PackageOf(int pid) {
+    var h = OpenProcess(0x1000, false, pid); // PROCESS_QUERY_LIMITED_INFORMATION
+    if (h == IntPtr.Zero) return "?";
+    try {
+      int len = 0;
+      int rc = GetPackageFullName(h, ref len, null);
+      if (rc == 15700) return "";
+      var sb = new System.Text.StringBuilder(len);
+      return GetPackageFullName(h, ref len, sb) == 0 ? sb.ToString() : "?";
+    } finally { CloseHandle(h); }
+  }
 }
 "@
 }
@@ -87,7 +102,11 @@ function Write-Snapshot([string]$label) {
     Write-Log ('  Görev çubuğu: ' + $(if ([CamAdaPackageTest]::TrayVisible()) { 'görünür' } else { 'GİZLİ' }) + '   otomatik gizleme: ' + [CamAdaPackageTest]::State())
     $procs = Get-CamAdaProcesses
     Write-Log ('  CamAda süreçleri: ' + $procs.Count)
-    foreach ($p in $procs) { Write-Log ('    pid ' + $p.ProcessId + ' : ' + $p.CommandLine) }
+    foreach ($p in $procs) {
+        $identity = [CamAdaPackageTest]::PackageOf([int]$p.ProcessId)
+        $shown = if ($identity -eq '') { 'PAKETSİZ' } else { $identity }
+        Write-Log ('    pid ' + $p.ProcessId + ' [kimlik: ' + $shown + '] : ' + $p.CommandLine)
+    }
     Write-Log ('  Gerçek Run değeri: ' + $(if (Get-RunValue) { Get-RunValue } else { 'yok' }))
     $pkg = Get-TestPackage
     if ($pkg) {
@@ -114,6 +133,14 @@ function Register-Layout([string]$path) {
 }
 
 function Start-App([string]$appId) { Start-Process ('shell:AppsFolder\' + (Get-TestPackage).PackageFamilyName + '!' + $appId) }
+
+# Paketten çalışan her CamAda süreci (bekçi ve yeniden başlayan örnek dahil) paket kimliği taşımalı.
+function Test-AllPackaged {
+    $procs = Get-PackagedProcesses
+    return ($procs.Count -gt 0) -and -not ($procs | Where-Object { [CamAdaPackageTest]::PackageOf([int]$_.ProcessId) -in @('', '?') })
+}
+
+function Get-MainProcess { Get-PackagedProcesses | Where-Object { $_.CommandLine -notmatch '--watchdog' } | Select-Object -First 1 }
 
 switch ($Adim) {
     'Hazirla' {
@@ -143,6 +170,7 @@ switch ($Adim) {
         Start-App 'CamAda'; Start-Sleep -Seconds 25
         Write-Snapshot '1) İlk açılıştan 25 sn sonra'; Save-Screenshot '1-ilk-acilis'
         Write-Verdict 'IlkAcilis' (((Get-PackagedProcesses).Count -ge 2) -and [CamAdaPackageTest]::TrayVisible() -and ((Get-RunValue) -eq $runBefore)) 'CamAda + bekçi çalışıyor, görev çubuğu görünür, Run değişmedi (izin penceresi için ekran görüntüsüne bakın)'
+        Write-Verdict 'Kimlik' (Test-AllPackaged) 'ana süreç ve bekçi paket kimliği taşıyor'
 
         # 2) Gizle: kurtarma girişiyle kapat, ayarda gizlemeyi aç, yeniden başlat
         Start-App 'Kurtar'; Start-Sleep -Seconds 8
@@ -153,6 +181,20 @@ switch ($Adim) {
         Start-App 'CamAda'; Start-Sleep -Seconds 25
         Write-Snapshot '2) Gizleme açılıp yeniden başlatıldıktan sonra'
         Write-Verdict 'Gizle' (-not [CamAdaPackageTest]::TrayVisible()) 'görev çubuğu gizli'
+
+        # 2b) Çökme/öldürme: yalnız ana süreç ölürse bekçi görev çubuğunu geri getirmeli
+        $main = Get-MainProcess
+        if ($main -and -not [CamAdaPackageTest]::TrayVisible()) {
+            Stop-Process -Id $main.ProcessId -Force
+            Start-Sleep -Seconds 6
+            Write-Snapshot '2b) Yalnız ana süreç öldürüldükten 6 sn sonra'; Save-Screenshot '2b-ana-surec-olduruldu'
+            Write-Verdict 'AnaSurecOldurme' ([CamAdaPackageTest]::TrayVisible()) 'bekçi görev çubuğunu geri getirdi'
+        } else {
+            Write-Verdict 'AnaSurecOldurme' $false 'ön koşul yok (ana süreç bulunamadı ya da görev çubuğu gizli değil)'
+        }
+        Get-PackagedProcesses | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Seconds 2
+        Start-App 'CamAda'; Start-Sleep -Seconds 25
 
         # 3) Kurtarma girişi
         Start-App 'Kurtar'; Start-Sleep -Seconds 10
@@ -180,6 +222,7 @@ switch ($Adim) {
         $restarted = @(Get-CamAdaProcesses | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($updated, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0
         Write-Verdict 'Guncelleme-gorev-cubugu' (-not $strandedAt) $(if ($strandedAt) { "görev çubuğu CamAda'sız gizli kaldı ($strandedAt)" } else { "görev çubuğu hiçbir örnekte CamAda'sız gizli değil" })
         Write-Verdict 'Guncelleme-yeniden-acilma' $restarted $(if ($restarted) { 'CamAda yeni sürümden yeniden açıldı' } else { 'yeniden açılmadı' })
+        Write-Verdict 'Guncelleme-kimlik' (Test-AllPackaged) 'yeniden açılan örnek ve bekçisi paket kimliği taşıyor'
 
         # 5) Görev çubuğu gizliyken kaldırma
         if (-not (Get-PackagedProcesses).Count) { Start-App 'CamAda'; Start-Sleep -Seconds 25 }
@@ -196,6 +239,11 @@ switch ($Adim) {
         $pkg = Register-Layout $layout
         Start-App 'CamAda'
         Write-Log ('Elle deneme: paket ' + $pkg.Version + ' açıldı. Hızlı ayarları ve Wi-Fi listesini açın; bitince -Adim Temizle.')
+    }
+
+    'Durum' {
+        Write-Snapshot ('Durum (elle deneme sırasında)')
+        Write-Verdict 'Kimlik' (Test-AllPackaged) 'paketten çalışan tüm CamAda süreçleri paket kimliği taşıyor'
     }
 
     'Temizle' {

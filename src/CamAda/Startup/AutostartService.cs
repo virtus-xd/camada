@@ -1,5 +1,4 @@
 using System.IO;
-using System.Runtime.InteropServices;
 using CamAda.Core.Startup;
 using Microsoft.Win32;
 using Windows.ApplicationModel;
@@ -33,22 +32,25 @@ internal sealed class AutostartService(bool packaged, Action<Exception> log)
         try
         {
             var task = await StartupTask.GetAsync(TaskId);
-            var action = StartupTaskDecision.Decide(wanted, (StartupTaskStatus)task.State);
+            var state = (StartupTaskStatus)task.State;
+            var action = StartupTaskDecision.Decide(wanted, state);
             switch (action)
             {
                 case StartupTaskAction.RequestEnable:
-                    await task.RequestEnableAsync();
+                    state = (StartupTaskStatus)await task.RequestEnableAsync(); // dönen durum kesin; State özelliği bayat kalabilir
                     break;
                 case StartupTaskAction.Disable:
                     task.Disable();
+                    state = StartupTaskStatus.Disabled;
                     break;
             }
 
-            IsOn = StartupTaskDecision.IsOn((StartupTaskStatus)task.State);
+            IsOn = StartupTaskDecision.IsOn(state);
             return action;
         }
-        catch (Exception ex) when (ex is COMException or ArgumentException or InvalidOperationException)
+        catch (Exception ex)
         {
+            // Menüden de çağrılır (async void): Windows'un beklenmedik bir hatası kabuğu düşürmesin.
             log(ex);
             return StartupTaskAction.None;
         }

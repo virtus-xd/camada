@@ -74,7 +74,12 @@ yok, betik denemede kanıtlandı ve neyin pakete girdiği açıkça görülüyor
 - Uygulamanın `HKCU\...\Run` yazımı paket içinde sanallaşıyor: gerçek değer değişmedi → pakette Run anahtarı etkisiz.
 - `%LOCALAPPDATA%\CamAda` ve `%APPDATA%\CamAda` yazımları `Packages\<PFN>\LocalCache\{Local,Roaming}` altına gidiyor;
   kaldırınca siliniyor. Belgeler/Resimler altındaki kullanıcı dosyaları (Ada Notları, Ekran Görüntüleri) gerçek yerde.
-- Bekçi süreç (`--watchdog`, ebeveyni Explorer) paket içinde başladı.
+- Bekçi süreç (`--watchdog`, ebeveyni Explorer) paket klasöründen başladı — ama dal incelemesi ve 26.11 21:25 denemesi
+  gösterdi ki Explorer'ın çocuğu yapılan süreç Explorer'ın jetonunu alıp **paket kimliğini kaybediyor**: bekçi yanlış
+  (gerçek) `taskbar-state.json`'a bakıp ana süreç öldürülünce görev çubuğunu geri getirmiyordu; menüden gizleme sonrası
+  yeniden açılan örnek de paketsiz kalacaktı. Düzeltme: paketliyken bekçi ve yeniden başlatma `IApplicationActivationManager`
+  ile (`PackagedActivation`) başlatılır; olmazsa kimliği miras alan alt süreç olarak. Kaldırma ve güncellemede görev
+  çubuğunu bekçi değil, Windows'un uygulamayı düzgün kapatması (oturum sonu → `ExitGracefully`) geri getiriyor.
 - Hata 1: .NET içinde yayımda ManagedShell `System.Windows.Forms` istiyor; pakete yalnız WPF girdiği için açılışta
   çöktü.
 - Hata 2: `WiFiAdapter.RequestAccessAsync` paketli uygulamada açılışta "tam konumunuza erişilsin mi?" penceresi açtı.
@@ -190,9 +195,14 @@ BEKLENEN; temizlik sonrası veri dosyaları 606/3 (başlangıçla aynı), Run de
 - [x] Konum izni Wi‑Fi listesi açılınca soruldu; reddedince uyarı, izin verince liste (kullanıcı elle). Bluetooth, ses,
   parlaklık çalışıyor.
 - [x] Uygulama arama (son kullanılanlar dahil), pano, ekran görüntüsü, takvim, medya kartı çalışıyor (kullanıcı elle).
+- [x] (Dal incelemesinden, 26.11 21:31–21:36) Tüm süreçler paket kimliği taşıyor (ilk açılış, güncelleme sonrası,
+  menüden gizleme sonrası `--restarting`); yalnız ana süreç öldürülünce bekçi görev çubuğunu 6 sn içinde geri getiriyor;
+  menüden "Windows açılınca başlat" kapat/aç doğru durumu gösteriyor (kullanıcı elle, `State=2`).
 
 Gerçek Store kurulumu (gizli yayın):
-- [ ] Kurulum uyarısız; bekçi `WindowsApps` klasöründen başlıyor.
+- [ ] Kurulum uyarısız; bekçi `WindowsApps` klasöründen paket kimliğiyle başlıyor; ana süreç öldürülünce görev çubuğu geri.
+- [ ] Windows'un "yeniden başlatılabilir uygulamaları kaydet" ayarı açıkken ve "Windows açılınca başlat" kapalıyken
+  Camada oturum açılışında kendiliğinden açılmıyor (`RESTART_NO_REBOOT`).
 - [ ] Oturum açılışında başlıyor; "Windows ile başlat" kapat/aç çalışıyor.
 - [ ] Gizliyken kaldırma ve Store güncellemesi görev çubuğunu geri getiriyor.
 - [ ] Ada (kullanıcıyla elle): ilk mikrofon izni, uyandırma, bir komut, kapatma.
