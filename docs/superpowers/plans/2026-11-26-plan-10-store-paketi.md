@@ -48,7 +48,7 @@ Doğrulama önce yerelde (geçici geliştirici modu, gevşek kayıt), sonra Stor
 
 ---
 
-### Görev 1: Paketli yaşam döngüsü — paket algısı, açılışta başlama, güncellemeden sonra yeniden açılma
+### Task 1: Paketli yaşam döngüsü — paket algısı, açılışta başlama, güncellemeden sonra yeniden açılma
 
 **Files:**
 - Create: `src/CamAda.Core/Startup/StartupTaskDecision.cs`
@@ -142,7 +142,7 @@ git commit -m "feat: paketliyken başlangıç görevi ve güncellemeden sonra ye
 
 ---
 
-### Görev 2: Sürprizsiz ilk açılış — görev çubuğu varsayılanı ve Wi‑Fi izninin ertelenmesi
+### Task 2: Sürprizsiz ilk açılış — görev çubuğu varsayılanı ve Wi‑Fi izninin ertelenmesi
 
 **Files:**
 - Modify: `src/CamAda.Core/Settings/AppSettings.cs:27` (`HideWindowsTaskbar` varsayılanı `false`)
@@ -196,7 +196,7 @@ git commit -m "feat: yeni kullanıcıda görev çubuğu açık, paketliyken Wi-F
 
 ---
 
-### Görev 3: Paket şablonu ve `tools/package.ps1`
+### Task 3: Paket şablonu ve `tools/package.ps1`
 
 **Files:**
 - Modify: `src/CamAda/CamAda.csproj` (`<UseWindowsForms>true</UseWindowsForms>`, `<Version>1.0.0</Version>`,
@@ -283,7 +283,7 @@ git commit -m "build: Store paketi şablonu ve paketleme betiği"
 
 ---
 
-### Görev 4: Yerel paket denemesi (betik + deneme)
+### Task 4: Yerel paket denemesi (betik + deneme)
 
 **Files:**
 - Create: `tools/dev-mode.ps1` (`-On` / `-Off`; yönetici olarak çalışır; `-Off` değeri siler — bu bilgisayarda başlangıçta değer yoktu)
@@ -330,7 +330,7 @@ git commit -m "test: yerel paket denemesi betiği ve sonuçları"
 
 ---
 
-### Görev 5: Geliştirme kurulumunu kaldırma betiği
+### Task 5: Geliştirme kurulumunu kaldırma betiği
 
 **Files:**
 - Create: `tools/uninstall-dev.ps1` (`[CmdletBinding(SupportsShouldProcess)]`)
@@ -356,7 +356,7 @@ git commit -m "build: geliştirme kurulumunu kaldırma betiği"
 
 ---
 
-### Görev 6: Store'a gizli gönderim ve gerçek kurulum doğrulaması (kullanıcıyla, birkaç gün)
+### Task 6: Store'a gizli gönderim ve gerçek kurulum doğrulaması (kullanıcıyla, birkaç gün)
 
 **Files:**
 - Create: `packaging/store-identity.json`
