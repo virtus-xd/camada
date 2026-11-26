@@ -131,6 +131,11 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         AdaTools.NotYaz => WriteNoteAsync(Text(args, "metin")),
         AdaTools.NotBitir => EndNoteAsync(),
         AdaTools.MisafirKipi => Done(GuestMode(Bool(args, "acik"))),
+        AdaTools.HatirlaticiKur => Done(SetReminder(Text(args, "metin"), ToolArgs.Int(args, "dakika", int.MinValue, int.MaxValue).Value,
+            ToolArgs.Text(args, "saat").Value, ToolArgs.Text(args, "tarih").Value)),
+        AdaTools.HatirlaticilariListele => Done(ListReminders()),
+        AdaTools.HatirlaticiIptal => Done(CancelReminder(Text(args, "metin"))),
+        AdaTools.HatirlaticiErtele => Done(SnoozeReminder(ToolArgs.Int(args, "dakika", int.MinValue, int.MaxValue).Value)),
         _ => Done("hata: böyle bir işlev yok"),
     };
 
@@ -575,6 +580,80 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
 
         ctx.Power.Shutdown();
         return "tamam: bilgisayar kapatılıyor";
+    }
+
+    // --- Hatırlatmalar (Plan 9) ---
+
+    private const string RemindersUnavailable = "hata: hatırlatmalar şu an kullanılamıyor";
+
+    /// <summary>Saati model değil uygulama hesaplar; sonuç gerçek zamanı söyler (Ada kurmadığı hatırlatmayı "kurdum" demez).</summary>
+    private string SetReminder(string text, int minutes, string? clock, string? date)
+    {
+        if (ctx.Reminders is not { } reminders)
+        {
+            return RemindersUnavailable;
+        }
+
+        var now = time.GetLocalNow();
+        if (ReminderTime.Resolve(now, minutes, clock, date, out var error) is not { } at)
+        {
+            return "hata: " + error;
+        }
+
+        return reminders.Add(text, at) switch
+        {
+            ReminderChange.Added added when minutes != 0 => $"tamam: {ReminderText.Relative(added.Reminder.At, now)} '{added.Reminder.Text}' hatırlatılacak",
+            ReminderChange.Added added => $"tamam: {ReminderText.When(added.Reminder.At, now)} '{added.Reminder.Text}' hatırlatılacak",
+            ReminderChange.Rejected rejected => "hata: " + rejected.Reason,
+            _ => RemindersUnavailable,
+        };
+    }
+
+    private string ListReminders()
+    {
+        if (ctx.Reminders is not { } reminders)
+        {
+            return RemindersUnavailable;
+        }
+
+        var now = time.GetLocalNow();
+        var pending = reminders.Book.Pending;
+        return pending.Count == 0
+            ? "tamam: bekleyen hatırlatma yok"
+            : "tamam: " + string.Join("; ", pending.Select(r => $"{r.Text}: {ReminderText.Relative(r.At, now)}"));
+    }
+
+    private string CancelReminder(string query)
+    {
+        if (ctx.Reminders is not { } reminders)
+        {
+            return RemindersUnavailable;
+        }
+
+        var pending = reminders.Book.Pending;
+        return reminders.Cancel(query) switch
+        {
+            null => "hata: " + ReminderFile.WriteFailed,
+            NameMatchResult.Found { Index: -1 } => "tamam: bütün hatırlatmalar silindi",
+            NameMatchResult.Found found => $"tamam: '{pending[found.Index].Text}' iptal edildi",
+            NameMatchResult.Ambiguous ambiguous => "onay gerekiyor: hangisi? " + string.Join(", ", ambiguous.Indexes.Select(i => pending[i].Text)),
+            _ => $"hata: '{query.Trim()}' adlı bir hatırlatma yok",
+        };
+    }
+
+    private string SnoozeReminder(int minutes)
+    {
+        if (ctx.Reminders is not { } reminders)
+        {
+            return RemindersUnavailable;
+        }
+
+        return reminders.Snooze(minutes) switch
+        {
+            ReminderChange.Added added => $"tamam: '{added.Reminder.Text}' {ReminderText.Relative(added.Reminder.At, time.GetLocalNow())} yeniden hatırlatılacak",
+            ReminderChange.Rejected rejected => "hata: " + rejected.Reason,
+            _ => RemindersUnavailable,
+        };
     }
 
     // --- Misafir kipi ---

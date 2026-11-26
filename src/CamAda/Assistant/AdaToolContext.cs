@@ -36,6 +36,9 @@ internal sealed record AdaToolContext(
 {
     /// <summary>Misafir kipini elle açar/kapatır; kip kullanılamıyorsa (ses tanıma yüklenemedi) false. AdaAssistant bağlar.</summary>
     public Func<bool, bool> SetGuestMode { get; init; } = _ => false;
+
+    /// <summary>Hatırlatmalar (Plan 9); null ise işlevler "kullanılamıyor" der.</summary>
+    public ReminderFile? Reminders { get; init; }
 }
 
 public static class OpenWindowNames
