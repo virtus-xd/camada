@@ -56,8 +56,16 @@ internal sealed class AdaSpeaker : IDisposable
             chain = multiplex;
         }
 
+        // 2'den çok kanalda (ör. SteelSeries Sonar - Gaming, 8 kanal 96 kHz) paylaşımlı kip kanal eşlemeli biçim ister:
+        // düz WAVEFORMATEX ile AudioClient.Initialize E_INVALIDARG verir ve Ada hiç konuşamaz.
+        IWaveProvider wave = new SampleToWaveProvider(chain);
+        if (mix.Channels > 2)
+        {
+            wave = new ExtensibleProvider(wave);
+        }
+
         _player = new WasapiOut(device, AudioClientShareMode.Shared, true, 60);
-        _player.Init(new SampleToWaveProvider(chain));
+        _player.Init(wave);
         _player.Play();
     }
 
@@ -120,6 +128,15 @@ internal sealed class AdaSpeaker : IDisposable
 
             return source.Read(buffer, offset, count);
         }
+    }
+
+    /// <summary>Aynı 32 bit kayan noktalı örnekler, kanal maskeli (WAVEFORMATEXTENSIBLE) biçimle.</summary>
+    private sealed class ExtensibleProvider(IWaveProvider source) : IWaveProvider
+    {
+        public WaveFormat WaveFormat { get; } =
+            new WaveFormatExtensible(source.WaveFormat.SampleRate, 32, source.WaveFormat.Channels);
+
+        public int Read(byte[] buffer, int offset, int count) => source.Read(buffer, offset, count);
     }
 
     /// <summary>24 kHz'te yumuşak girişli ve çıkışlı (10 ms) sinüs tonu.</summary>
