@@ -182,6 +182,8 @@ Her işlev gerçek sonucu döndürür: başarılıysa ne yapıldığı, değilse
 | `bilgisayari_kapat(yeniden_baslat)` | Kapatma / yeniden başlatma | İki adımlı koruma (aşağıda) |
 | `konusmayi_bitir()` | Vedalaşınca oturumu kapatır | Oturum yöneticisi |
 | `hatirla(konu, bilgi)`, `unut(konu)` | Hafızaya madde ekler/günceller, siler | **Yeni:** hafıza deposu (Core'da kurallar, şifreli dosya) |
+| `hatirlatici_kur`, `hatirlaticilari_listele`, `hatirlatici_iptal`, `hatirlatici_ertele` (Plan 9) | Zamanlayıcı ve hatırlatıcı; süre dolunca ton, adada yazı, Ada mikrofonsuz söyler | `docs/superpowers/specs/2026-11-26-ada-zamanlayici-ve-hava-design.md` |
+| `hava_durumu(sehir, gun)` (Plan 9) | Anlık hava ve 7 günlük tahmin, başka şehirler | Open-Meteo (ücretsiz); `guncel_bilgi` artık hava için kullanılmaz |
 
 **Kapatma koruması:** İlk çağrı hiçbir şey yapmaz; işlev "onay gerekiyor; kullanıcıya sor" döndürür. Model sorar. Kullanıcı 30 sn içinde onaylarsa ikinci çağrı yapılır. Böylece modelin davranışından bağımsız olarak onaysız kapatma olmaz.
 
