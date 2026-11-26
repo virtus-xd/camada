@@ -32,7 +32,11 @@ internal sealed record AdaToolContext(
     CurrentInfoClient Info,
     Func<AssistantSettings> Settings,
     Action EndSessionAfterSpeech,
-    Action<LookupResult> LookupUsed);
+    Action<LookupResult> LookupUsed)
+{
+    /// <summary>Misafir kipini elle açar/kapatır; kip kullanılamıyorsa (ses tanıma yüklenemedi) false. AdaAssistant bağlar.</summary>
+    public Func<bool, bool> SetGuestMode { get; init; } = _ => false;
+}
 
 public static class OpenWindowNames
 {

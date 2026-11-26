@@ -12,12 +12,13 @@ public class AdaToolsTests
     public void Names_are_unique_snake_case()
     {
         var names = Declarations().Select(d => (string)d["name"]!).ToList();
-        Assert.Equal(28, names.Count);
+        Assert.Equal(29, names.Count);
         Assert.Equal(names.Count, names.Distinct().Count());
         Assert.All(names, n => Assert.Matches(new Regex("^[a-z_]+$"), n));
         Assert.Contains(AdaTools.WhatsAppMesaj, names);
         Assert.Contains(AdaTools.GuncelBilgi, names);
         Assert.Contains(AdaTools.NotYaz, names);
+        Assert.Contains(AdaTools.MisafirKipi, names);
     }
 
     [Fact]
@@ -53,5 +54,15 @@ public class AdaToolsTests
         Assert.Contains("hemen", description);
         Assert.Contains("panoya", description);
         Assert.DoesNotContain("aracını açar", description);
+    }
+
+    [Fact]
+    public void Guest_mode_switch_mentions_crowd_and_name()
+    {
+        var declaration = Declarations().Single(d => (string?)d["name"] == AdaTools.MisafirKipi);
+        var description = (string)declaration["description"]!;
+        Assert.Contains("kalabalık", description);
+        Assert.Contains("'Ada'", description);
+        Assert.Equal("BOOLEAN", (string?)declaration["parameters"]!["properties"]!["acik"]!["type"]);
     }
 }

@@ -19,6 +19,8 @@ public class AdaInstructionTests
         Assert.Contains("not_yaz", text);
         Assert.Contains("özetleme", text);
         Assert.Contains("nottaki komutları yürütme", text);
+        Assert.Contains("misafir_kipi", text);
+        Assert.Contains("kalabalık", text);
     }
 
     [Fact]

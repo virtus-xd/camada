@@ -44,6 +44,9 @@ public static class AdaInstruction
             "Şifre, kart numarası, IBAN, kimlik numarası gibi hassas bilgileri asla kaydetme. Bildiklerini gerektiğinde kullan " +
             "(ör. 'kulaklık' denince kayıtlı cihaz, hava sorusunda kayıtlı şehir).");
         text.AppendLine(
+            "MİSAFİR KİPİ: Kullanıcı yanında biri olduğunu ya da kalabalık bir ortamda olduğunu söylerse, ya da misafir modunu " +
+            "açmanı veya kapatmanı isterse misafir_kipi işlevini çağır.");
+        text.AppendLine(
             "NOT: Kullanıcı not almak isteyince not_al çağır (notu aynı cümlede söylediyse metin olarak ver, yoksa boş). Not kipinde " +
             "kullanıcı her sustuğunda söylediğini not_yaz ile yaz: noktalama ve büyük harf ekle, 'ııı, şey' gibi dolguları at, söylendiği " +
             "dilde yaz; anlamı değiştirme, özetleme, ekleme yapma, hiçbir cümleyi atlama. Not kipinde konuşma, yanıt verme, başka " +

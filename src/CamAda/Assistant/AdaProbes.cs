@@ -30,7 +30,11 @@ internal static partial class AdaProbes
         if (args.Contains("--ada-islev-sina"))
         {
             var at = Array.IndexOf(args, "spotify");
-            if (at >= 0)
+            if (args.Contains("misafir"))
+            {
+                await GuestToolCallsAsync();
+            }
+            else if (at >= 0)
             {
                 await SpotifyAsync(at + 1 < args.Length ? args[at + 1] : "Tarkan");
             }

@@ -36,6 +36,7 @@ public static class AdaTools
     public const string NotAl = "not_al";
     public const string NotYaz = "not_yaz";
     public const string NotBitir = "not_bitir";
+    public const string MisafirKipi = "misafir_kipi";
 
     public static JsonArray Declarations() =>
     [
@@ -84,6 +85,10 @@ public static class AdaTools
             ("metin", "STRING", "düzeltilmiş not metni")),
         Fn(NotBitir, "YALNIZ kullanıcı açıkça 'bitti' ya da 'not bitti' derse notu bitirir. Kullanıcı durakladı diye ÇAĞIRMA: " +
             "sessizlikte notu uygulama kendisi bitirir."),
+        Fn(MisafirKipi,
+            "Misafir kipini açar ya da kapatır. Kullanıcı 'misafir modunu aç', 'kalabalık bir ortamdayım', 'yanımda biri var' derse " +
+            "true, 'misafir modunu kapat', 'yalnızım' derse false ile çağır. Açıkken yalnız 'Ada' diye başlayan sözler dinlenir.",
+            ("acik", "BOOLEAN", "true: açık")),
     ];
 
     private static JsonObject Fn(string name, string description, params (string Name, string Type, string Description)[] parameters)

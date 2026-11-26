@@ -51,6 +51,9 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
     /// <summary>Not kipi (tasarım "Ada ile not alma"): AdaAssistant susturma ve 4 sn bitiş için okur.</summary>
     public NoteSession Notes { get; } = new(time, NoteSession.Quiet);
 
+    /// <summary>"Emin misin?" soruldu ve yanıt bekleniyor (misafir kipinde yanıt "Ada" demeden geçsin diye).</summary>
+    public bool ConfirmPending => _shutdownGate.Armed || _rebootGate.Armed;
+
     /// <summary>Kullanıcının sözü geldi (canlı yazı): kapatma onayı yalnız sorudan sonra konuşulduysa geçer.</summary>
     public void UserSpoke()
     {
@@ -127,6 +130,7 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
         AdaTools.NotAl => TakeNoteAsync(ToolArgs.Text(args, "metin").Value ?? ""),
         AdaTools.NotYaz => WriteNoteAsync(Text(args, "metin")),
         AdaTools.NotBitir => EndNoteAsync(),
+        AdaTools.MisafirKipi => Done(GuestMode(Bool(args, "acik"))),
         _ => Done("hata: böyle bir işlev yok"),
     };
 
@@ -571,6 +575,20 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
 
         ctx.Power.Shutdown();
         return "tamam: bilgisayar kapatılıyor";
+    }
+
+    // --- Misafir kipi ---
+
+    private string GuestMode(bool on)
+    {
+        if (!ctx.SetGuestMode(on))
+        {
+            return "hata: misafir kipi şu an kullanılamıyor (ses tanıma yüklenemedi)";
+        }
+
+        return on
+            ? "tamam: misafir kipi açık; kullanıcıya yalnız 'Misafir kipi açık, bana adımla seslen.' de"
+            : "tamam: misafir kipi kapalı; kullanıcıya yalnız 'Misafir kipi kapandı.' de";
     }
 
     private string EndConversation()

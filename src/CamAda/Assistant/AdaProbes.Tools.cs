@@ -13,6 +13,35 @@ namespace CamAda.Assistant;
 internal static partial class AdaProbes
 {
     /// <summary>
+    /// <c>misafir_kipi</c>: sahte bağlamla açma, kapama ve kullanılamaz durum (hiçbir sistem ayarına dokunmaz).
+    /// <c>--ada-islev-sina misafir</c> yalnız bunu çalıştırır.
+    /// </summary>
+    private static async Task GuestToolCallsAsync()
+    {
+        var calls = new List<bool>();
+        var available = true;
+        var context = new AdaToolContext(null, null, null, null, null, new AppIndex(), new SystemQuickLauncher(), PowerActions.Create(),
+            () => [], new MemoryFile(Path.Combine(Path.GetTempPath(), "camada-misafir-" + Guid.NewGuid().ToString("N")), TimeProvider.System),
+            new CurrentInfoClient(() => null, () => ""), () => Settings(), () => { }, _ => { })
+        {
+            SetGuestMode = on =>
+            {
+                calls.Add(on);
+                return available;
+            },
+        };
+        var runner = new AdaToolRunner(context, TimeProvider.System);
+        foreach (var json in new[] { """{"acik":true}""", """{"acik":false}""" })
+        {
+            Log($"{AdaTools.MisafirKipi} {json} → {await runner.RunAsync(new ToolCall(null, AdaTools.MisafirKipi, JsonNode.Parse(json)!.AsObject()))}");
+        }
+
+        available = false;
+        Log($"{AdaTools.MisafirKipi} (kullanılamaz) → {await runner.RunAsync(new ToolCall(null, AdaTools.MisafirKipi, JsonNode.Parse("""{"acik":true}""")!.AsObject()))}");
+        Log($"{AdaTools.MisafirKipi}: bağlama giden istekler [{string.Join(", ", calls)}]");
+    }
+
+    /// <summary>
     /// İşlevleri gerçek servislerle çağırır ve sonuçları yazar; dokunduğu her durumu (ses, cihaz, parlaklık, medya) geri
     /// yükler. Kapatma yalnız <c>CAMADA_FAKE_POWER</c> ile denenir; Not Defteri yalnız deneme açtıysa kapatılır.
     /// </summary>
@@ -44,6 +73,7 @@ internal static partial class AdaProbes
         }
 
         Log("ada-islev-sina: başladı");
+        await GuestToolCallsAsync();
 
         // Ses ve bozuk argümanlar: önce kayıt, sonra geri.
         var volume = audio.Volume;
