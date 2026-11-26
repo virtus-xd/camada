@@ -1,6 +1,6 @@
 # Plan 10 — Store paketi ve güvenli kaldırma (tasarım)
 
-Tarih: 2026-11-26 · Durum: kullanıcı onayı bekliyor · Dal: `plan-10-store-paketi`
+Tarih: 2026-11-26 · Durum: onaylandı (26.11) · Dal: `plan-10-store-paketi`
 
 ## 1. Amaç ve neden
 
@@ -201,6 +201,9 @@ Gerçek Store kurulumu (gizli yayın):
 - `makeappx` yolunun bulunması (en yeni SDK sürümü).
 - Geçici gizlilik sayfasının barındırılacağı yer.
 
-## 10. Açık soru (kullanıcının)
+## 10. Kullanıcı kararları
 
-- Store'daki uygulama adı (Partner Center'da ayrılacak ad; paket kimliği buna bağlı).
+- Tasarım onaylandı (26.11).
+- Store'daki uygulama adı: **Camada** (Partner Center'da kullanıcı ayırır). Manifestteki `DisplayName` ve Başlat
+  girişi "Camada"; uygulama içindeki metinler bu planda değişmez. Ad Store'da başkasınca alınmışsa kullanıcıya
+  sorulur.
