@@ -23,6 +23,9 @@ public sealed class UserConfirmGate(TimeProvider time, TimeSpan window)
     private DateTimeOffset? _armedAt;
     private bool _userSpoke;
 
+    /// <summary>Soru soruldu ve süresi dolmadı (misafir kipinde yanıt "Ada" demeden geçsin diye).</summary>
+    public bool Armed => _armedAt is { } at && time.GetUtcNow() - at <= window;
+
     public ConfirmStep Press()
     {
         var now = time.GetUtcNow();

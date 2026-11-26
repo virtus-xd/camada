@@ -297,6 +297,29 @@ public class SettingsStoreTests : IDisposable
         Assert.False(a.ListenInFullScreen);
         Assert.True(a.DuckOthers);
         Assert.Empty(a.WhatsAppContacts);
+        Assert.Equal(2, a.GuestModeMinutes);
+        Assert.Equal(0.33, a.SpeakerThreshold);
+    }
+
+    [Theory]
+    [InlineData(0, 0.05)]
+    [InlineData(31, 0.95)]
+    public void Out_of_range_guest_values_fall_back(int minutes, double threshold)
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+            $$"""{ "Assistant": { "GuestModeMinutes": {{minutes}}, "SpeakerThreshold": {{threshold.ToString(System.Globalization.CultureInfo.InvariantCulture)}} } }""");
+        var a = new SettingsStore(_dir).Load().Assistant;
+        Assert.Equal(2, a.GuestModeMinutes);
+        Assert.Equal(0.33, a.SpeakerThreshold);
+    }
+
+    [Fact]
+    public void In_range_guest_values_are_kept()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "Assistant": { "GuestModeMinutes": 30, "SpeakerThreshold": 0.1 } }""");
+        var a = new SettingsStore(_dir).Load().Assistant;
+        Assert.Equal(30, a.GuestModeMinutes);
+        Assert.Equal(0.1, a.SpeakerThreshold);
     }
 
     [Theory]

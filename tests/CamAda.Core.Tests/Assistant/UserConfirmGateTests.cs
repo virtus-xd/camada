@@ -54,6 +54,22 @@ public class UserConfirmGateTests
     }
 
     [Fact]
+    public void Armed_after_ask_until_window_or_reset()
+    {
+        var gate = Make();
+        Assert.False(gate.Armed);
+
+        gate.Press();
+        Assert.True(gate.Armed);
+        _time.Advance(TimeSpan.FromSeconds(31));
+        Assert.False(gate.Armed);
+
+        gate.Press();
+        gate.Reset();
+        Assert.False(gate.Armed);
+    }
+
+    [Fact]
     public void Reset_forgets_previous_session()
     {
         var gate = Make();

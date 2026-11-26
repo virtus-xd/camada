@@ -20,4 +20,20 @@ public class WakeWordTests
             CultureInfo.CurrentCulture = previous;
         }
     }
+
+    [Fact]
+    public void Name_line_has_tokens_boost_threshold_label()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
+            Assert.Equal("▁A D A :1.2 #0.25 @ADA", WakeWord.NameKeywordLine(0.25, 1.2));
+            Assert.Equal("▁A D A :1.5 #0.1 @ADA", WakeWord.NameKeywordLine(WakeWord.NameThreshold, WakeWord.NameBoost));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
 }

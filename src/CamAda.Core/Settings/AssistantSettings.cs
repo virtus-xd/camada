@@ -14,6 +14,8 @@ public sealed record AssistantSettings
     public const int DefaultNoSpeechSeconds = 6;
     public const int DefaultMaxSessionMinutes = 10;
     public const string DefaultHotkey = "Win+Alt+A";
+    public const int DefaultGuestModeMinutes = 2;
+    public const double DefaultSpeakerThreshold = 0.33;
 
     /// <summary>Anahtar girilip asistan açılınca true; kapalıyken hiçbir şey dinlenmez.</summary>
     public bool Enabled { get; init; }
@@ -45,4 +47,10 @@ public sealed record AssistantSettings
     public bool DuckOthers { get; init; } = true;
 
     public IReadOnlyList<WhatsAppContact> WhatsAppContacts { get; init; } = [];
+
+    /// <summary>Kendiliğinden açılan misafir kipi, son başka sesten bu kadar dakika sonra biter (Plan 8; kullanıcı kararı 2 dk).</summary>
+    public int GuestModeMinutes { get; init; } = DefaultGuestModeMinutes;
+
+    /// <summary>Ses izine benzerlik eşiği: altı "başkası" sayılır (Plan 8 ölçümü).</summary>
+    public double SpeakerThreshold { get; init; } = DefaultSpeakerThreshold;
 }

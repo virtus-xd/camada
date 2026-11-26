@@ -168,6 +168,8 @@ public sealed class SettingsStore
             NoSpeechSeconds = a.NoSpeechSeconds is >= 3 and <= 30 ? a.NoSpeechSeconds : d.NoSpeechSeconds,
             MaxSessionMinutes = a.MaxSessionMinutes is >= 1 and <= 14 ? a.MaxSessionMinutes : d.MaxSessionMinutes,
             Hotkey = Input.Hotkey.TryParse(a.Hotkey)?.ToString() ?? d.Hotkey,
+            GuestModeMinutes = a.GuestModeMinutes is >= 1 and <= 30 ? a.GuestModeMinutes : d.GuestModeMinutes,
+            SpeakerThreshold = a.SpeakerThreshold is >= 0.10 and <= 0.90 ? a.SpeakerThreshold : d.SpeakerThreshold,
             WhatsAppContacts = (a.WhatsAppContacts ?? [])
                 .Where(c => c is not null && !string.IsNullOrWhiteSpace(c.Name) && !string.IsNullOrWhiteSpace(c.Phone))
                 .Select(c => new WhatsAppContact(c.Name.Trim(), c.Phone.Trim()))

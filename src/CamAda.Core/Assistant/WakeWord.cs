@@ -14,4 +14,13 @@ public static class WakeWord
 
     public static string KeywordLine(double threshold) =>
         string.Create(CultureInfo.InvariantCulture, $"{Tokens} :{Boost} #{threshold} @{Label}");
+
+    /// <summary>Misafir kipinde oturum içinde aranan "Ada" (Plan 8 ölçümü: eşik 0,10, güç 1,5 ile 10 cümlenin 9'u).</summary>
+    public const string NameTokens = "▁A D A";
+    public const string NameLabel = "ADA";
+    public const double NameThreshold = 0.10;
+    public const double NameBoost = 1.5;
+
+    public static string NameKeywordLine(double threshold, double boost) =>
+        string.Create(CultureInfo.InvariantCulture, $"{NameTokens} :{boost} #{threshold} @{NameLabel}");
 }

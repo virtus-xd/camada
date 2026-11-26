@@ -4,6 +4,13 @@ namespace CamAda.Core.Assistant;
 public static class AdaText
 {
     private static readonly char[] Ends = ['.', '!', '?', '…'];
+    private static readonly char[] Closers = [' ', '"', '\'', '”', '’', '»', ')'];
+
+    /// <summary>Dinlerken adadaki satır; misafir kipinde "Ada" demek gerektiğini söyler.</summary>
+    public static string ListeningLine(bool guest) => guest ? "“Ada” deyin, dinliyorum" : "Dinliyorum…";
+
+    /// <summary>Ada'nın son sözü soru mu (sondaki boşluk ve tırnaklar sayılmaz): ardından gelen yanıt adsız geçer.</summary>
+    public static bool EndsWithQuestion(string text) => text.TrimEnd(Closers) is { Length: > 0 } t && t[^1] == '?';
 
     /// <summary>
     /// Son biten cümle (noktalamasıyla) ya da sürmekte olan son parça; <paramref name="max"/> karakteri aşarsa sonu
