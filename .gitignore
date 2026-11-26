@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 
 # Superpowers çalışma alanı
 .superpowers/
+
+# Store paketi çıktısı (tools/package.ps1)
+out/
