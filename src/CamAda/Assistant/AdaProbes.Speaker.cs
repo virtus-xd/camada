@@ -437,11 +437,12 @@ internal static partial class AdaProbes
     private static short[]? ReadTrial(string name)
     {
         var path = Path.Combine(TrialDir, name + ".wav");
-        if (!File.Exists(path))
-        {
-            return null;
-        }
+        return File.Exists(path) ? ReadWav(path) : null;
+    }
 
+    /// <summary>16 kHz mono 16 bit WAV'ın örnekleri.</summary>
+    private static short[] ReadWav(string path)
+    {
         using var reader = new WaveFileReader(path);
         var bytes = new byte[reader.Length];
         var read = reader.Read(bytes, 0, bytes.Length);

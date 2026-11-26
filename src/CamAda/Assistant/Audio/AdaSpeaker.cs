@@ -11,6 +11,9 @@ public enum AdaCue
 
     /// <summary>Hata: tek, alçak kısa ton.</summary>
     Error,
+
+    /// <summary>Misafir kipi kendiliğinden açıldı: aynı perdede iki kısa ton (uyanma ve hatadan farklı).</summary>
+    Guest,
 }
 
 /// <summary>
@@ -93,9 +96,12 @@ internal sealed class AdaSpeaker : IDisposable
 
     public void PlayCue(AdaCue cue)
     {
-        var tone = cue == AdaCue.Wake
-            ? Tone(660, 80).Concat(Tone(880, 80)).ToArray()
-            : Tone(440, 200);
+        var tone = cue switch
+        {
+            AdaCue.Wake => Tone(660, 80).Concat(Tone(880, 80)).ToArray(),
+            AdaCue.Guest => Tone(784, 90).Concat(new byte[24000 * 40 / 1000 * 2]).Concat(Tone(784, 90)).ToArray(),
+            _ => Tone(440, 200),
+        };
         Add(tone);
     }
 

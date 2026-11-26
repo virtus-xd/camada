@@ -66,6 +66,7 @@ public partial class App : Application
     private GeminiKeyStore? _adaKeys;
     private MemoryFile? _adaMemory;
     private UsageFile? _adaUsage;
+    private VoiceprintFile? _adaVoiceprint;
     private bool _adaHotkeyRegistered;
     private bool _sessionLocked;
     private readonly List<DateTime> _watchdogStarts = new();
@@ -225,8 +226,9 @@ public partial class App : Application
         var tools = new AdaToolContext(_audio, _brightness, _radios, _media, _spotify, _appIndex, _quick?.Launcher ?? CreateQuickLauncher(),
             PowerActions.Create(), AdaOpenWindows, memory, new CurrentInfoClient(keys.Load, () => _settings.Assistant.LookupModel),
             () => _settings.Assistant, EndSessionAfterSpeech: () => { }, LookupUsed: _ => { });
+        _adaVoiceprint = new VoiceprintFile(LocalDir);
         _ada = new AdaAssistant(Dispatcher, new AdaDependencies(() => _settings.Assistant, keys, tools, memory, _adaUsage,
-            Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord"), LogCrash, _audio));
+            Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord"), LogCrash, _audio) { Voiceprint = _adaVoiceprint });
         _ada.Notice += (_, text) => _island?.Flash(new FlashContent("", null, text));
         _ada.StateChanged += (_, state) =>
         {

@@ -30,9 +30,19 @@ internal sealed class VoiceFilter : IDisposable
 
     public void AllowNextWithoutName(TimeSpan within) => Enqueue(() => _gate.AllowNextWithoutName(within));
 
+    /// <summary>Kuyruğu kapatır, en çok 1 sn bekler; iki kez çağrılabilir (oturum kapanışı ve uygulamadan çıkış).</summary>
     public void Dispose()
     {
-        _work.CompleteAdding();
+        lock (_work)
+        {
+            if (_work.IsAddingCompleted)
+            {
+                return;
+            }
+
+            _work.CompleteAdding();
+        }
+
         _thread.Join(TimeSpan.FromSeconds(1));
     }
 

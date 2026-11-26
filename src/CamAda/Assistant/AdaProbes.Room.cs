@@ -1,6 +1,7 @@
 #if DEBUG
 using System.IO;
 using CamAda.Assistant.Audio;
+using CamAda.Core.Assistant;
 using CamAda.Interop;
 using CamAda.Audio;
 using CamAda.Media;
@@ -45,10 +46,31 @@ internal static partial class AdaProbes
         var before = usage.Current;
         var tools = new AdaToolContext(audio, null, null, media, null, new AppIndex(), new SystemQuickLauncher(), PowerActions.Create(),
             () => [], memory, new CurrentInfoClient(keys.Load, () => settings.LookupModel), () => settings, () => { }, _ => { });
+        // Misafir kipi (Plan 8): ses izi verilen WAV'dan, kullanıcının gerçek ses izi dosyasına dokunmadan geçici klasörde.
+        VoiceprintFile? voiceprints = null;
+        if (args.FirstOrDefault(a => a.StartsWith("--ses-izi-wav=", StringComparison.Ordinal)) is { } enrollArg)
+        {
+            var tempDir = Directory.CreateTempSubdirectory("camada-ses-izi-").FullName;
+            voiceprints = new VoiceprintFile(tempDir);
+            using var embedder = new SpeakerEmbedder(Path.Combine(VoiceModels.Dir, VoiceModels.SpeakerModel));
+            var vadPath = Path.Combine(VoiceModels.Dir, VoiceModels.Vad);
+            var print = new Voiceprint(VoiceModels.SpeakerModel,
+                Segments(ReadWav(enrollArg["--ses-izi-wav=".Length..]), vadPath).Where(s => s.Length >= 16000).Select(s => embedder.Compute(s)).ToList());
+            voiceprints.Save(print);
+            Log($"ses izi: {print.Samples.Count} parçadan, geçici klasörde");
+            foreach (var scoreArg in args.Where(a => a.StartsWith("--puanla=", StringComparison.Ordinal)))
+            {
+                var file = scoreArg["--puanla=".Length..];
+                var scores = Segments(ReadWav(file), vadPath).Where(s => s.Length >= 8000).Select(s => print.Score(embedder.Compute(s)).ToString("F2", Inv));
+                Log($"puan {Path.GetFileName(file)} (eşik {settings.SpeakerThreshold:F2}): [{string.Join(" ", scores)}]");
+            }
+        }
+
         using var ada = new AdaAssistant(dispatcher, new AdaDependencies(() => settings, keys, tools, memory, usage, ModelDir,
-            ex => Log("hata günlüğü: " + ex.Message), audio));
+            ex => Log("hata günlüğü: " + ex.Message), audio) { Voiceprint = voiceprints });
 
         string At() => $"{FakeRoom.Now() / 16000.0,5:F1} sn";
+        ada.GuestModeChanged += (_, on) => Log($"{At()} misafir kipi: {(on ? "açık" : "kapalı")}");
         var sessions = 0;
         var wanted = Option("oturum", 1);
         var done = new TaskCompletionSource();
@@ -81,6 +103,16 @@ internal static partial class AdaProbes
         }
 
         ada.Start();
+        if (args.Contains("--misafir"))
+        {
+            for (var i = 0; i < 100 && !ada.IsVoiceReady; i++)
+            {
+                await Task.Delay(100);
+            }
+
+            Log($"misafir kipi elle: {(ada.SetGuestManual(true) ? "açıldı" : "AÇILAMADI (ses tanıma yok)")}");
+        }
+
         var triggers = args.FirstOrDefault(a => a.StartsWith("--tetik=", StringComparison.Ordinal))?[8..].Split(',').Select(int.Parse).ToList() ?? [];
         _ = Task.Run(async () =>
         {

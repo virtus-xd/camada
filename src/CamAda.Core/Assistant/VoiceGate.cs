@@ -217,11 +217,6 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
 
         var needName = NeedName(input);
         var nameOk = NameOk();
-        if (_allowed)
-        {
-            _freeUntil = -1; // hak bu sözle kullanıldı
-        }
-
         if (needName && !nameOk)
         {
             var other = _speech >= options.MinVerifySamples && Verify() == SpeakerVerdict.Other
@@ -262,6 +257,11 @@ public sealed class VoiceGate(IVoiceAnalyzer analyzer, VoiceGateOptions options)
 
     private void Release(SpeakerVerdict? initial, bool ended, List<short[]> send, bool grantsContinuation)
     {
+        if (_allowed)
+        {
+            _freeUntil = -1; // hak yalnız geçen sözle harcanır: engellenen misafir sözü kullanıcının yanıt hakkını yemez
+        }
+
         send.AddRange(_held);
         _held.Clear();
         _initial = initial;

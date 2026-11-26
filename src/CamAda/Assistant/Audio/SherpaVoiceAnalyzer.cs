@@ -17,6 +17,7 @@ internal sealed class SherpaVoiceAnalyzer : IVoiceAnalyzer, IDisposable
     private readonly VoiceActivityDetector _vad;
     private readonly KeywordSpotter _spotter;
     private OnlineStream _name;
+    private bool _disposed;
 
     private SherpaVoiceAnalyzer(string speakerDir, string wakeModelDir)
     {
@@ -69,6 +70,11 @@ internal sealed class SherpaVoiceAnalyzer : IVoiceAnalyzer, IDisposable
     {
         lock (_lock)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _vad.Reset();
             _name.Dispose();
             _name = _spotter.CreateStream();
@@ -79,6 +85,11 @@ internal sealed class SherpaVoiceAnalyzer : IVoiceAnalyzer, IDisposable
     {
         lock (_lock)
         {
+            if (_disposed)
+            {
+                return false;
+            }
+
             _vad.AcceptWaveform(ToFloats(chunk));
             var speech = _vad.IsSpeechDetected();
             while (!_vad.IsEmpty())
@@ -94,6 +105,11 @@ internal sealed class SherpaVoiceAnalyzer : IVoiceAnalyzer, IDisposable
     {
         lock (_lock)
         {
+            if (_disposed)
+            {
+                return false;
+            }
+
             var heard = false;
             _name.AcceptWaveform(16000, ToFloats(chunk));
             while (_spotter.IsReady(_name))
@@ -114,7 +130,7 @@ internal sealed class SherpaVoiceAnalyzer : IVoiceAnalyzer, IDisposable
     {
         lock (_lock)
         {
-            if (Voiceprint is not { } print)
+            if (_disposed || Voiceprint is not { } print)
             {
                 return SpeakerVerdict.User;
             }
@@ -133,6 +149,13 @@ internal sealed class SherpaVoiceAnalyzer : IVoiceAnalyzer, IDisposable
     {
         lock (_lock)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // Kapanan oturumun süzgeci hâlâ çağırabilir: atıldıktan sonra her çağrı zararsız bir yanıt döner.
+            _disposed = true;
             _name.Dispose();
             _spotter.Dispose();
             _vad.Dispose();

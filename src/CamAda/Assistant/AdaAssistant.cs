@@ -18,7 +18,14 @@ internal sealed record AdaDependencies(
     UsageFile Usage,
     string ModelDir,
     Action<Exception> Log,
-    AudioService? Audio);
+    AudioService? Audio)
+{
+    /// <summary>Kullanıcının ses izi (misafir kipi); null ise ses tanınmaz, kip yalnız elle açılır.</summary>
+    public VoiceprintFile? Voiceprint { get; init; }
+
+    /// <summary>Konuşmacı ve konuşma algılayıcı modellerinin klasörü.</summary>
+    public string VoiceModelDir { get; init; } = VoiceModels.Dir;
+}
 
 /// <summary>
 /// Ada'nın oturum yöneticisi (tasarım "Uyanma ve oturum"): boştayken "Hey Ada" dinler; tetiklenince yankı engelleyicili
@@ -56,13 +63,22 @@ internal sealed class AdaAssistant : IDisposable
     private DateTime _lastTrigger = DateTime.MinValue;
     private bool _micFailureShown;
     private readonly HashSet<string> _halfDuplexNoticed = []; // yankı engelleyicisi açılamayan mikrofonlar (bilgi bir kez)
+    private readonly GuestMode _guest;
+    private SherpaVoiceAnalyzer? _voice;
+    private Task? _voiceLoad;
+    private bool _guestShown;
 
     public AdaAssistant(Dispatcher dispatcher, AdaDependencies deps)
     {
         _dispatcher = dispatcher;
         _deps = deps;
-        _runner = new AdaToolRunner(deps.Tools with { EndSessionAfterSpeech = RequestEndAfterSpeech, LookupUsed = OnLookup },
-            TimeProvider.System);
+        _guest = new GuestMode(TimeProvider.System, TimeSpan.FromMinutes(deps.Settings().GuestModeMinutes));
+        _runner = new AdaToolRunner(deps.Tools with
+        {
+            EndSessionAfterSpeech = RequestEndAfterSpeech,
+            LookupUsed = OnLookup,
+            SetGuestMode = SetGuestManual,
+        }, TimeProvider.System);
         _check = new DispatcherTimer(CheckInterval, DispatcherPriority.Normal, (_, _) => OnCheck(), dispatcher);
         _check.Stop();
         _failedTimer = new DispatcherTimer(FailedShownFor, DispatcherPriority.Normal, (_, _) => OnFailedShown(), dispatcher);
@@ -85,6 +101,15 @@ internal sealed class AdaAssistant : IDisposable
     internal event Action<string>? Trace;
 
     public bool IsSessionActive => _session is not null;
+
+    /// <summary>Misafir kipi açık mı (adada simge; Plan 8).</summary>
+    public bool IsGuestMode => _guest.IsOn;
+
+    /// <summary>Misafir kipi açıldı ya da kapandı (arayüz iş parçacığında, yalnız değişince).</summary>
+    public event EventHandler<bool>? GuestModeChanged;
+
+    /// <summary>Ses tanıma yüklendi mi (deneme için).</summary>
+    internal bool IsVoiceReady => _voice is not null;
 
     /// <summary>"Hey Ada" dinleniyor mu (tanılama ve deneme için).</summary>
     internal bool IsWakeListening => _listener?.IsListening == true;
@@ -170,6 +195,157 @@ internal sealed class AdaAssistant : IDisposable
 
         _listener?.Dispose();
         _listener = null;
+        _session?.Filter?.Dispose(); // süzgeç iş parçacığı çözümleyiciyi bıraksın
+        _voice?.Dispose();
+        _voice = null;
+    }
+
+    // --- Misafir kipi (Plan 8) ---
+
+    /// <summary>
+    /// Ses tanıma modelleri Ada açıkken bir kez, arka planda yüklenir (~30 MB); kapalıyken bellek tutulmaz. Yüklenemezse misafir
+    /// kipi kullanılamaz, Ada bugünkü gibi çalışır.
+    /// </summary>
+    private Task EnsureVoice() => _voiceLoad ??= LoadVoiceAsync();
+
+    private async Task LoadVoiceAsync()
+    {
+        try
+        {
+            var started = DateTime.UtcNow;
+            var voice = await Task.Run(() => SherpaVoiceAnalyzer.TryCreate(_deps.VoiceModelDir, _deps.ModelDir, _deps.Log));
+            TraceDebug($"ses tanıma {(voice is null ? "yüklenemedi" : "yüklendi")} ({(DateTime.UtcNow - started).TotalMilliseconds:F0} ms)");
+            if (voice is null)
+            {
+                _deps.Log(new System.IO.FileNotFoundException("Misafir kipi: ses tanıma modelleri yüklenemedi", _deps.VoiceModelDir));
+            }
+            else if (_disposed)
+            {
+                voice.Dispose();
+            }
+            else
+            {
+                _voice = voice;
+            }
+        }
+        catch (Exception ex) when (!IsFatal(ex))
+        {
+            _deps.Log(ex);
+        }
+    }
+
+    /// <summary>Kullanıcı sesle açtı/kapattı (misafir_kipi işlevi); ses tanıma yoksa false.</summary>
+    internal bool SetGuestManual(bool on)
+    {
+        if (_voice is null)
+        {
+            return false;
+        }
+
+        _guest.SetManual(on);
+        UpdateGuest();
+        return true;
+    }
+
+    /// <summary>Kip değiştiyse (açıldı, elle kapandı, 2 dk doldu) adaya bildirir.</summary>
+    private void UpdateGuest()
+    {
+        var on = _guest.IsOn;
+        if (on != _guestShown)
+        {
+            _guestShown = on;
+            GuestModeChanged?.Invoke(this, on);
+        }
+    }
+
+    /// <summary>
+    /// Ses tanıma varsa oturumun süzgeci kurulur: ses izi ve eşik o anki ayardan. İlk söz "Ada" demeden geçer: "Hey Ada" da
+    /// kısayol da Ada'ya seslenmektir.
+    /// </summary>
+    private void StartFilter(Session session, AssistantSettings settings)
+    {
+        if (_voice is not { } voice)
+        {
+            return;
+        }
+
+        voice.Reset();
+        voice.Voiceprint = _deps.Voiceprint?.Load(VoiceModels.SpeakerModel);
+        voice.Threshold = settings.SpeakerThreshold;
+        session.Filter = new VoiceFilter(new VoiceGate(voice, new VoiceGateOptions()),
+            output => _dispatcher.BeginInvoke(() => OnFiltered(session, output)), _deps.Log);
+        session.Filter.AllowNextWithoutName(TimeSpan.FromSeconds(settings.NoSpeechSeconds));
+        TraceDebug($"süzgeç: ses izi {(voice.Voiceprint is null ? "yok" : "var")}, misafir kipi {(_guest.IsOn ? "açık" : "kapalı")}");
+    }
+
+    /// <summary>Google'a gidecek her ses (ön kayıt, köprü, mikrofon) buradan: süzgeç varsa ondan geçer.</summary>
+    private void Send(Session session, short[] samples)
+    {
+        if (session.Filter is { } filter)
+        {
+            filter.Post(samples, new GateInput(_guest.IsOn, _runner.Notes.Active));
+            return;
+        }
+
+        NoteVoice(samples);
+        Queue(session, samples);
+    }
+
+    /// <summary>Süzgeçten çıkan ses (arayüz iş parçacığında): Google'a gider; başka ses duyulduysa kip açılır.</summary>
+    private void OnFiltered(Session session, GateOutput output)
+    {
+        if (session != _session || session.Closing)
+        {
+            return; // kapanan oturumun geç gelen sesi gitmez, kipi açmaz
+        }
+
+        var adaTalking = session.ModelSpeaking && session.Speaker?.IsPlaying == true;
+        var bargeIn = _guest.IsOn && !session.HalfDuplex;
+        foreach (var chunk in output.Send)
+        {
+            Queue(session, chunk);
+            NoteVoice(chunk);
+            if (bargeIn)
+            {
+                // Kipte yerel söz kesme yalnız süzgeçten geçen sesle (yani "Ada" ile): misafirin sesi Ada'yı susturmasın.
+                ApplyBargeIn(session, session.BargeIn.OnMic(Pcm.Rms(chunk), adaTalking));
+            }
+        }
+
+        if (output.OtherVoiceHeard)
+        {
+            TraceDebug("misafir sesi");
+            if (_guest.OtherVoiceHeard())
+            {
+                session.Speaker?.PlayCue(AdaCue.Guest);
+            }
+
+            UpdateGuest();
+        }
+    }
+
+    /// <summary>Google'ın canlı yazısı söz bitince geliyor: not, kullanıcı konuşurken sessizlik sayılıp bitmesin.</summary>
+    private void NoteVoice(short[] sent)
+    {
+        if (_runner.Notes.Active && Pcm.Rms(sent) > NoteVoiceRms)
+        {
+            _runner.Notes.UserSpoke();
+        }
+    }
+
+    private void ApplyBargeIn(Session session, BargeInAction action)
+    {
+        switch (action)
+        {
+            case BargeInAction.Hold:
+                session.Speaker?.Hold();
+                TraceDebug("yerel söz kesme: Ada tutuldu");
+                break;
+            case BargeInAction.Resume:
+                session.Speaker?.Resume();
+                TraceDebug("yerel söz kesme: Ada sürdü");
+                break;
+        }
     }
 
     // --- Uyandırma ---
@@ -206,6 +382,7 @@ internal sealed class AdaAssistant : IDisposable
             return;
         }
 
+        _ = EnsureVoice();
         if (_listener is null)
         {
             if (_listenerLoading)
@@ -348,6 +525,16 @@ internal sealed class AdaAssistant : IDisposable
         _runner.ResetConfirmations(); // önceki oturumdan kalan "emin misin?" bu oturumda geçmez
         SetState(new AdaState.Connecting());
 
+        // Ses tanıma yükleniyorsa (Ada yeni açıldı) mikrofon açılmadan biter: oturumun ilk sözü de süzgeçten geçsin.
+        await EnsureVoice();
+        if (session.Closing)
+        {
+            return;
+        }
+
+        StartFilter(session, settings);
+        UpdateGuest(); // 2 dk içinde yeniden çağrıldıysa kip baştan açık gelir
+
         // "Hey Ada" ile: uyandırma sözünün sonundan (algılamadan 0,8 sn önce) bugüne kadar duyulan ilk gönderilir; öncesi
         // bilgisayarda kalır. Kısayolla: basıştan öncesi hiç gitmez. Dinleyici, oturum mikrofonu ilk sesini verene kadar kayda
         // devam eder (OnMicSamples aradaki sesi sıraya ekleyip onu durdurur): "Hey Ada, sesi kıs" tek nefeste söylenebilir.
@@ -392,7 +579,7 @@ internal sealed class AdaAssistant : IDisposable
 
         if (preRoll is { Length: > 0 })
         {
-            session.Pending.Add(preRoll);
+            Send(session, preRoll); // 1. durum tam da ilk komutta oluyor: ön kayıt da süzgeçten geçer
         }
 
         session.MicId = audioSetup.MicId;
@@ -591,7 +778,7 @@ internal sealed class AdaAssistant : IDisposable
             StopListening();
             if (bridge.Length > samples.Length)
             {
-                Queue(session, bridge[..^samples.Length]);
+                Send(session, bridge[..^samples.Length]);
             }
 
             TraceDebug($"köprü: dinleyiciden {Math.Max(0, bridge.Length - samples.Length) / 16} ms");
@@ -613,30 +800,15 @@ internal sealed class AdaAssistant : IDisposable
                 toSend = new short[samples.Length];
             }
         }
-        else
+        else if (session.Filter is null || !_guest.IsOn)
         {
             // Yerel söz kesme: Google'ın "kesildi"sini beklemeden susar; Google onaylamazsa (öksürük) kaldığı yerden sürer.
-            switch (session.BargeIn.OnMic(Pcm.Rms(samples), adaTalking))
-            {
-                case BargeInAction.Hold:
-                    session.Speaker?.Hold();
-                    TraceDebug("yerel söz kesme: Ada tutuldu");
-                    break;
-                case BargeInAction.Resume:
-                    session.Speaker?.Resume();
-                    TraceDebug("yerel söz kesme: Ada sürdü");
-                    break;
-            }
+            // Misafir kipinde süzgeçten geçen sesle yapılır (OnFiltered).
+            ApplyBargeIn(session, session.BargeIn.OnMic(Pcm.Rms(samples), adaTalking));
         }
 
-        if (_runner.Notes.Active && Pcm.Rms(toSend) > NoteVoiceRms)
-        {
-            // Google'ın canlı yazısı söz bitince geliyor: not, kullanıcı konuşurken sessizlik sayılıp bitmesin. Yarı çift yönlüde
-            // Ada konuşurken toSend sıfırdır, Ada'nın kendi sesi sayılmaz.
-            _runner.Notes.UserSpoke();
-        }
-
-        Queue(session, toSend);
+        // Yarı çift yönlüde Ada konuşurken toSend sıfırdır: Ada'nın kendi sesi ne nota ne süzgece (misafir sanılmasın) girer.
+        Send(session, toSend);
     }
 
     /// <summary>Bağlantı hazır değilse sıraya, hazırsa doğrudan Google'a.</summary>
@@ -854,12 +1026,21 @@ internal sealed class AdaAssistant : IDisposable
             _ = FinishNoteAfterSilenceAsync(session);
         }
 
+        UpdateGuest(); // kendiliğinden açılan kip son başka sesten 2 dk sonra biter
+
         var playing = session.Speaker?.IsPlaying == true;
         if (session.TurnDone && !playing)
         {
             session.TurnDone = false;
             session.ModelSpeaking = false;
             session.Rules.AdaFinished();
+            if (session.Filter is { } filter && (_runner.ConfirmPending || AdaText.EndsWithQuestion(session.Transcript.Ada)))
+            {
+                // Ada soru sordu: yanıt misafir kipinde de "Ada" demeden geçer (ses yine denetlenir).
+                filter.AllowNextWithoutName(TimeSpan.FromSeconds(session.Settings.SilenceSeconds));
+                TraceDebug("soru: sonraki söz adsız");
+            }
+
             if (session.EndRequested && session.AudioAfterEndRequest)
             {
                 _ = CloseAsync(session, notice: session.EndNotice); // veda bitti
@@ -971,6 +1152,12 @@ internal sealed class AdaAssistant : IDisposable
         {
             // Ne olursa olsun oturum bırakılır: yoksa Ada bir daha açılmaz, uyandırma dinlemez.
             _runner.Notes.Reset();
+            if (session.Filter is { } filter)
+            {
+                session.Filter = null;
+                DisposeInBackground(filter); // kip durumu korunur: 2 dk içinde yeni oturum baştan misafir kipinde
+            }
+
             session.Ducker?.Restore();
             if (session.Speaker is { } speaker)
             {
@@ -1137,6 +1324,9 @@ internal sealed class AdaAssistant : IDisposable
         public AdaSpeaker? Speaker { get; set; }
 
         public AudioDucker? Ducker { get; set; }
+
+        /// <summary>Misafir kipi süzgeci (ses tanıma yüklendiyse).</summary>
+        public VoiceFilter? Filter { get; set; }
 
         /// <summary>Bağlantı hazır olmadan gelen mikrofon parçaları (ön kayıt dahil), sırayla.</summary>
         public List<short[]> Pending { get; } = [];

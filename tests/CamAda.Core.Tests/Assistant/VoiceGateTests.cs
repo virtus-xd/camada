@@ -203,6 +203,19 @@ public class VoiceGateTests
     }
 
     [Fact]
+    public void Allowance_survives_a_blocked_guest_sentence()
+    {
+        // Ada soru sordu, önce misafir konuştu (engellendi): kullanıcının yanıt hakkı yerinde kalır.
+        _gate.AllowNextWithoutName(TimeSpan.FromSeconds(8));
+
+        Push(Other, 12, Guest);
+        Push(Quiet, 4, Guest);
+        var answer = Push(User, 12, Guest);
+
+        Assert.Equal(12, Raw(answer, User));
+    }
+
+    [Fact]
     public void Allowance_is_not_spent_on_quiet_noise()
     {
         _gate.AllowNextWithoutName(TimeSpan.FromSeconds(8));
