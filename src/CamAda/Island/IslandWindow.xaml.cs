@@ -56,6 +56,7 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _flashTimer = new(DispatcherPriority.Normal);
     private FlashKind _flashKind;
     private AdaState _ada = new AdaState.Idle();
+    private bool _adaGuest;
     private bool _adaShown;
     private bool _adaSuppressing;
     private bool _adaPulsing;
@@ -415,12 +416,12 @@ public partial class IslandWindow : Window
                 text = failed.Message;
                 break;
             default:
-                text = "Dinliyorum…";
+                text = AdaText.ListeningLine(_adaGuest);
                 break;
         }
 
         AdaLine.Text = text;
-        AutomationProperties.SetName(AdaRow, text);
+        AutomationProperties.SetName(AdaRow, (_adaGuest ? "Misafir kipi. " : "") + text);
         AdaDot.Visibility = micOpen ? Visibility.Visible : Visibility.Collapsed;
         switch (state)
         {
@@ -444,6 +445,20 @@ public partial class IslandWindow : Window
         AdaGlyph.Margin = micOpen ? new Thickness(10, 0, 0, 0) : new Thickness(0);
         SetAdaPulse(state is AdaState.Connecting or AdaState.Listening);
         TryBeginAda();
+    }
+
+    /// <summary>
+    /// Misafir kipi (Plan 8): satırda "iki kişi" simgesi ve dinlerken "“Ada” deyin, dinliyorum". Oturum yokken yalnız saklanır,
+    /// sonraki oturumda hemen görünür.
+    /// </summary>
+    public void ShowAdaGuest(bool on)
+    {
+        _adaGuest = on;
+        AdaGuestGlyph.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (_ada is not AdaState.Idle)
+        {
+            ShowAda(_ada);
+        }
     }
 
     private void TryBeginAda()

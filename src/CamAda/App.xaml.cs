@@ -230,6 +230,8 @@ public partial class App : Application
         _ada = new AdaAssistant(Dispatcher, new AdaDependencies(() => _settings.Assistant, keys, tools, memory, _adaUsage,
             Path.Combine(AppContext.BaseDirectory, "Assets", "WakeWord"), LogCrash, _audio) { Voiceprint = _adaVoiceprint });
         _ada.Notice += (_, text) => _island?.Flash(new FlashContent("", null, text));
+        _ada.GuestModeChanged += (_, on) => _island?.ShowAdaGuest(on);
+        _island?.ShowAdaGuest(_ada.IsGuestMode);
         _ada.StateChanged += (_, state) =>
         {
             Debug.WriteLine($"Ada: {state}");
