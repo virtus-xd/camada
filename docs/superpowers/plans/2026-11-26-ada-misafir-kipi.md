@@ -39,11 +39,14 @@ NAudio, xUnit + `FakeTimeProvider`.
 
 | Değer | Başlangıç | Ölçüm sonucu |
 |---|---|---|
-| Konuşmacı modeli (`VoiceModels.SpeakerModel`) | CAM++ `3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx` | |
-| `SpeakerThreshold` (ayar, aralık 0.10–0.90) | 0.50 | |
-| `VoiceGateOptions.DecideAfterSamples` | 12800 (0,8 sn) | |
-| `VoiceGateOptions.MinSpeechRms` | 0.02 | |
-| "Ada" eşiği (`NameThreshold`) ve güçlendirmesi | 0.25 / 1.2 | |
+| Konuşmacı modeli (`VoiceModels.SpeakerModel`) | CAM++ `3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx` | CAM++ (21 ms; ERes2Net benzer ayrım ama 44 ms ve 40 MB; WeSpeaker ayıramadı) |
+| `SpeakerThreshold` (ayar, aralık 0.10–0.90) | 0.50 | **0.33** (1,0 sn'de kullanıcı en az 0,39, misafir en çok 0,27) |
+| `VoiceGateOptions.DecideAfterSamples` | 12800 (0,8 sn) | **16000 (1,0 sn)**: 0,8 sn'de kullanıcı %82, 1,0 sn'de 24/25 = %96; misafir 15/15 durur |
+| `VoiceGateOptions.MinSpeechRms` | 0.02 | **0.006** (yankı kırıntısı 0,004; kullanıcının en kısık konuşması 0,008) |
+| "Ada" eşiği (`NameThreshold`) ve güçlendirmesi | 0.25 / 1.2 | **0.10 / 1.5**: 9/10 yakalama; kullanıcıda 0, misafirde 40 sn'de 1 yanlış tetiklenme. Başka yazımlar ("E D A", "A DER", "OH D A") katkı vermedi |
+
+Ölçüm (26.11): yankı engelleyiciyle, Realtek mikrofon dizisi ve hoparlör. Kayıt sırasında varsayılan çıkış "SteelSeries Sonar -
+Gaming" (8 kanal) iken yankı engelleyici ses vermedi. Varsayılan çıkış "Hoparlör (Realtek)" yapılınca açıldı.
 
 Sonraki görevler bu sütundaki değerleri kullanır. Ölçüm boş bıraktıysa başlangıç değeri geçerli.
 

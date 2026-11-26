@@ -108,6 +108,12 @@ internal static partial class AdaProbes
             return true;
         }
 
+        if (args.Contains("--ada-konusmaci-sina"))
+        {
+            await SpeakerTrialAsync(args);
+            return true;
+        }
+
         if (args.Contains("--ada-oda-sina"))
         {
             await RoomAsync(args);
