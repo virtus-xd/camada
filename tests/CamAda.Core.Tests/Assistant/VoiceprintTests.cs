@@ -35,6 +35,15 @@ public class VoiceprintTests
     }
 
     [Fact]
+    public void Microphone_round_trips_and_is_optional()
+    {
+        var print = new Voiceprint("m", [[1, 0]], mic: "{0.0.1.00000000}.{abc}");
+
+        Assert.Equal("{0.0.1.00000000}.{abc}", Voiceprint.FromJson(print.ToJson(), "m")!.Mic);
+        Assert.Null(Voiceprint.FromJson("""{"model":"m","samples":[[1,0]]}""", "m")!.Mic);
+    }
+
+    [Fact]
     public void Other_model_or_broken_json_is_null()
     {
         var json = new Voiceprint("m", [[1, 0]]).ToJson();

@@ -7,17 +7,35 @@ public class GuestModeTests
 {
     private readonly FakeTimeProvider _time = new();
 
-    private GuestMode Make() => new(_time, TimeSpan.FromMinutes(2));
+    private GuestMode Make() => new(_time, TimeSpan.FromMinutes(2), TimeSpan.FromSeconds(10));
 
     private void Wait(double seconds) => _time.Advance(TimeSpan.FromSeconds(seconds));
+
+    /// <summary>İki başka ses kararı (10 sn içinde): kip açık.</summary>
+    private static void Confirm(GuestMode guest)
+    {
+        guest.OtherVoiceHeard();
+        guest.OtherVoiceHeard();
+    }
 
     [Fact]
     public void Starts_off() => Assert.False(Make().IsOn);
 
     [Fact]
-    public void Other_voice_turns_on_once()
+    public void Single_other_voice_does_not_turn_on()
     {
         var guest = Make();
+
+        Assert.False(guest.OtherVoiceHeard());
+        Assert.False(guest.IsOn);
+    }
+
+    [Fact]
+    public void Second_other_voice_within_ten_seconds_turns_on_once()
+    {
+        var guest = Make();
+        guest.OtherVoiceHeard();
+        Wait(9);
 
         Assert.True(guest.OtherVoiceHeard());
         Assert.False(guest.OtherVoiceHeard());
@@ -26,10 +44,23 @@ public class GuestModeTests
     }
 
     [Fact]
-    public void Auto_ends_two_minutes_after_last_other()
+    public void Isolated_other_voices_do_not_turn_on()
     {
         var guest = Make();
         guest.OtherVoiceHeard();
+        Wait(11);
+
+        Assert.False(guest.OtherVoiceHeard());
+        Assert.False(guest.IsOn);
+        Wait(5);
+        Assert.True(guest.OtherVoiceHeard());
+    }
+
+    [Fact]
+    public void Auto_ends_two_minutes_after_last_other()
+    {
+        var guest = Make();
+        Confirm(guest);
         Wait(60);
         guest.OtherVoiceHeard();
 
@@ -43,9 +74,10 @@ public class GuestModeTests
     public void Turns_on_again_after_expiry()
     {
         var guest = Make();
-        guest.OtherVoiceHeard();
+        Confirm(guest);
         Wait(121);
 
+        Assert.False(guest.OtherVoiceHeard());
         Assert.True(guest.OtherVoiceHeard());
     }
 
@@ -64,10 +96,11 @@ public class GuestModeTests
     public void Manual_off_clears_auto_and_auto_can_return()
     {
         var guest = Make();
-        guest.OtherVoiceHeard();
+        Confirm(guest);
 
         Assert.True(guest.SetManual(false));
         Assert.False(guest.IsOn);
+        Assert.False(guest.OtherVoiceHeard());
         Assert.True(guest.OtherVoiceHeard());
         Assert.True(guest.IsOn);
     }
@@ -76,7 +109,7 @@ public class GuestModeTests
     public void Manual_on_while_auto_on_keeps_it_on()
     {
         var guest = Make();
-        guest.OtherVoiceHeard();
+        Confirm(guest);
 
         Assert.False(guest.SetManual(true));
         Wait(600);
@@ -89,6 +122,7 @@ public class GuestModeTests
         var guest = Make();
         guest.SetManual(true);
 
+        Assert.False(guest.OtherVoiceHeard());
         Assert.False(guest.OtherVoiceHeard());
     }
 

@@ -39,6 +39,9 @@ internal sealed class VoiceEnrollment : IDisposable
         Wire(mic);
     }
 
+    /// <summary>Tanıtmanın yapıldığı mikrofonun kimliği: ses izine yazılır, oturum başka mikrofonda izi kullanmaz.</summary>
+    public string MicId => _micId;
+
     /// <summary>Mikrofonu açar ve modeli yükler (arka planda, tek COM dairesinde); mikrofon ya da model yoksa null.</summary>
     public static Task<VoiceEnrollment?> OpenAsync(string? micHint, string speakerDir) => Task.Run(() =>
     {

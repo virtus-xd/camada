@@ -121,24 +121,136 @@ public class VoiceGateTests
     }
 
     [Fact]
-    public void Guest_speaking_right_after_user_is_cut_within_one_second()
+    public void Guest_speaking_right_after_user_is_cut_within_two_seconds()
     {
         var user = Push(User, 8);
         var other = Push(Other, 20);
 
         Assert.Equal(8, Raw(user, User));
-        Assert.InRange(Raw(other, Other), 1, 10);
+        Assert.InRange(Raw(other, Other), 1, 20);
         Assert.Equal(1, Reports(other));
     }
 
     [Fact]
-    public void Quiet_speech_is_ignored()
+    public void Single_failed_recheck_does_not_cut_the_user()
+    {
+        // Yeniden denetim bir kez "başkası" der (kullanıcının yanlış reddi): söz kesilmez, ikinci denetim kullanıcı der.
+        Push(User, 8);
+        var odd = Push(Other, 10);
+        var rest = Push(User, 10);
+
+        Assert.Equal(10, Raw(odd, Other));
+        Assert.Equal(10, Raw(rest, User));
+        Assert.Equal(0, Reports(odd.Concat(rest)));
+    }
+
+    [Fact]
+    public void Quiet_speech_passes_in_normal_mode()
     {
         var outputs = Push(Soft, 10);
+
+        Assert.Equal(10, Raw(outputs, Soft));
+        Assert.Equal(0, _analyzer.VerifyCalls);
+        Assert.Equal(0, Reports(outputs));
+    }
+
+    [Fact]
+    public void Quiet_speech_is_ignored_while_ada_talks()
+    {
+        var outputs = Push(Soft, 10, new GateInput(GuestMode: false, NoteActive: false, AdaTalking: true));
 
         Assert.Equal(0, Raw(outputs, Soft));
         Assert.Equal(0, _analyzer.VerifyCalls);
         Assert.Equal(0, Reports(outputs));
+    }
+
+    [Fact]
+    public void Quiet_speech_is_ignored_in_guest_mode()
+    {
+        var outputs = Push(Soft, 10, new GateInput(GuestMode: true, NoteActive: true));
+
+        Assert.Equal(0, Raw(outputs, Soft));
+    }
+
+    [Fact]
+    public void No_guest_report_while_ada_talks()
+    {
+        var outputs = Push(Other, 20, new GateInput(GuestMode: false, NoteActive: false, AdaTalking: true));
+
+        Assert.Equal(0, Raw(outputs, Other));
+        Assert.Equal(0, Reports(outputs));
+    }
+
+    [Fact]
+    public void Without_voiceprint_audio_passes_as_is_outside_guest_mode()
+    {
+        var gate = new VoiceGate(_analyzer, Options, verifyVoice: false);
+        var outputs = new List<GateOutput>();
+        foreach (var value in Enumerable.Repeat(Quiet, 5).Concat(Enumerable.Repeat(Other, 12)))
+        {
+            outputs.Add(gate.Push(Enumerable.Repeat(value, 1600).ToArray(), Normal));
+        }
+
+        Assert.All(outputs, o => Assert.Single(o.Send));
+        Assert.Equal(5, Raw(outputs, Quiet));
+        Assert.Equal(12, Raw(outputs, Other));
+        Assert.Equal(0, _analyzer.VerifyCalls);
+        Assert.Equal(0, Reports(outputs));
+    }
+
+    [Fact]
+    public void Without_voiceprint_guest_mode_still_needs_name()
+    {
+        var gate = new VoiceGate(_analyzer, Options, verifyVoice: false);
+        List<GateOutput> Feed(params short[] values) =>
+            values.Select(v => gate.Push(Enumerable.Repeat(v, 1600).ToArray(), Guest)).ToList();
+
+        var unnamed = Feed([.. Enumerable.Repeat(User, 12), Quiet]);
+        Feed([.. Enumerable.Repeat(Quiet, 10)]);
+        var named = Feed([UserName, .. Enumerable.Repeat(User, 12)]);
+
+        Assert.Equal(0, Raw(unnamed, User));
+        Assert.Equal(12, Raw(named, User));
+        Assert.Equal(0, _analyzer.VerifyCalls);
+    }
+
+    [Fact]
+    public void Two_rejected_named_sentences_suspend_the_voice_check()
+    {
+        // Kullanıcının sesi tanınmıyor (başka mikrofon, hastalık): "Ada, …" iki kez üst üste reddedilince ikincisi geçer ve o
+        // oturumda ses denetimi durur — Ada kullanıcıyı büsbütün duymaz olmasın.
+        var gate = new VoiceGate(_analyzer, Options with { NameOverridesVoice = false });
+        List<GateOutput> Feed(GateInput input, params short[] values) =>
+            values.Select(v => gate.Push(Enumerable.Repeat(v, 1600).ToArray(), input)).ToList();
+
+        var first = Feed(Guest, [OtherName, .. Enumerable.Repeat(Other, 12), Quiet]);
+        Feed(Guest, [.. Enumerable.Repeat(Quiet, 10)]);
+        var second = Feed(Guest, [OtherName, .. Enumerable.Repeat(Other, 12), Quiet]);
+        Feed(Normal, [.. Enumerable.Repeat(Quiet, 10)]);
+        var later = Feed(Normal, [.. Enumerable.Repeat(Other, 12), Quiet]);
+
+        Assert.Equal(0, Raw(first, Other));
+        Assert.Equal(12, Raw(second, Other));
+        Assert.Equal(1, second.Count(o => o.VoiceCheckSuspended));
+        Assert.Equal(12, Raw(later, Other));
+        Assert.Equal(0, Reports(later));
+    }
+
+    [Fact]
+    public void A_verified_sentence_resets_rejected_names()
+    {
+        var gate = new VoiceGate(_analyzer, Options with { NameOverridesVoice = false });
+        List<GateOutput> Feed(params short[] values) =>
+            values.Select(v => gate.Push(Enumerable.Repeat(v, 1600).ToArray(), Guest)).ToList();
+
+        Feed([OtherName, .. Enumerable.Repeat(Other, 12), Quiet]);
+        Feed([.. Enumerable.Repeat(Quiet, 10)]);
+        Feed([UserName, .. Enumerable.Repeat(User, 12), Quiet]);
+        Feed([.. Enumerable.Repeat(Quiet, 10)]);
+        var again = Feed([OtherName, .. Enumerable.Repeat(Other, 12), Quiet]);
+
+        Assert.Equal(0, Raw(again, Other));
+        Assert.DoesNotContain(again, o => o.VoiceCheckSuspended);
     }
 
     [Fact]
@@ -328,6 +440,26 @@ public class VoiceGateTests
 
     [Fact]
     public void By_default_name_does_not_override_voice() => Assert.False(new VoiceGateOptions().NameOverridesVoice);
+
+    [Fact]
+    public void Shipped_options_pass_user_block_guest_and_let_quiet_user_through()
+    {
+        // Gönderilen ayarlarla (ölçüm değerleri): 1,0 sn karar, 0,006 kısık ses sınırı.
+        var gate = new VoiceGate(_analyzer, new VoiceGateOptions());
+        List<GateOutput> Feed(params short[] values) =>
+            values.Select(v => gate.Push(Enumerable.Repeat(v, 1600).ToArray(), Normal)).ToList();
+
+        var user = Feed([.. Enumerable.Repeat(User, 20), Quiet]);
+        Feed([.. Enumerable.Repeat(Quiet, 10)]);
+        var guest = Feed([.. Enumerable.Repeat(Other, 20), Quiet]);
+        Feed([.. Enumerable.Repeat(Quiet, 10)]);
+        var quietUser = Feed([.. Enumerable.Repeat((short)150, 12), Quiet]); // RMS ~0,005: sınırın altında
+
+        Assert.Equal(20, Raw(user, User));
+        Assert.Equal(0, Raw(guest, Other));
+        Assert.Equal(1, Reports(guest));
+        Assert.Equal(12, Raw(quietUser, 150));
+    }
 
     [Fact]
     public void Blocked_sentence_gives_no_continuation()

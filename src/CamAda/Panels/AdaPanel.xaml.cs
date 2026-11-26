@@ -93,6 +93,7 @@ internal sealed partial class AdaPanel : UserControl
         var status = _services.Voiceprint.Status(VoiceModels.SpeakerModel);
         VoiceStatus.Text = status switch
         {
+            VoiceprintStatus.Ready when !OnCurrentMic() => "Sesin başka bir mikrofonla tanıtıldı — bu mikrofonla yeniden tanıt",
             VoiceprintStatus.Ready => "Sesin tanıtıldı",
             VoiceprintStatus.Stale => "Ses izi eski — yeniden tanıt",
             _ => "Henüz tanıtılmadı",
@@ -103,6 +104,24 @@ internal sealed partial class AdaPanel : UserControl
         }
 
         DeleteVoiceButton.Visibility = status == VoiceprintStatus.None ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Ses izi şu anki Ada mikrofonuyla mı alındı (oturum başka mikrofonda izi kullanmaz).</summary>
+    private bool OnCurrentMic()
+    {
+        if (_services.Voiceprint.Load(VoiceModels.SpeakerModel)?.Mic is not { } enrolledOn)
+        {
+            return true; // eski iz: mikrofonu bilinmiyor
+        }
+
+        try
+        {
+            return MicDevices.ResolveMic(_services.Settings().Microphone)?.ID == enrolledOn;
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            return true;
+        }
     }
 
     private async void Enroll_Click(object sender, RoutedEventArgs e)
@@ -182,7 +201,7 @@ internal sealed partial class AdaPanel : UserControl
                 embeddings.Add(embedding);
             }
 
-            if (!_services.Voiceprint.Save(new Voiceprint(VoiceModels.SpeakerModel, embeddings)))
+            if (!_services.Voiceprint.Save(new Voiceprint(VoiceModels.SpeakerModel, embeddings, enrollment.MicId)))
             {
                 EnrollStatus.Text = "Ses izi kaydedilemedi";
                 return;

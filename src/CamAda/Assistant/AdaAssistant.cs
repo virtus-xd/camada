@@ -48,6 +48,9 @@ internal sealed class AdaAssistant : IDisposable
     private const int BargeInChunks = 2; // mikrofon parçaları ~100 ms: art arda iki parça ≥ 150 ms
     private const double DuckFactor = 0.3;
     private const string MaxDurationNotice = "Uzun sürdü — yeniden çağırabilirsin";
+    private static readonly TimeSpan GuestConfirmWithin = TimeSpan.FromSeconds(10); // kip için iki başka ses kararı bu süre içinde
+    private const string OtherMicNotice = "Sesin başka bir mikrofonla tanıtıldı — Ada ayarlarından bu mikrofonla yeniden tanıt";
+    private const string VoiceNotRecognizedNotice = "Ada sesini tanıyamadı — Ada ayarlarından sesini yeniden tanıt";
 
     private readonly Dispatcher _dispatcher;
     private readonly AdaDependencies _deps;
@@ -68,12 +71,13 @@ internal sealed class AdaAssistant : IDisposable
     private Task? _voiceLoad;
     private bool _guestShown;
     private bool _micReserved;
+    private bool _otherMicNoticed;
 
     public AdaAssistant(Dispatcher dispatcher, AdaDependencies deps)
     {
         _dispatcher = dispatcher;
         _deps = deps;
-        _guest = new GuestMode(TimeProvider.System, TimeSpan.FromMinutes(deps.Settings().GuestModeMinutes));
+        _guest = new GuestMode(TimeProvider.System, TimeSpan.FromMinutes(deps.Settings().GuestModeMinutes), GuestConfirmWithin);
         _runner = new AdaToolRunner(deps.Tools with
         {
             EndSessionAfterSpeech = RequestEndAfterSpeech,
@@ -298,31 +302,48 @@ internal sealed class AdaAssistant : IDisposable
     }
 
     /// <summary>
-    /// Ses tanıma varsa oturumun süzgeci kurulur: ses izi ve eşik o anki ayardan. İlk söz "Ada" demeden geçer: "Hey Ada" da
-    /// kısayol da Ada'ya seslenmektir.
+    /// Ses tanıma varsa oturumun süzgeci kurulur: ses izi ve eşik o anki ayardan. Ses izi yoksa ya da başka bir mikrofonla
+    /// alınmışsa ses denetlenmez (kip kapalıyken ses bugünkü gibi gider; elle açılan kipin "Ada" kuralı yine çalışır). İlk söz
+    /// "Ada" demeden geçer: "Hey Ada" da kısayol da Ada'ya seslenmektir.
     /// </summary>
-    private void StartFilter(Session session, AssistantSettings settings)
+    private void StartFilter(Session session, AssistantSettings settings, string micId)
     {
         if (_voice is not { } voice)
         {
             return;
         }
 
+        var print = _deps.Voiceprint?.Load(VoiceModels.SpeakerModel);
+        if (print is { Mic: { } enrolledOn } && enrolledOn != micId)
+        {
+            // Ses kanalı değişince (kulaklık, başka mikrofon) puanlar düşer: kullanıcı kilitlenmesin diye iz kullanılmaz.
+            TraceDebug("süzgeç: ses izi başka mikrofonla alınmış");
+            print = null;
+            if (!_otherMicNoticed)
+            {
+                _otherMicNoticed = true;
+                Notice?.Invoke(this, OtherMicNotice);
+            }
+        }
+
         voice.Reset();
-        voice.Voiceprint = _deps.Voiceprint?.Load(VoiceModels.SpeakerModel);
+        voice.Voiceprint = print;
         voice.Threshold = settings.SpeakerThreshold;
-        session.Filter = new VoiceFilter(new VoiceGate(voice, new VoiceGateOptions()),
+        session.Filter = new VoiceFilter(new VoiceGate(voice, new VoiceGateOptions(), verifyVoice: print is not null),
             output => _dispatcher.BeginInvoke(() => OnFiltered(session, output)), _deps.Log);
         session.Filter.AllowNextWithoutName(TimeSpan.FromSeconds(settings.NoSpeechSeconds));
-        TraceDebug($"süzgeç: ses izi {(voice.Voiceprint is null ? "yok" : "var")}, misafir kipi {(_guest.IsOn ? "açık" : "kapalı")}");
+        TraceDebug($"süzgeç: ses izi {(print is null ? "yok" : "var")}, misafir kipi {(_guest.IsOn ? "açık" : "kapalı")}");
     }
 
-    /// <summary>Google'a gidecek her ses (ön kayıt, köprü, mikrofon) buradan: süzgeç varsa ondan geçer.</summary>
-    private void Send(Session session, short[] samples)
+    /// <summary>
+    /// Google'a gidecek her ses (ön kayıt, köprü, mikrofon) buradan: süzgeç varsa ondan geçer. <paramref name="adaTalking"/>:
+    /// hoparlörde Ada'nın sesi ya da hemen sonrası (yankı kırıntısı misafir sayılmasın).
+    /// </summary>
+    private void Send(Session session, short[] samples, bool adaTalking = false)
     {
         if (session.Filter is { } filter)
         {
-            filter.Post(samples, new GateInput(_guest.IsOn, _runner.Notes.Active));
+            filter.Post(samples, new GateInput(_guest.IsOn, _runner.Notes.Active, adaTalking));
             return;
         }
 
@@ -349,6 +370,14 @@ internal sealed class AdaAssistant : IDisposable
                 // Kipte yerel söz kesme yalnız süzgeçten geçen sesle (yani "Ada" ile): misafirin sesi Ada'yı susturmasın.
                 ApplyBargeIn(session, session.BargeIn.OnMic(Pcm.Rms(chunk), adaTalking));
             }
+        }
+
+        if (output.VoiceCheckSuspended && !session.VoiceNotRecognizedShown)
+        {
+            // "Ada, …" üst üste reddedildi: süzgeç bu oturumda sesi denetlemiyor; kullanıcı neden olduğunu bilsin.
+            session.VoiceNotRecognizedShown = true;
+            TraceDebug("ses tanınmadı: ses denetimi bu oturumda durdu");
+            Notice?.Invoke(this, VoiceNotRecognizedNotice);
         }
 
         if (output.OtherVoiceHeard)
@@ -571,7 +600,6 @@ internal sealed class AdaAssistant : IDisposable
             return;
         }
 
-        StartFilter(session, settings);
         UpdateGuest(); // 2 dk içinde yeniden çağrıldıysa kip baştan açık gelir
 
         // "Hey Ada" ile: uyandırma sözünün sonundan (algılamadan 0,8 sn önce) bugüne kadar duyulan ilk gönderilir; öncesi
@@ -616,6 +644,7 @@ internal sealed class AdaAssistant : IDisposable
             session.Ducker.Duck(DuckFactor);
         }
 
+        StartFilter(session, settings, audioSetup.MicId); // ses izi oturumun mikrofonuyla karşılaştırılır
         if (preRoll is { Length: > 0 })
         {
             Send(session, preRoll); // 1. durum tam da ilk komutta oluyor: ön kayıt da süzgeçten geçer
@@ -847,7 +876,8 @@ internal sealed class AdaAssistant : IDisposable
         }
 
         // Yarı çift yönlüde Ada konuşurken toSend sıfırdır: Ada'nın kendi sesi ne nota ne süzgece (misafir sanılmasın) girer.
-        Send(session, toSend);
+        // Yankı engelleyicide kalan kırıntı için süzgeç Ada'nın konuştuğunu bilir: o sırada misafir raporu vermez.
+        Send(session, toSend, adaTalking || now - session.LastAdaAudioAt < HalfDuplexTail);
     }
 
     /// <summary>Bağlantı hazır değilse sıraya, hazırsa doğrudan Google'a.</summary>
@@ -1366,6 +1396,9 @@ internal sealed class AdaAssistant : IDisposable
 
         /// <summary>Misafir kipi süzgeci (ses tanıma yüklendiyse).</summary>
         public VoiceFilter? Filter { get; set; }
+
+        /// <summary>"Ada sesini tanıyamadı" bilgisi bu oturumda gösterildi.</summary>
+        public bool VoiceNotRecognizedShown { get; set; }
 
         /// <summary>Bağlantı hazır olmadan gelen mikrofon parçaları (ön kayıt dahil), sırayla.</summary>
         public List<short[]> Pending { get; } = [];

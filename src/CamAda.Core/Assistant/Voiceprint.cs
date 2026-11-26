@@ -11,8 +11,9 @@ public sealed class Voiceprint
 {
     private readonly float[] _mean;
 
-    public Voiceprint(string model, IReadOnlyList<float[]> samples)
+    public Voiceprint(string model, IReadOnlyList<float[]> samples, string? mic = null)
     {
+        Mic = mic;
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         if (!Valid(samples))
         {
@@ -42,6 +43,9 @@ public sealed class Voiceprint
 
     public IReadOnlyList<float[]> Samples { get; }
 
+    /// <summary>Tanıtmanın yapıldığı mikrofonun kimliği; başka mikrofonda iz kullanılmaz (ses kanalı değişince puanlar düşer).</summary>
+    public string? Mic { get; }
+
     /// <summary>Gömmenin ses iziyle kosinüs benzerliği; sıfır vektörde 0.</summary>
     public double Score(ReadOnlySpan<float> embedding)
     {
@@ -68,7 +72,13 @@ public sealed class Voiceprint
             samples.Add(new JsonArray(sample.Select(v => (JsonNode?)JsonValue.Create(v)).ToArray()));
         }
 
-        return new JsonObject { ["model"] = Model, ["samples"] = samples }.ToJsonString();
+        var root = new JsonObject { ["model"] = Model, ["samples"] = samples };
+        if (Mic is not null)
+        {
+            root["mic"] = Mic;
+        }
+
+        return root.ToJsonString();
     }
 
     /// <summary>Bozuk, boş, boyları farklı ya da başka modelle alınmış iz null döner (yeniden tanıtılmalı).</summary>
@@ -85,7 +95,8 @@ public sealed class Voiceprint
             }
 
             var samples = array.Select(s => s is JsonArray values ? values.Select(v => v!.GetValue<float>()).ToArray() : null).ToList();
-            return samples.Any(s => s is null) || !Valid(samples!) ? null : new Voiceprint(model, samples!);
+            var mic = root["mic"]?.GetValue<string>();
+            return samples.Any(s => s is null) || !Valid(samples!) ? null : new Voiceprint(model, samples!, mic);
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or NullReferenceException)
         {

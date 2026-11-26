@@ -54,8 +54,10 @@ internal static partial class AdaProbes
             voiceprints = new VoiceprintFile(tempDir);
             using var embedder = new SpeakerEmbedder(Path.Combine(VoiceModels.Dir, VoiceModels.SpeakerModel));
             var vadPath = Path.Combine(VoiceModels.Dir, VoiceModels.Vad);
+            var mic = args.FirstOrDefault(a => a.StartsWith("--ses-izi-mik=", StringComparison.Ordinal))?["--ses-izi-mik=".Length..];
             var print = new Voiceprint(VoiceModels.SpeakerModel,
-                Segments(ReadWav(enrollArg["--ses-izi-wav=".Length..]), vadPath).Where(s => s.Length >= 16000).Select(s => embedder.Compute(s)).ToList());
+                Segments(ReadWav(enrollArg["--ses-izi-wav=".Length..]), vadPath).Where(s => s.Length >= 16000).Select(s => embedder.Compute(s)).ToList(),
+                mic);
             voiceprints.Save(print);
             Log($"ses izi: {print.Samples.Count} parçadan, geçici klasörde");
             foreach (var scoreArg in args.Where(a => a.StartsWith("--puanla=", StringComparison.Ordinal)))
