@@ -90,4 +90,78 @@ public class WeatherTests
         Assert.Null(OpenMeteo.ParseGeocode("""{"results":[null]}"""));
         Assert.Null(OpenMeteo.ParseGeocode("[]"));
     }
+
+    // --- Ada'nın hava durumu (Plan 9) ---
+
+    private const string ReportJson = """
+        {"current":{"temperature_2m":8.2,"weather_code":2},
+         "daily":{"time":["2026-11-26","2026-11-27","2026-11-28"],"weather_code":[2,61,0],
+                  "temperature_2m_max":[12.4,19.1,15],"temperature_2m_min":[3.2,10.6,4],
+                  "precipitation_probability_max":[20,null,5]}}
+        """;
+
+    private static readonly DateOnly Today = new(2026, 11, 26);
+    private static readonly System.Globalization.CultureInfo Turkish = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+
+    private static WeatherReport Report() => OpenMeteo.ParseReport(ReportJson)!;
+
+    [Fact]
+    public void Daily_forecast_url_has_current_and_daily_fields() =>
+        Assert.Equal(
+            "https://api.open-meteo.com/v1/forecast?latitude=41.0082&longitude=28.9784&current=temperature_2m,weather_code" +
+            "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7",
+            OpenMeteo.DailyForecastUrl(41.00824, 28.97836));
+
+    [Fact]
+    public void Report_is_parsed()
+    {
+        var report = Report();
+
+        Assert.Equal(new WeatherNow(8.2, 2), report.Now);
+        Assert.Equal(3, report.Days.Count);
+        Assert.Equal(new WeatherDay(new DateOnly(2026, 11, 26), 2, 12.4, 3.2, 20), report.Days[0]);
+        Assert.Null(report.Days[1].RainChance);
+    }
+
+    [Fact]
+    public void Report_without_daily_is_null()
+    {
+        Assert.Null(OpenMeteo.ParseReport("""{"current":{"temperature_2m":8.2,"weather_code":2}}"""));
+        Assert.Null(OpenMeteo.ParseReport("<html>"));
+    }
+
+    [Fact]
+    public void Answer_for_now_and_today() =>
+        Assert.Equal("tamam: Ankara, şimdi 8°, parçalı bulutlu; bugün en yüksek 12°, en düşük 3°, yağış olasılığı %20",
+            WeatherAnswer.For("Ankara", Report(), null, Today, Turkish));
+
+    [Fact]
+    public void Answer_for_tomorrow_omits_missing_rain_chance()
+    {
+        const string expected = "tamam: İzmir, yarın (27 Kasım Cuma): yağmurlu, en yüksek 19°, en düşük 11°";
+        Assert.Equal(expected, WeatherAnswer.For("İzmir", Report(), "yarın", Today, Turkish));
+        Assert.Equal(expected, WeatherAnswer.For("İzmir", Report(), "2026-11-27", Today, Turkish));
+    }
+
+    [Fact]
+    public void Answer_for_a_date() =>
+        Assert.Equal("tamam: Ankara, 28 Kasım Cumartesi: açık, en yüksek 15°, en düşük 4°, yağış olasılığı %5",
+            WeatherAnswer.For("Ankara", Report(), "2026-11-28", Today, Turkish));
+
+    [Fact]
+    public void Answer_for_the_week_has_a_line_per_day()
+    {
+        var lines = WeatherAnswer.For("Ankara", Report(), "hafta", Today, Turkish).Split('\n');
+
+        Assert.Equal("tamam: Ankara, 7 gün:", lines[0]);
+        Assert.Equal(4, lines.Length);
+        Assert.Equal("26 Kasım Perşembe: parçalı bulutlu, en yüksek 12°, en düşük 3°, yağış olasılığı %20", lines[1]);
+    }
+
+    [Theory]
+    [InlineData("2026-12-10")]
+    [InlineData("2026-11-25")]
+    [InlineData("pazartesi")]
+    public void Answer_outside_the_forecast_is_an_error(string day) =>
+        Assert.Equal("hata: yalnız bugünden itibaren 7 günlük tahmin var", WeatherAnswer.For("Ankara", Report(), day, Today, Turkish));
 }
