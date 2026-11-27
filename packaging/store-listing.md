@@ -50,6 +50,8 @@ görev çubuğu, taskbar, kişiselleştirme, dock, sesli asistan, masaüstü, cu
 - Telif hakkı: © 2026 VirtusTech
 - Geliştiren: VirtusTech
 - Ek sistem gereksinimleri: Windows 11 (64 bit)
+- Mağaza logoları: 1:1 kutu görseli 2160×2160 yazılı logodan (adı görünsün), 1:1 uygulama kutucuğu simgesi 300×300 yazısız
+  işaretten. Kaynak logolar depoda değil; paketteki simgeler `packaging/Assets`'te aynı işaretten üretildi.
 
 ## Sertifikasyon notları (Notes for certification)
 

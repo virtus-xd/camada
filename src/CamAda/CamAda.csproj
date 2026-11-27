@@ -22,6 +22,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Camada logosu (yazısız işaret); pencere, kısayol ve Görev Yöneticisi. Store simgeleri packaging/Assets'te. -->
+    <ApplicationIcon>Assets\camada.ico</ApplicationIcon>
     <AssemblyName>CamAda</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
