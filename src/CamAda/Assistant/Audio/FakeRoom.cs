@@ -83,7 +83,7 @@ internal sealed class FakeMic(bool echoCancelled) : IAdaMic
             throw new UnauthorizedAccessException("deneme: mikrofon izni kapalı sayıldı");
         }
 
-        _thread = new Thread(Run) { IsBackground = true, Name = "Ada sahte mikrofon" };
+        _thread = new Thread(Run) { IsBackground = true, Name = "Ada fake microphone" };
         _thread.Start();
     }
 
@@ -101,7 +101,7 @@ internal sealed class FakeMic(bool echoCancelled) : IAdaMic
             Thread.Sleep(700); // DSP'nin ilk veri bekleme süresi
             if (!_stop)
             {
-                Failed?.Invoke("deneme: yankı engelleyici kapalı sayıldı");
+                Failed?.Invoke("deneme: yankı engelleyici kapalı sayıldı"); // i18n-ignore: geliştirici denemesi
             }
 
             return;

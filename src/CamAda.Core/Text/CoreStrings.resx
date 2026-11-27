@@ -4,6 +4,8 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Ada_Listening" xml:space="preserve"><value>Listening…</value></data>
+  <data name="Ada_ListeningGuest" xml:space="preserve"><value>Say “Ada”, I'm listening</value></data>
   <data name="Battery_A11y" xml:space="preserve"><value>Battery {0}</value></data>
   <data name="Battery_A11yCharging" xml:space="preserve"><value>Battery {0}, charging</value></data>
   <data name="Battery_A11yFull" xml:space="preserve"><value>Battery {0}, fully charged</value></data>
@@ -20,6 +22,11 @@
   <data name="Duration_Hours" xml:space="preserve"><value>{0} h</value></data>
   <data name="Duration_HoursMinutes" xml:space="preserve"><value>{0} h {1} min</value></data>
   <data name="Duration_Minutes" xml:space="preserve"><value>{0} min</value></data>
+  <data name="Enroll_Sentence1" xml:space="preserve"><value>The weather is nice today, maybe I'll go for a walk.</value></data>
+  <data name="Enroll_Sentence2" xml:space="preserve"><value>Ada, turn the volume down a little and pause the music.</value></data>
+  <data name="Enroll_Sentence3" xml:space="preserve"><value>After dinner I want to read my book.</value></data>
+  <data name="Enroll_Sentence4" xml:space="preserve"><value>Tomorrow morning I'll get up early and go to work.</value></data>
+  <data name="Enroll_Sentence5" xml:space="preserve"><value>Set the screen brightness to fifty percent.</value></data>
   <data name="Format_IslandDate" xml:space="preserve"><value>ddd, MMMM d</value></data>
   <data name="Format_MonthTitle" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="Format_Percent" xml:space="preserve"><value>{0}%</value></data>

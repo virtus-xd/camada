@@ -1,4 +1,5 @@
 using CamAda.Core.Assistant;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Assistant;
 
@@ -32,7 +33,7 @@ public class AdaTextTests
     [Fact]
     public void Listening_line_mentions_name_in_guest_mode()
     {
-        Assert.Equal("“Ada” deyin, dinliyorum", AdaText.ListeningLine(guest: true));
-        Assert.Equal("Dinliyorum…", AdaText.ListeningLine(guest: false));
+        Assert.Equal("“Ada” deyin, dinliyorum", AdaText.ListeningLine(guest: true, Tr));
+        Assert.Equal("Dinliyorum…", AdaText.ListeningLine(guest: false, Tr));
     }
 }

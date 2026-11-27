@@ -94,7 +94,7 @@ public sealed class MemoryFile
         return true;
     }
 
-    public const string WriteFailed = "hafıza dosyasına yazılamadı";
+    public const string WriteFailed = "hafıza dosyasına yazılamadı"; // i18n-ignore: modele gider (Ada 2. adım)
 
     /// <summary>Talimata eklenecek kopya.</summary>
     public IReadOnlyList<MemoryItem> Snapshot()

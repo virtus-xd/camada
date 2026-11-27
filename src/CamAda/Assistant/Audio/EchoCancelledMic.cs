@@ -31,7 +31,7 @@ internal sealed partial class EchoCancelledMic(int captureIndex, int renderIndex
 
     public void Start()
     {
-        _thread = new Thread(Run) { IsBackground = true, Name = "Ada yankı engelleyici" };
+        _thread = new Thread(Run) { IsBackground = true, Name = "Ada echo canceller" };
         _thread.SetApartmentState(ApartmentState.MTA);
         _thread.Start();
     }

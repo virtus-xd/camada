@@ -4,6 +4,38 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AdaPanel_ClearMemory" xml:space="preserve"><value>Clear memory</value></data>
+  <data name="AdaPanel_DeleteKey" xml:space="preserve"><value>Delete key</value></data>
+  <data name="AdaPanel_DeleteVoiceprint" xml:space="preserve"><value>Delete voiceprint</value></data>
+  <data name="AdaPanel_EnabledLabel" xml:space="preserve"><value>Voice assistant on</value></data>
+  <data name="AdaPanel_EnabledOff" xml:space="preserve"><value>Voice assistant off</value></data>
+  <data name="AdaPanel_EnrollVoice" xml:space="preserve"><value>Set up my voice</value></data>
+  <data name="AdaPanel_GetKey" xml:space="preserve"><value>Get a key in Google AI Studio</value></data>
+  <data name="AdaPanel_Intro" xml:space="preserve"><value>Ada wakes up when you say "Hey Ada" or press Win+Alt+A, and talks through Google Gemini. You need your own Gemini API key (a paid tier is recommended; the key is stored on this PC with Windows encryption).</value></data>
+  <data name="AdaPanel_KeyName" xml:space="preserve"><value>Gemini API key</value></data>
+  <data name="AdaPanel_Memory" xml:space="preserve"><value>Memory</value></data>
+  <data name="AdaPanel_MemoryEmpty" xml:space="preserve"><value>Nothing saved yet.</value></data>
+  <data name="AdaPanel_MemoryIntro" xml:space="preserve"><value>What Ada remembers about you. It's sent to Google with the instructions in every conversation.</value></data>
+  <data name="AdaPanel_MyVoice" xml:space="preserve"><value>My voice</value></data>
+  <data name="AdaPanel_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="AdaPanel_Title" xml:space="preserve"><value>Ada — voice assistant</value></data>
+  <data name="AdaPanel_TurkishOnlyNote" xml:space="preserve"><value>Ada speaks Turkish for now — English is coming.</value></data>
+  <data name="AdaPanel_VoiceIntro" xml:space="preserve"><value>When other voices are around, Ada only listens to sentences that start with "Ada". Your recording isn't kept; only a numeric voiceprint is stored, encrypted, on this PC.</value></data>
+  <data name="Ada_Error_ConnectionLost" xml:space="preserve"><value>Connection lost</value></data>
+  <data name="Ada_Error_InvalidKey" xml:space="preserve"><value>Gemini key is invalid — renew it in Ada settings</value></data>
+  <data name="Ada_Error_ModelUnavailable" xml:space="preserve"><value>Ada's model is unavailable right now</value></data>
+  <data name="Ada_Error_NoInternet" xml:space="preserve"><value>Can't reach Ada — no internet</value></data>
+  <data name="Ada_Error_NoKey" xml:space="preserve"><value>No Gemini key — add one in Ada settings</value></data>
+  <data name="Ada_Error_NoSpeaker" xml:space="preserve"><value>No speaker found</value></data>
+  <data name="Ada_Error_Payment" xml:space="preserve"><value>Payment is required on the Gemini account</value></data>
+  <data name="Ada_Error_Quota" xml:space="preserve"><value>Gemini usage limit reached</value></data>
+  <data name="Ada_Error_Unknown" xml:space="preserve"><value>Something went wrong with Ada</value></data>
+  <data name="Ada_Notice_ConnectionEnded" xml:space="preserve"><value>The connection ended — you can call Ada again</value></data>
+  <data name="Ada_Notice_NoEchoCancel" xml:space="preserve"><value>Echo cancellation couldn't start — you can't interrupt Ada while Ada is speaking</value></data>
+  <data name="Ada_Notice_OtherMic" xml:space="preserve"><value>Your voice was set up with another microphone — set it up again with this one in Ada settings</value></data>
+  <data name="Ada_Notice_TooLong" xml:space="preserve"><value>That took too long — you can call Ada again</value></data>
+  <data name="Ada_Notice_VoiceNotRecognized" xml:space="preserve"><value>Ada couldn't recognize your voice — set it up again in Ada settings</value></data>
+  <data name="Ada_Notice_WakeWordFailed" xml:space="preserve"><value>Ada's wake word couldn't load; the shortcut still works</value></data>
   <data name="Bar_Ada" xml:space="preserve"><value>Ada, voice assistant</value></data>
   <data name="Bar_AdaListening" xml:space="preserve"><value>Ada, voice assistant: listening</value></data>
   <data name="Bar_Battery" xml:space="preserve"><value>Battery</value></data>
@@ -64,6 +96,7 @@
   <data name="Clip_ShowInFolder" xml:space="preserve"><value>Show in folder</value></data>
   <data name="Clip_Unpin" xml:space="preserve"><value>Unpin</value></data>
   <data name="Common_Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common_Connect" xml:space="preserve"><value>Connect</value></data>
   <data name="Common_Connected" xml:space="preserve"><value>Connected</value></data>
   <data name="Common_Connecting" xml:space="preserve"><value>Connecting…</value></data>
@@ -91,6 +124,16 @@
   <data name="Island_LowBattery" xml:space="preserve"><value>Battery low: {0}</value></data>
   <data name="Island_Screenshot" xml:space="preserve"><value>Screenshot</value></data>
   <data name="Island_StopAda" xml:space="preserve"><value>Mute Ada and end the session</value></data>
+  <data name="Key_Checking" xml:space="preserve"><value>Checking the key…</value></data>
+  <data name="Key_CouldNotVerify" xml:space="preserve"><value>Couldn't verify the key</value></data>
+  <data name="Key_Invalid" xml:space="preserve"><value>Gemini key is invalid</value></data>
+  <data name="Key_ModelUnavailable" xml:space="preserve"><value>Ada's model isn't available with this key (a paid tier may be needed)</value></data>
+  <data name="Key_Network" xml:space="preserve"><value>Couldn't reach Google — check your internet connection</value></data>
+  <data name="Key_Payment" xml:space="preserve"><value>This key's account requires payment</value></data>
+  <data name="Key_Quota" xml:space="preserve"><value>This key's usage limit is reached</value></data>
+  <data name="Key_SaveFailed" xml:space="preserve"><value>Couldn't save the key: {0}</value></data>
+  <data name="Key_Verified" xml:space="preserve"><value>Key verified. Turn Ada on above to start.</value></data>
+  <data name="Memory_DeleteItem" xml:space="preserve"><value>Delete {0}</value></data>
   <data name="Menu_AdaSettings" xml:space="preserve"><value>Ada settings…</value></data>
   <data name="Menu_Assistant" xml:space="preserve"><value>Voice assistant</value></data>
   <data name="Menu_Exit" xml:space="preserve"><value>Exit</value></data>
@@ -104,6 +147,8 @@
   <data name="Mic_NotFound" xml:space="preserve"><value>No microphone found</value></data>
   <data name="Mic_Off" xml:space="preserve"><value>Microphone off</value></data>
   <data name="Mic_On" xml:space="preserve"><value>Microphone on</value></data>
+  <data name="Mic_WindowsDefault" xml:space="preserve"><value>Windows default</value></data>
+  <data name="Notes_FolderName" xml:space="preserve"><value>Ada Notes</value></data>
   <data name="Qs_BatteryOpenSettings" xml:space="preserve"><value>{0}. Open battery settings</value></data>
   <data name="Qs_BrightnessOf" xml:space="preserve"><value>{0} brightness</value></data>
   <data name="Qs_DarkTheme" xml:space="preserve"><value>Dark mode</value></data>
@@ -158,6 +203,21 @@
   <data name="Tray_Empty" xml:space="preserve"><value>No apps are running in the background.</value></data>
   <data name="Tray_Hint" xml:space="preserve"><value>Left-click opens the app; right-click shows the app's own menu.</value></data>
   <data name="Tray_Title" xml:space="preserve"><value>Running in the background</value></data>
+  <data name="Usage_None" xml:space="preserve"><value>No sessions yet this month.</value></data>
+  <data name="Usage_ThisMonth" xml:space="preserve"><value>This month (estimate): ${0:0.00} · {1} sessions · {2} searches</value></data>
+  <data name="Voice_BusySpeaking" xml:space="preserve"><value>Can't set up while Ada is speaking</value></data>
+  <data name="Voice_Failed" xml:space="preserve"><value>Couldn't set up — try again</value></data>
+  <data name="Voice_MicFailed" xml:space="preserve"><value>Couldn't open the microphone</value></data>
+  <data name="Voice_MicOpening" xml:space="preserve"><value>Opening microphone…</value></data>
+  <data name="Voice_NotYet" xml:space="preserve"><value>Not set up yet</value></data>
+  <data name="Voice_OtherMic" xml:space="preserve"><value>Your voice was set up with another microphone — set it up again with this one</value></data>
+  <data name="Voice_ReadSentence" xml:space="preserve"><value>Listening — read the sentence</value></data>
+  <data name="Voice_Ready" xml:space="preserve"><value>Your voice is set up</value></data>
+  <data name="Voice_SaveFailed" xml:space="preserve"><value>Couldn't save the voiceprint</value></data>
+  <data name="Voice_SetUpAgain" xml:space="preserve"><value>Set up again</value></data>
+  <data name="Voice_Stale" xml:space="preserve"><value>Voiceprint is outdated — set it up again</value></data>
+  <data name="Voice_TooQuiet" xml:space="preserve"><value>Too quiet — move a little closer to the microphone and read again</value></data>
+  <data name="Voice_TooShort" xml:space="preserve"><value>Read the whole sentence</value></data>
   <data name="Wifi_ConnectFailed" xml:space="preserve"><value>Couldn't connect</value></data>
   <data name="Wifi_Connected" xml:space="preserve"><value>Connected</value></data>
   <data name="Wifi_Disconnect" xml:space="preserve"><value>Disconnect</value></data>

@@ -6,6 +6,7 @@ using CamAda.Core.Assistant;
 using CamAda.Core.Audio;
 using CamAda.Core.Settings;
 using NAudio.CoreAudioApi;
+using CamAda.Core.Text;
 
 namespace CamAda.Assistant;
 
@@ -60,10 +61,10 @@ internal sealed class AdaAssistant : IDisposable
     private const double NoteVoiceRms = 0.03; // not kipinde kullanıcı konuşuyor sayılır (yerel ölçüm, canlı yazıdan önce)
     private const int BargeInChunks = 2; // mikrofon parçaları ~100 ms: art arda iki parça ≥ 150 ms
     private const double DuckFactor = 0.3;
-    private const string MaxDurationNotice = "Uzun sürdü — yeniden çağırabilirsin";
+    private static string MaxDurationNotice => UiStrings.Ada_Notice_TooLong;
     private static readonly TimeSpan GuestConfirmWithin = TimeSpan.FromSeconds(10); // kip için iki başka ses kararı bu süre içinde
-    private const string OtherMicNotice = "Sesin başka bir mikrofonla tanıtıldı — Ada ayarlarından bu mikrofonla yeniden tanıt";
-    private const string VoiceNotRecognizedNotice = "Ada sesini tanıyamadı — Ada ayarlarından sesini yeniden tanıt";
+    private static string OtherMicNotice => UiStrings.Ada_Notice_OtherMic;
+    private static string VoiceNotRecognizedNotice => UiStrings.Ada_Notice_VoiceNotRecognized;
 
     private readonly Dispatcher _dispatcher;
     private readonly AdaDependencies _deps;
@@ -538,7 +539,7 @@ internal sealed class AdaAssistant : IDisposable
                         break;
                 }
             }, _ => Volatile.Write(ref turnDone, true));
-            await client.SendTextAsync($"(Sistem notu: şunu söyle: '{sentence}')");
+            await client.SendTextAsync($"(Sistem notu: şunu söyle: '{sentence}')"); // i18n-ignore: modele gider (Ada 2. adım)
             while (!cancel.IsCancellationRequested && !(Volatile.Read(ref turnDone) && !speaker.IsPlaying))
             {
                 await Task.Delay(100, CancellationToken.None);
@@ -660,7 +661,7 @@ internal sealed class AdaAssistant : IDisposable
             catch (Exception ex) when (!IsFatal(ex))
             {
                 _deps.Log(ex);
-                Notice?.Invoke(this, "Ada'nın uyandırma sözcüğü yüklenemedi; kısayol çalışıyor");
+                Notice?.Invoke(this, UiStrings.Ada_Notice_WakeWordFailed);
                 return;
             }
             finally
@@ -772,7 +773,7 @@ internal sealed class AdaAssistant : IDisposable
         var settings = _deps.Settings();
         if (_deps.Keys.Load() is not { } key)
         {
-            ShowFailed(AssistantError.InvalidKey, "Gemini anahtarı yok — Ada ayarlarından ekle");
+            ShowFailed(AssistantError.InvalidKey, UiStrings.Ada_Error_NoKey);
             return;
         }
 
@@ -822,7 +823,7 @@ internal sealed class AdaAssistant : IDisposable
 
         if (audioSetup.Speaker is not { } output)
         {
-            await CloseAsync(session, failure: (AssistantError.Unknown, "Hoparlör bulunamadı"));
+            await CloseAsync(session, failure: (AssistantError.Unknown, UiStrings.Ada_Error_NoSpeaker));
             return;
         }
 
@@ -1001,7 +1002,7 @@ internal sealed class AdaAssistant : IDisposable
     {
         if (_halfDuplexNoticed.Add(session.MicId ?? ""))
         {
-            Notice?.Invoke(this, "Yankı engelleyici açılamadı — Ada konuşurken araya giremezsin");
+            Notice?.Invoke(this, UiStrings.Ada_Notice_NoEchoCancel);
         }
     }
 
@@ -1165,7 +1166,7 @@ internal sealed class AdaAssistant : IDisposable
                 break;
             case LiveEvent.GoAway:
                 // Google bağlantıyı birazdan kapatacak: Ada'nın sesi bitince kapanır, adada neden yazar.
-                _ = CloseAsync(session, notice: "Bağlantı sona erdi — yeniden çağırabilirsin");
+                _ = CloseAsync(session, notice: UiStrings.Ada_Notice_ConnectionEnded);
                 break;
         }
     }

@@ -13,6 +13,7 @@ using CamAda.Core.Audio;
 using CamAda.Core.Assistant;
 using CamAda.Core.Power;
 using CamAda.Core.Settings;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -45,7 +46,6 @@ internal sealed partial class AdaPanel : UserControl
     public const double PanelWidth = 360;
     private const string StudioUrl = "https://aistudio.google.com/api-keys";
     private static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(4);
-    private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
     private readonly AdaPanelServices _services;
     private readonly ConfirmGate _forgetKeyGate = new(TimeProvider.System, ConfirmWindow);
@@ -56,6 +56,7 @@ internal sealed partial class AdaPanel : UserControl
     public AdaPanel(AdaPanelServices services)
     {
         InitializeComponent();
+        TurkishOnlyNote.Visibility = UiLanguage.IsTurkish(CultureInfo.CurrentUICulture) ? Visibility.Collapsed : Visibility.Visible;
         _services = services;
         Loaded += (_, _) => _services.Memory.Changed += OnMemoryChanged;
         Unloaded += (_, _) =>
@@ -77,9 +78,9 @@ internal sealed partial class AdaPanel : UserControl
         }
 
         var settings = _services.Settings();
-        EnabledState.Text = settings.Enabled ? "Açık" : "Kapalı";
+        EnabledState.Text = settings.Enabled ? UiStrings.Common_On : UiStrings.Common_Off;
         EnabledState.Foreground = settings.Enabled ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextSecondaryBrush");
-        AutomationProperties.SetName(EnabledButton, settings.Enabled ? "Sesli asistan açık" : "Sesli asistan kapalı");
+        AutomationProperties.SetName(EnabledButton, settings.Enabled ? UiStrings.AdaPanel_EnabledLabel : UiStrings.AdaPanel_EnabledOff);
         ShowMicrophones(settings);
         ShowVoice();
         ShowUsage();
@@ -93,14 +94,14 @@ internal sealed partial class AdaPanel : UserControl
         var status = _services.Voiceprint.Status(VoiceModels.SpeakerModel);
         VoiceStatus.Text = status switch
         {
-            VoiceprintStatus.Ready when !OnCurrentMic() => "Sesin başka bir mikrofonla tanıtıldı — bu mikrofonla yeniden tanıt",
-            VoiceprintStatus.Ready => "Sesin tanıtıldı",
-            VoiceprintStatus.Stale => "Ses izi eski — yeniden tanıt",
-            _ => "Henüz tanıtılmadı",
+            VoiceprintStatus.Ready when !OnCurrentMic() => UiStrings.Voice_OtherMic,
+            VoiceprintStatus.Ready => UiStrings.Voice_Ready,
+            VoiceprintStatus.Stale => UiStrings.Voice_Stale,
+            _ => UiStrings.Voice_NotYet,
         };
         if (_enrolling is null)
         {
-            EnrollButton.Content = status == VoiceprintStatus.Ready ? "Yeniden tanıt" : "Sesimi tanıt";
+            EnrollButton.Content = status == VoiceprintStatus.Ready ? UiStrings.Voice_SetUpAgain : UiStrings.AdaPanel_EnrollVoice;
         }
 
         DeleteVoiceButton.Visibility = status == VoiceprintStatus.None ? Visibility.Collapsed : Visibility.Visible;
@@ -141,7 +142,7 @@ internal sealed partial class AdaPanel : UserControl
             // Mikrofon ya da model beklenmedik biçimde düştü: uygulama düşmesin, kullanıcı yeniden denesin.
             Debug.WriteLine($"Ses tanıtılamadı: {ex.Message}");
             EnrollArea.Visibility = Visibility.Visible;
-            EnrollStatus.Text = "Tanıtılamadı — yeniden dene";
+            EnrollStatus.Text = UiStrings.Voice_Failed;
         }
     }
 
@@ -154,31 +155,31 @@ internal sealed partial class AdaPanel : UserControl
         EnrollSentence.Text = "";
         if (reservation is null)
         {
-            EnrollStatus.Text = "Ada konuşurken tanıtılamaz";
+            EnrollStatus.Text = UiStrings.Voice_BusySpeaking;
             return;
         }
 
         using var cancel = new CancellationTokenSource();
         _enrolling = cancel;
-        EnrollButton.Content = "Vazgeç";
+        EnrollButton.Content = UiStrings.Common_Cancel;
         DeleteVoiceButton.IsEnabled = false;
-        EnrollStatus.Text = "Mikrofon açılıyor…";
+        EnrollStatus.Text = UiStrings.Voice_MicOpening;
         try
         {
             using var enrollment = await VoiceEnrollment.OpenAsync(_services.Settings().Microphone, VoiceModels.Dir);
             if (enrollment is null)
             {
-                EnrollStatus.Text = "Mikrofon açılamadı";
+                EnrollStatus.Text = UiStrings.Voice_MicFailed;
                 return;
             }
 
-            var sentences = VoiceEnrollmentText.Sentences;
+            var sentences = VoiceEnrollmentText.Sentences(CultureInfo.CurrentUICulture);
             var embeddings = new List<float[]>();
             for (var i = 0; i < sentences.Count; i++)
             {
                 EnrollProgress.Text = $"{i + 1}/{sentences.Count}";
                 EnrollSentence.Text = sentences[i];
-                EnrollStatus.Text = "Dinliyorum — cümleyi oku";
+                EnrollStatus.Text = UiStrings.Voice_ReadSentence;
                 float[]? embedding = null;
                 for (var attempt = 0; attempt < 3 && embedding is null; attempt++)
                 {
@@ -186,15 +187,15 @@ internal sealed partial class AdaPanel : UserControl
                     embedding = result.Embedding;
                     EnrollStatus.Text = result.Check switch
                     {
-                        SentenceCheck.TooQuiet => "Ses çok kısık — mikrofona biraz yaklaşıp yeniden oku",
-                        SentenceCheck.TooShort => "Cümlenin tamamını oku",
+                        SentenceCheck.TooQuiet => UiStrings.Voice_TooQuiet,
+                        SentenceCheck.TooShort => UiStrings.Voice_TooShort,
                         _ => EnrollStatus.Text,
                     };
                 }
 
                 if (embedding is null)
                 {
-                    EnrollStatus.Text = "Tanıtılamadı — yeniden dene";
+                    EnrollStatus.Text = UiStrings.Voice_Failed;
                     return;
                 }
 
@@ -203,7 +204,7 @@ internal sealed partial class AdaPanel : UserControl
 
             if (!_services.Voiceprint.Save(new Voiceprint(VoiceModels.SpeakerModel, embeddings, enrollment.MicId)))
             {
-                EnrollStatus.Text = "Ses izi kaydedilemedi";
+                EnrollStatus.Text = UiStrings.Voice_SaveFailed;
                 return;
             }
 
@@ -221,7 +222,7 @@ internal sealed partial class AdaPanel : UserControl
         }
     }
 
-    private void DeleteVoice_Click(object sender, RoutedEventArgs e) => Confirm(DeleteVoiceButton, _deleteVoiceGate, "Sil", () =>
+    private void DeleteVoice_Click(object sender, RoutedEventArgs e) => Confirm(DeleteVoiceButton, _deleteVoiceGate, UiStrings.Clip_Delete, () =>
     {
         _services.Voiceprint.Delete();
         EnrollArea.Visibility = Visibility.Collapsed;
@@ -262,7 +263,7 @@ internal sealed partial class AdaPanel : UserControl
             // Anahtar dosyası yazılamadı: uygulama düşmesin, kullanıcı görsün.
             SaveKeyButton.IsEnabled = true;
             KeyStatus.Visibility = Visibility.Visible;
-            KeyStatus.Text = "Anahtar kaydedilemedi: " + ex.Message;
+            KeyStatus.Text = string.Format(UiStrings.Key_SaveFailed, ex.Message);
         }
     }
 
@@ -277,7 +278,7 @@ internal sealed partial class AdaPanel : UserControl
 
         SaveKeyButton.IsEnabled = false;
         KeyStatus.Visibility = Visibility.Visible;
-        KeyStatus.Text = "Anahtar denetleniyor…";
+        KeyStatus.Text = UiStrings.Key_Checking;
         var error = await _services.ValidateKey(key);
         SaveKeyButton.IsEnabled = true;
         if (error != AssistantError.None)
@@ -291,21 +292,21 @@ internal sealed partial class AdaPanel : UserControl
         KeyStatus.Visibility = Visibility.Collapsed;
         _services.KeyChanged();
         Refresh();
-        SavedNote.Text = "Anahtar doğrulandı. Ada'yı başlatmak için yukarıdan aç.";
+        SavedNote.Text = UiStrings.Key_Verified;
         SavedNote.Visibility = Visibility.Visible;
     }
 
     private static string KeyMessage(AssistantError error) => error switch
     {
-        AssistantError.InvalidKey => "Gemini anahtarı geçersiz",
-        AssistantError.Network => "Google'a ulaşılamadı — internet bağlantını kontrol et",
-        AssistantError.PaymentRequired => "Bu anahtarın hesabında ödeme gerekiyor",
-        AssistantError.QuotaExceeded => "Bu anahtarın kullanım sınırı dolmuş",
-        AssistantError.ModelUnavailable => "Ada'nın modeli bu anahtarla kullanılamıyor (ücretli katman gerekebilir)",
-        _ => "Anahtar doğrulanamadı",
+        AssistantError.InvalidKey => UiStrings.Key_Invalid,
+        AssistantError.Network => UiStrings.Key_Network,
+        AssistantError.PaymentRequired => UiStrings.Key_Payment,
+        AssistantError.QuotaExceeded => UiStrings.Key_Quota,
+        AssistantError.ModelUnavailable => UiStrings.Key_ModelUnavailable,
+        _ => UiStrings.Key_CouldNotVerify,
     };
 
-    private void ForgetKey_Click(object sender, RoutedEventArgs e) => Confirm(ForgetKeyButton, _forgetKeyGate, "Anahtarı sil", () =>
+    private void ForgetKey_Click(object sender, RoutedEventArgs e) => Confirm(ForgetKeyButton, _forgetKeyGate, UiStrings.AdaPanel_DeleteKey, () =>
     {
         _services.SetEnabled(false);
         _services.Keys.Clear();
@@ -327,7 +328,7 @@ internal sealed partial class AdaPanel : UserControl
     private void ShowMicrophones(AssistantSettings settings)
     {
         MicList.Children.Clear();
-        MicList.Children.Add(MicRow("Windows varsayılanı", settings.Microphone is null, null));
+        MicList.Children.Add(MicRow(UiStrings.Mic_WindowsDefault, settings.Microphone is null, null));
         foreach (var mic in _services.Microphones())
         {
             var selected = settings.Microphone is { } chosen && mic.Name.Contains(chosen, StringComparison.CurrentCultureIgnoreCase);
@@ -364,7 +365,7 @@ internal sealed partial class AdaPanel : UserControl
         }
 
         var button = new Button { Style = (Style)FindResource("PanelRowButton"), Content = row };
-        AutomationProperties.SetName(button, selected ? $"{name}, seçili" : name);
+        AutomationProperties.SetName(button, selected ? string.Format(UiStrings.Sound_Selected, name) : name);
         button.Click += (_, _) =>
         {
             _services.SaveSettings(_services.Settings() with { Microphone = value });
@@ -376,8 +377,8 @@ internal sealed partial class AdaPanel : UserControl
     private void ShowUsage()
     {
         UsageText.Text = _services.Usage.Current is { } month
-            ? string.Format(Turkish, "Bu ay tahmini: {0:0.00} $ · {1} oturum · {2} arama", month.EstimatedUsd, month.Sessions, month.Searches)
-            : "Bu ay henüz oturum yok.";
+            ? string.Format(CultureInfo.CurrentUICulture, UiStrings.Usage_ThisMonth, month.EstimatedUsd, month.Sessions, month.Searches)
+            : UiStrings.Usage_None;
     }
 
     // --- Hafıza ---
@@ -419,7 +420,7 @@ internal sealed partial class AdaPanel : UserControl
                     FontSize = 10,
                 },
             };
-            AutomationProperties.SetName(remove, $"{item.Topic} maddesini sil");
+            AutomationProperties.SetName(remove, string.Format(UiStrings.Memory_DeleteItem, item.Topic));
             var topic = item.Topic;
             remove.Click += (_, _) => _services.Memory.Forget(topic);
             Grid.SetColumn(remove, 1);
@@ -429,7 +430,7 @@ internal sealed partial class AdaPanel : UserControl
     }
 
     private void ClearMemory_Click(object sender, RoutedEventArgs e) =>
-        Confirm(ClearMemoryButton, _clearMemoryGate, "Hafızayı temizle", () => _services.Memory.Clear()); // yazılamazsa liste olduğu gibi kalır
+        Confirm(ClearMemoryButton, _clearMemoryGate, UiStrings.AdaPanel_ClearMemory, () => _services.Memory.Clear()); // yazılamazsa liste olduğu gibi kalır
 
     /// <summary>İki adımlı düğme: ilk basış "Emin misin?" der, süre içindeki ikinci basış işlemi yapar.</summary>
     private void Confirm(Button button, ConfirmGate gate, string label, Action action)
@@ -442,7 +443,7 @@ internal sealed partial class AdaPanel : UserControl
             return;
         }
 
-        button.Content = "Emin misin?";
+        button.Content = UiStrings.Start_AreYouSure;
         button.Foreground = (Brush)FindResource("AccentBrush");
         var revert = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher) { Interval = ConfirmWindow + TimeSpan.FromMilliseconds(50) };
         revert.Tick += (_, _) =>

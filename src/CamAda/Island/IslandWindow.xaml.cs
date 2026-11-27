@@ -465,7 +465,7 @@ public partial class IslandWindow : Window
                 text = failed.Message;
                 break;
             default:
-                text = AdaText.ListeningLine(_adaGuest);
+                text = AdaText.ListeningLine(_adaGuest, System.Globalization.CultureInfo.CurrentUICulture);
                 break;
         }
 

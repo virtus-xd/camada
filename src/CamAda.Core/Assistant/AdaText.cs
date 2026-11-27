@@ -1,3 +1,5 @@
+using System.Globalization;
+using CamAda.Core.Text;
 namespace CamAda.Core.Assistant;
 
 /// <summary>Adadaki tek satır: uzun konuşmanın başı değil son cümlesi görünür (tasarım "son söylenen cümle").</summary>
@@ -7,7 +9,8 @@ public static class AdaText
     private static readonly char[] Closers = [' ', '"', '\'', '”', '’', '»', ')'];
 
     /// <summary>Dinlerken adadaki satır; misafir kipinde "Ada" demek gerektiğini söyler.</summary>
-    public static string ListeningLine(bool guest) => guest ? "“Ada” deyin, dinliyorum" : "Dinliyorum…";
+    public static string ListeningLine(bool guest, CultureInfo ui) =>
+        CoreText.Get(guest ? nameof(CoreStrings.Ada_ListeningGuest) : nameof(CoreStrings.Ada_Listening), ui);
 
     /// <summary>Ada'nın son sözü soru mu (sondaki boşluk ve tırnaklar sayılmaz): ardından gelen yanıt adsız geçer.</summary>
     public static bool EndsWithQuestion(string text) => text.TrimEnd(Closers) is { Length: > 0 } t && t[^1] == '?';

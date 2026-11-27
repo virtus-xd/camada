@@ -1,4 +1,5 @@
 using CamAda.Core.Assistant;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Assistant;
 
@@ -59,7 +60,7 @@ public class VoiceprintTests
     [Fact]
     public void Enrollment_has_five_sentences_and_one_addresses_ada()
     {
-        var sentences = VoiceEnrollmentText.Sentences;
+        var sentences = VoiceEnrollmentText.Sentences(Tr);
 
         Assert.Equal(5, sentences.Count);
         Assert.All(sentences, s => Assert.EndsWith(".", s));

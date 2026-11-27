@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows.Automation;
 using CamAda.Core.Assistant;
 using CamAda.Interop;
+using CamAda.Core.Text;
 
 namespace CamAda.Assistant;
 
@@ -44,7 +45,7 @@ internal static class NotepadWriter
     private static readonly TimeSpan OpenTimeout = TimeSpan.FromSeconds(5);
 
     public static string NotesFolder { get; } =
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Ada Notları");
+        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), UiStrings.Notes_FolderName);
 
     /// <summary>Son açılışta Ada'nın sekmesini gösteren Not Defteri penceresi (deneme geri okuma ve temizlik için).</summary>
     public static nint LastOpened { get; private set; }

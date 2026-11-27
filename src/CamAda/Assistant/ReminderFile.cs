@@ -13,7 +13,7 @@ namespace CamAda.Assistant;
 /// </summary>
 internal sealed class ReminderFile
 {
-    public const string WriteFailed = "hatırlatma dosyasına yazılamadı";
+    public const string WriteFailed = "hatırlatma dosyasına yazılamadı"; // i18n-ignore: modele gider (Ada 2. adım)
 
     private readonly string _path;
     private readonly string _corruptPath;

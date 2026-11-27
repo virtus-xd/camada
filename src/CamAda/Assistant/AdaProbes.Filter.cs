@@ -167,7 +167,7 @@ internal static partial class AdaProbes
         }
 
         var embeddings = new List<float[]>();
-        for (var i = 0; i < VoiceEnrollmentText.Sentences.Count; i++)
+        for (var i = 0; i < VoiceEnrollmentText.Sentences(System.Globalization.CultureInfo.CurrentUICulture).Count; i++)
         {
             var result = await enrollment.RecordSentenceAsync(CancellationToken.None);
             Log($"cümle {i + 1}: {result.Check}, oda {FakeRoom.Now() / 16000.0:F1} sn");

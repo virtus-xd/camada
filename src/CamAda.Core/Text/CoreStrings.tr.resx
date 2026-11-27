@@ -4,6 +4,8 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Ada_Listening" xml:space="preserve"><value>Dinliyorum…</value></data>
+  <data name="Ada_ListeningGuest" xml:space="preserve"><value>“Ada” deyin, dinliyorum</value></data>
   <data name="Battery_A11y" xml:space="preserve"><value>Pil {0}</value></data>
   <data name="Battery_A11yCharging" xml:space="preserve"><value>Pil {0}, şarj oluyor</value></data>
   <data name="Battery_A11yFull" xml:space="preserve"><value>Pil {0}, tam dolu</value></data>
@@ -20,6 +22,11 @@
   <data name="Duration_Hours" xml:space="preserve"><value>{0} sa</value></data>
   <data name="Duration_HoursMinutes" xml:space="preserve"><value>{0} sa {1} dk</value></data>
   <data name="Duration_Minutes" xml:space="preserve"><value>{0} dk</value></data>
+  <data name="Enroll_Sentence1" xml:space="preserve"><value>Bugün hava güzel, biraz yürüyüşe çıkabilirim.</value></data>
+  <data name="Enroll_Sentence2" xml:space="preserve"><value>Ada, sesi biraz kıs ve müziği duraklat.</value></data>
+  <data name="Enroll_Sentence3" xml:space="preserve"><value>Akşam yemeğinden sonra kitabımı okumak istiyorum.</value></data>
+  <data name="Enroll_Sentence4" xml:space="preserve"><value>Yarın sabah erkenden kalkıp işe gideceğim.</value></data>
+  <data name="Enroll_Sentence5" xml:space="preserve"><value>Bilgisayarın parlaklığını yüzde elliye ayarla.</value></data>
   <data name="Format_IslandDate" xml:space="preserve"><value>ddd, d MMMM</value></data>
   <data name="Format_MonthTitle" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="Format_Percent" xml:space="preserve"><value>%{0}</value></data>

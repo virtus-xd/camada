@@ -22,7 +22,7 @@ internal sealed class VoiceFilter : IDisposable
         _gate = gate;
         _output = output;
         _log = log;
-        _thread = new Thread(Run) { IsBackground = true, Name = "Ada ses süzgeci" };
+        _thread = new Thread(Run) { IsBackground = true, Name = "Ada voice filter" };
         _thread.Start();
     }
 

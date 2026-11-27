@@ -128,6 +128,19 @@ public class EnglishTextTests
     }
 
     [Fact]
+    public void Ada_listening_line_and_voice_sentences()
+    {
+        Assert.Equal("Listening…", CamAda.Core.Assistant.AdaText.ListeningLine(guest: false, En));
+        Assert.Equal("Say “Ada”, I'm listening", CamAda.Core.Assistant.AdaText.ListeningLine(guest: true, En));
+        var english = CamAda.Core.Assistant.VoiceEnrollmentText.Sentences(En);
+        var turkish = CamAda.Core.Assistant.VoiceEnrollmentText.Sentences(Tr);
+        Assert.Equal(5, english.Count);
+        Assert.Equal(turkish.Count, english.Count);
+        Assert.StartsWith("Ada,", english[1]); // ikinci cümle Ada'ya seslenir (misafir kipi bu cümleye dayanır)
+        Assert.StartsWith("Ada,", turkish[1]);
+    }
+
+    [Fact]
     public void Screenshot_file_name() =>
         Assert.Equal("Screenshot 2026-11-26 021530.png", ScreenshotName.For(new DateTime(2026, 11, 26, 2, 15, 30), En));
 

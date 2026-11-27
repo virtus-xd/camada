@@ -1,6 +1,7 @@
 <UserControl x:Class="CamAda.Panels.AdaPanel" x:ClassModifier="internal"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core">
     <UserControl.Resources>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11.5" />
@@ -16,22 +17,24 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <TextBlock Text="Ada — sesli asistan" FontSize="15" FontWeight="Bold" Margin="4,0,0,10" />
+        <TextBlock Text="{x:Static t:UiStrings.AdaPanel_Title}" FontSize="15" FontWeight="Bold" Margin="4,0,0,10" />
+        <TextBlock x:Name="TurkishOnlyNote" Text="{x:Static t:UiStrings.AdaPanel_TurkishOnlyNote}" Visibility="Collapsed"
+                   TextWrapping="Wrap" FontSize="12.5" Foreground="{StaticResource AccentBrush}" Margin="4,-4,0,10" />
 
         <!-- Anahtar yokken: açıklama, AI Studio, gizli kutu, Kaydet (Live kurulumuyla doğrulanır) -->
         <StackPanel x:Name="KeySection">
             <TextBlock Style="{StaticResource Note}"
-                       Text="Ada, &quot;Hey Ada&quot; deyince ya da Win+Alt+A ile uyanır; Google Gemini ile konuşur. Kendi Gemini API anahtarın gerekir (ücretli katman önerilir; anahtar bu bilgisayarda Windows şifrelemesiyle saklanır)." />
-            <Button Style="{StaticResource PanelButton}" Content="Google AI Studio'da anahtar al" HorizontalAlignment="Left"
+                       Text="{x:Static t:UiStrings.AdaPanel_Intro}" />
+            <Button Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.AdaPanel_GetKey}" HorizontalAlignment="Left"
                     Margin="4,10,0,10" Click="OpenStudio_Click" />
             <DockPanel LastChildFill="True">
-                <Button x:Name="SaveKeyButton" DockPanel.Dock="Right" Style="{StaticResource PanelAccentButton}" Content="Kaydet"
+                <Button x:Name="SaveKeyButton" DockPanel.Dock="Right" Style="{StaticResource PanelAccentButton}" Content="{x:Static t:UiStrings.AdaPanel_Save}"
                         Margin="10,0,0,0" Click="SaveKey_Click" />
                 <Border CornerRadius="10" Background="{StaticResource PanelItemBrush}" Padding="10,0">
                     <PasswordBox x:Name="KeyBox" Height="30" VerticalContentAlignment="Center" FontSize="12.5"
                                  Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextBrush}"
                                  CaretBrush="{StaticResource TextBrush}" SelectionBrush="{StaticResource AccentBrush}"
-                                 AutomationProperties.Name="Gemini API anahtarı" KeyDown="KeyBox_KeyDown" />
+                                 AutomationProperties.Name="{x:Static t:UiStrings.AdaPanel_KeyName}" KeyDown="KeyBox_KeyDown" />
                 </Border>
             </DockPanel>
             <TextBlock x:Name="KeyStatus" Style="{StaticResource Note}" Margin="4,8,0,0" Visibility="Collapsed" />
@@ -45,20 +48,20 @@
                         <ColumnDefinition />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="Sesli asistan açık" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Text="{x:Static t:UiStrings.AdaPanel_EnabledLabel}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <TextBlock x:Name="EnabledState" Grid.Column="1" FontSize="12.5" FontWeight="Bold" VerticalAlignment="Center" />
                 </Grid>
             </Button>
             <TextBlock x:Name="SavedNote" Style="{StaticResource Note}" Margin="4,6,0,0" Visibility="Collapsed"
                        Foreground="{StaticResource TextSecondaryBrush}" />
 
-            <TextBlock Text="Mikrofon" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="{x:Static t:UiStrings.Sound_Mic}" Style="{StaticResource SectionTitle}" />
             <StackPanel x:Name="MicList" />
 
             <!-- Misafir kipi (Plan 8): sesini tanıtma -->
-            <TextBlock Text="Sesim" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="{x:Static t:UiStrings.AdaPanel_MyVoice}" Style="{StaticResource SectionTitle}" />
             <TextBlock Style="{StaticResource Note}" Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,6"
-                       Text="Ada başka bir ses duyunca yalnız &quot;Ada&quot; diye başlayan sözlerini dinler. Kaydın saklanmaz; yalnız sayısal ses izin bu bilgisayarda şifreli tutulur." />
+                       Text="{x:Static t:UiStrings.AdaPanel_VoiceIntro}" />
             <TextBlock x:Name="VoiceStatus" Style="{StaticResource Note}" FontWeight="SemiBold" />
             <StackPanel x:Name="EnrollArea" Visibility="Collapsed" Margin="4,8,0,0">
                 <TextBlock x:Name="EnrollProgress" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}" />
@@ -66,23 +69,23 @@
                 <TextBlock x:Name="EnrollStatus" FontSize="12.5" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="4,10,0,0">
-                <Button x:Name="EnrollButton" Style="{StaticResource PanelButton}" Content="Sesimi tanıt" Click="Enroll_Click" />
-                <Button x:Name="DeleteVoiceButton" Style="{StaticResource PanelButton}" Content="Sil" Margin="8,0,0,0"
-                        AutomationProperties.Name="Ses izini sil" Click="DeleteVoice_Click" />
+                <Button x:Name="EnrollButton" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.AdaPanel_EnrollVoice}" Click="Enroll_Click" />
+                <Button x:Name="DeleteVoiceButton" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Clip_Delete}" Margin="8,0,0,0"
+                        AutomationProperties.Name="{x:Static t:UiStrings.AdaPanel_DeleteVoiceprint}" Click="DeleteVoice_Click" />
             </StackPanel>
 
             <TextBlock x:Name="UsageText" Style="{StaticResource Note}" Margin="4,12,0,0"
                        Foreground="{StaticResource TextSecondaryBrush}" />
-            <Button x:Name="ForgetKeyButton" Style="{StaticResource PanelButton}" Content="Anahtarı sil" HorizontalAlignment="Left"
+            <Button x:Name="ForgetKeyButton" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.AdaPanel_DeleteKey}" HorizontalAlignment="Left"
                     Margin="4,10,0,0" Click="ForgetKey_Click" />
 
-            <TextBlock Text="Hafıza" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="{x:Static t:UiStrings.AdaPanel_Memory}" Style="{StaticResource SectionTitle}" />
             <TextBlock Style="{StaticResource Note}" Foreground="{StaticResource TextSecondaryBrush}" Margin="4,0,0,6"
-                       Text="Ada'nın senin hakkında aklında tuttukları. Her konuşmada Google'a talimatla birlikte gider." />
+                       Text="{x:Static t:UiStrings.AdaPanel_MemoryIntro}" />
             <StackPanel x:Name="MemoryList" />
-            <TextBlock x:Name="NoMemoryText" Style="{StaticResource Note}" Text="Henüz bir şey kaydetmedi."
+            <TextBlock x:Name="NoMemoryText" Style="{StaticResource Note}" Text="{x:Static t:UiStrings.AdaPanel_MemoryEmpty}"
                        Foreground="{StaticResource TextSecondaryBrush}" Visibility="Collapsed" />
-            <Button x:Name="ClearMemoryButton" Style="{StaticResource PanelButton}" Content="Hafızayı temizle"
+            <Button x:Name="ClearMemoryButton" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.AdaPanel_ClearMemory}"
                     HorizontalAlignment="Left" Margin="4,10,0,0" Click="ClearMemory_Click" />
         </StackPanel>
     </StackPanel>

@@ -1,4 +1,5 @@
 using CamAda.Core.Assistant;
+using CamAda.Core.Text;
 
 namespace CamAda.Assistant;
 
@@ -24,12 +25,12 @@ public abstract record AdaState
     /// <summary>Hatanın adada görünen metni; <paramref name="midSession"/> oturum sürerken kopmalar için.</summary>
     public static string MessageFor(AssistantError error, bool midSession) => error switch
     {
-        AssistantError.Network => midSession ? "Bağlantı koptu" : "Ada'ya ulaşılamıyor — internet yok",
-        AssistantError.InvalidKey => "Gemini anahtarı geçersiz — Ada ayarlarından yenile",
-        AssistantError.PaymentRequired => "Gemini hesabında ödeme gerekiyor",
-        AssistantError.QuotaExceeded => "Gemini kullanım sınırı doldu",
-        AssistantError.ModelUnavailable => "Ada'nın modeli şu an kullanılamıyor",
-        AssistantError.Microphone => "Mikrofon bulunamadı",
-        _ => "Ada'da bir sorun oldu",
+        AssistantError.Network => midSession ? UiStrings.Ada_Error_ConnectionLost : UiStrings.Ada_Error_NoInternet,
+        AssistantError.InvalidKey => UiStrings.Ada_Error_InvalidKey,
+        AssistantError.PaymentRequired => UiStrings.Ada_Error_Payment,
+        AssistantError.QuotaExceeded => UiStrings.Ada_Error_Quota,
+        AssistantError.ModelUnavailable => UiStrings.Ada_Error_ModelUnavailable,
+        AssistantError.Microphone => UiStrings.Mic_NotFound,
+        _ => UiStrings.Ada_Error_Unknown,
     };
 }

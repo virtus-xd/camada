@@ -22,7 +22,6 @@ public partial class NoHardcodedTurkishTests
         "src/CamAda.Core/Weather/WeatherAnswer.cs",
         "src/CamAda/Assistant/AdaToolRunner.cs",
         "src/CamAda/Assistant/CurrentInfoClient.cs",
-        "src/CamAda/Assistant/AdaSpeech.cs",
         "src/CamAda/Weather/WeatherLookup.cs",
     ];
 
@@ -30,18 +29,6 @@ public partial class NoHardcodedTurkishTests
 
     private static readonly string[] Pending =
     [
-        "src/CamAda.Core/Assistant/AdaText.cs",
-        "src/CamAda.Core/Assistant/VoiceEnrollmentText.cs",
-        "src/CamAda/Assistant/AdaAssistant.cs",
-        "src/CamAda/Assistant/AdaState.cs",
-        "src/CamAda/Assistant/Audio/EchoCancelledMic.cs",
-        "src/CamAda/Assistant/Audio/FakeRoom.cs",
-        "src/CamAda/Assistant/Audio/VoiceFilter.cs",
-        "src/CamAda/Assistant/MemoryFile.cs",
-        "src/CamAda/Assistant/NotepadWriter.cs",
-        "src/CamAda/Assistant/ReminderFile.cs",
-        "src/CamAda/Panels/AdaPanel.xaml",
-        "src/CamAda/Panels/AdaPanel.xaml.cs",
     ];
 
     private static readonly HashSet<string> Brands = new(StringComparer.Ordinal)
@@ -147,7 +134,8 @@ public partial class NoHardcodedTurkishTests
     private static bool IsDiagnostic(string line) =>
         line.Contains("Debug.Write", StringComparison.Ordinal) || line.Contains("Trace.Write", StringComparison.Ordinal)
         || line.Contains("Console.Write", StringComparison.Ordinal) || line.Contains("throw new", StringComparison.Ordinal)
-        || line.Contains("i18n-ignore", StringComparison.Ordinal);
+        || line.Contains("i18n-ignore", StringComparison.Ordinal) || line.Contains("TraceDebug(", StringComparison.Ordinal)
+        || line.Contains("Log(new ", StringComparison.Ordinal) || line.Contains("AdaProbes.Log(", StringComparison.Ordinal);
 
     private static int CountRawMarks(string line)
     {
