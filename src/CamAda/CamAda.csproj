@@ -33,6 +33,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Temel dil İngilizce. Arayüz metinleri CamAda.Core/Text/UiStrings*.resx'te (WPF'in geçici derleme projesi aynı projede üretilen kaynak sınıfını göremiyor). -->
     <NeutralLanguage>en</NeutralLanguage>
+    <!-- Yalnız desteklenen diller: .NET/WPF'in öbür dil uyduları pakete girip Store'da sahte dil listelemesin. -->
+    <SatelliteResourceLanguages>en;tr</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

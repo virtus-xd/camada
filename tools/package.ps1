@@ -94,7 +94,7 @@ $strings = Join-Path $layout 'Strings'
 if (Test-Path -LiteralPath $strings) { Remove-Item -LiteralPath $strings -Recurse -Force }
 Copy-Item -LiteralPath (Join-Path $repo 'packaging\Strings') -Destination $strings -Recurse
 Get-ChildItem -LiteralPath $layout -Filter 'resources*.pri' | Remove-Item -Force # önceki (bölünmüş) çıktılar kalmasın
-$priConfig = Join-Path $repo 'packaging\priconfig.xml' # bölme yok, yalnız Assets ve Strings (dosyadaki açıklama)
+$priConfig = Join-Path $repo 'packaging\priconfig.xml' # kökten dizinler, dilleri ayrı paketlere bölmez (dosyadaki açıklama)
 $priLog = & $makepri new /pr $layout /cf $priConfig /mn (Join-Path $layout 'AppxManifest.xml') /of (Join-Path $layout 'resources.pri') /o 2>&1
 if ($LASTEXITCODE -ne 0) { $priLog | Select-Object -Last 15 | ForEach-Object { Write-Output $_ }; throw "makepri new başarısız oldu." }
 Remove-Item -LiteralPath $strings -Recurse -Force # metinler artık resources.pri içinde

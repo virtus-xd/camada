@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using CamAda.Core.Text;
 
 namespace CamAda.Core.Assistant;
 
@@ -280,7 +281,7 @@ public static class ReminderText
     }
 
     /// <summary>Adadaki geri sayım: 60 dk altındaysa; 10 dk'dan fazlaysa "⏱ 43 dk", değilse "⏱ 9:41"; aksi hâlde null.</summary>
-    public static string? Countdown(DateTimeOffset at, DateTimeOffset now)
+    public static string? Countdown(DateTimeOffset at, DateTimeOffset now, CultureInfo ui)
     {
         var left = at - now;
         if (left <= TimeSpan.Zero || left >= TimeSpan.FromHours(1))
@@ -290,7 +291,7 @@ public static class ReminderText
 
         if (left > TimeSpan.FromMinutes(10))
         {
-            return $"⏱ {(int)Math.Ceiling(left.TotalMinutes)} dk";
+            return "⏱ " + CoreText.Format(ui, nameof(CoreStrings.Duration_Minutes), (int)Math.Ceiling(left.TotalMinutes));
         }
 
         var seconds = (int)Math.Ceiling(left.TotalSeconds);

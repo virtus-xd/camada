@@ -725,12 +725,12 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
             var written = await WriteNoteAsync(first);
             FinishNote();
             return written.StartsWith("hata", StringComparison.Ordinal) ? written
-                : target.Document is null ? $"tamam: not Belgeler\\Ada Notları\\{target.FileName} dosyasına yazıldı (Not Defteri görünmedi); bunu kısaca söyle"
+                : target.Document is null ? $"tamam: not Belgeler\\{System.IO.Path.GetFileName(NotepadWriter.NotesFolder)}\\{target.FileName} dosyasına yazıldı (Not Defteri görünmedi); bunu kısaca söyle"
                 : "tamam: not yazıldı; yalnız 'Not aldım' de";
         }
 
         return target.Document is null
-            ? $"tamam: Not Defteri görünmedi ama not Belgeler\\Ada Notları\\{target.FileName} dosyasına yazılacak; bunu kısaca söyle ve bekle"
+            ? $"tamam: Not Defteri görünmedi ama not Belgeler\\{System.IO.Path.GetFileName(NotepadWriter.NotesFolder)}\\{target.FileName} dosyasına yazılacak; bunu kısaca söyle ve bekle"
             : "tamam: not defteri açık; kullanıcıya yalnız 'Dinliyorum' de ve bekle";
     }
 

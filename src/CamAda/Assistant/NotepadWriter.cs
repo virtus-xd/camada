@@ -61,7 +61,7 @@ internal static class NotepadWriter
         try
         {
             Directory.CreateDirectory(folder);
-            path = UniquePath(folder, NoteSession.FileNameFor(now));
+            path = UniquePath(folder, NoteSession.FileNameFor(now, System.Globalization.CultureInfo.CurrentUICulture));
             await using (File.Create(path))
             {
             }

@@ -1,5 +1,6 @@
 using CamAda.Core.Assistant;
 using Microsoft.Extensions.Time.Testing;
+using CamAda.Core.Tests.Text;
 
 namespace CamAda.Core.Tests.Assistant;
 
@@ -200,10 +201,11 @@ public class RemindersTests
     [Fact]
     public void Countdown_formats()
     {
-        Assert.Equal("⏱ 43 dk", ReminderText.Countdown(Now.AddMinutes(42).AddSeconds(10), Now));
-        Assert.Equal("⏱ 9:41", ReminderText.Countdown(Now.AddMinutes(9).AddSeconds(41), Now));
-        Assert.Null(ReminderText.Countdown(Now.AddMinutes(61), Now));
-        Assert.Null(ReminderText.Countdown(Now.AddSeconds(-1), Now));
+        Assert.Equal("⏱ 43 dk", ReminderText.Countdown(Now.AddMinutes(42).AddSeconds(10), Now, Cultures.Tr));
+        Assert.Equal("⏱ 43 min", ReminderText.Countdown(Now.AddMinutes(42).AddSeconds(10), Now, Cultures.En));
+        Assert.Equal("⏱ 9:41", ReminderText.Countdown(Now.AddMinutes(9).AddSeconds(41), Now, Cultures.Tr));
+        Assert.Null(ReminderText.Countdown(Now.AddMinutes(61), Now, Cultures.Tr));
+        Assert.Null(ReminderText.Countdown(Now.AddSeconds(-1), Now, Cultures.Tr));
     }
 
     [Fact]

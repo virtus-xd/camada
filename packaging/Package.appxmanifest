@@ -19,7 +19,7 @@
   <Dependencies>
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22621.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
-  <!-- Metinler packaging/Strings/<dil>/Resources.resw'den (ms-resource:); varsayılan en-US (tools/package.ps1 makepri /dq). -->
+  <!-- Metinler packaging/Strings/<dil>/Resources.resw'den (ms-resource:); varsayılan en-US (packaging/priconfig.xml). -->
   <Resources>
     <Resource Language="en-US" />
     <Resource Language="tr-TR" />

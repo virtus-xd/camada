@@ -886,12 +886,16 @@ public partial class IslandWindow : Window
 
     private bool Fits(string text)
     {
+        // 60 px: ekolayzer, boşluk ve 24 saatlik "00:00". 12 saatlik bölgede ("2:12 PM") saat daha geniş; fark eklenir.
         const double sidePadding = 32, clockAndGap = 60;
-        var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            new Typeface(CompactDate.FontFamily, CompactDate.FontStyle, CompactDate.FontWeight, CompactDate.FontStretch),
-            CompactDate.FontSize, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        return formatted.Width <= IslandLayout.Compact.Width - sidePadding - clockAndGap - IndicatorsWidth();
+        var clockExtra = Math.Max(0, Measure(CompactTime.Text, CompactTime) - Measure("00:00", CompactTime));
+        return Measure(text, CompactDate) <= IslandLayout.Compact.Width - sidePadding - clockAndGap - clockExtra - IndicatorsWidth();
     }
+
+    private double Measure(string text, TextBlock style) =>
+        new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+            new Typeface(style.FontFamily, style.FontStyle, style.FontWeight, style.FontStretch),
+            style.FontSize, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip).Width;
 
     /// <summary>Sağ sütundaki görünür işaretlerin (mikrofon kapalı, düşük pil) kenar boşluklarıyla genişliği.</summary>
     private double IndicatorsWidth()

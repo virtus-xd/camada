@@ -1,3 +1,4 @@
+using CamAda.Core.Text;
 namespace CamAda.Core.Assistant;
 
 /// <summary>
@@ -153,6 +154,6 @@ public sealed class NoteSession(TimeProvider time, TimeSpan quietToFinish)
     private static bool IsNoteTool(string name) => name is AdaTools.NotAl or AdaTools.NotYaz or AdaTools.NotBitir;
 
     /// <summary>Ada'nın not dosyasının adı ("Not 26.11.2026 01.07.txt"); Not Defteri başlığında bu ad aranır.</summary>
-    public static string FileNameFor(DateTime now) =>
-        "Not " + now.ToString("dd.MM.yyyy HH.mm", System.Globalization.CultureInfo.InvariantCulture) + ".txt";
+    public static string FileNameFor(DateTime now, System.Globalization.CultureInfo ui) =>
+        CoreText.Get(nameof(CoreStrings.Note_FileNamePrefix), ui) + " " + now.ToString("dd.MM.yyyy HH.mm", System.Globalization.CultureInfo.InvariantCulture) + ".txt";
 }

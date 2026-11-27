@@ -15,7 +15,7 @@
   <data name="Battery_Full" xml:space="preserve"><value>Fully charged</value></data>
   <data name="Battery_None" xml:space="preserve"><value>No battery</value></data>
   <data name="Battery_PluggedIn" xml:space="preserve"><value>Plugged in · {0}</value></data>
-  <data name="Bluetooth_ManyConnected" xml:space="preserve"><value>{0} devices connected</value></data>
+  <data name="Bluetooth_ManyConnected" xml:space="preserve"><value>{0} devices</value></data>
   <data name="Bluetooth_OneConnected" xml:space="preserve"><value>{0} connected</value></data>
   <data name="ClipAge_Now" xml:space="preserve"><value>now</value></data>
   <data name="ClipAge_Yesterday" xml:space="preserve"><value>yesterday</value></data>
@@ -43,6 +43,7 @@
   <data name="Network_Wifi" xml:space="preserve"><value>Wi‑Fi: {0}, {1}</value></data>
   <data name="Network_WifiNotConnected" xml:space="preserve"><value>Wi‑Fi: not connected</value></data>
   <data name="Network_WifiOff" xml:space="preserve"><value>Wi‑Fi off</value></data>
+  <data name="Note_FileNamePrefix" xml:space="preserve"><value>Note</value></data>
   <data name="PinnedApp_FileExplorer" xml:space="preserve"><value>File Explorer</value></data>
   <data name="Screenshot_FileName" xml:space="preserve"><value>Screenshot {0}.png</value></data>
   <data name="Search_Web" xml:space="preserve"><value>Search the web: “{0}”</value></data>

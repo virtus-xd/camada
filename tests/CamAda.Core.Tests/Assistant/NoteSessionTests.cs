@@ -1,5 +1,6 @@
 using CamAda.Core.Assistant;
 using Microsoft.Extensions.Time.Testing;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Assistant;
 
@@ -96,8 +97,11 @@ public class NoteSessionTests
     }
 
     [Fact]
-    public void File_name_is_date_and_minute() =>
-        Assert.Equal("Not 26.11.2026 01.07.txt", NoteSession.FileNameFor(new DateTime(2026, 11, 26, 1, 7, 42)));
+    public void File_name_is_date_and_minute()
+    {
+        Assert.Equal("Not 26.11.2026 01.07.txt", NoteSession.FileNameFor(new DateTime(2026, 11, 26, 1, 7, 42), Tr));
+        Assert.Equal("Note 26.11.2026 01.07.txt", NoteSession.FileNameFor(new DateTime(2026, 11, 26, 1, 7, 42), En));
+    }
 
     [Fact]
     public void Waits_8s_for_first_part_then_4s_between_parts()

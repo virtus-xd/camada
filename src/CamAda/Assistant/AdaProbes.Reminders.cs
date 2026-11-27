@@ -102,7 +102,7 @@ internal static partial class AdaProbes
             scheduler.Tick += () =>
             {
                 var next = file.Book.Pending.FirstOrDefault();
-                var countdown = next is null ? null : ReminderText.Countdown(next.At, DateTimeOffset.Now);
+                var countdown = next is null ? null : ReminderText.Countdown(next.At, DateTimeOffset.Now, System.Globalization.CultureInfo.CurrentUICulture);
                 if (countdown != lastCountdown && (countdown is null || countdown.EndsWith('0') || lastCountdown is null))
                 {
                     Log($"geri sayım: {countdown ?? "(yok)"}");

@@ -89,7 +89,7 @@ public class EnglishTextTests
         Assert.Equal("Off", BluetoothKinds.TileSubtitle(true, false, [], En));
         Assert.Equal("On", BluetoothKinds.TileSubtitle(true, true, [], En));
         Assert.Equal("Buds2 connected", BluetoothKinds.TileSubtitle(true, true, ["Buds2"], En));
-        Assert.Equal("2 devices connected", BluetoothKinds.TileSubtitle(true, true, ["Buds2", "Mouse"], En));
+        Assert.Equal("2 devices", BluetoothKinds.TileSubtitle(true, true, ["Buds2", "Mouse"], En)); // kutucuk 96 px: "connected" sığmıyor
     }
 
     [Theory]

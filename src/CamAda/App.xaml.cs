@@ -472,7 +472,7 @@ public partial class App : Application
     {
         ShowUnseenReminder();
         var now = DateTimeOffset.Now;
-        if (_adaReminders?.Book.Pending is not [var next, ..] || ReminderText.Countdown(next.At, now) is not { } countdown)
+        if (_adaReminders?.Book.Pending is not [var next, ..] || ReminderText.Countdown(next.At, now, System.Globalization.CultureInfo.CurrentUICulture) is not { } countdown)
         {
             _island?.ShowTimer(null, null);
             return;
