@@ -7,7 +7,8 @@
   3. .pdb dosyalarını siler ve katmanda gerekli dosyaları denetler; eksik varsa durur.
   4. Kimliği packaging/store-identity.json'dan okur (Partner Center > Ürün kimliği). Dosya yoksa yer tutucu kullanır;
      o paket Store'a yüklenemez. Manifesti doldurur, simgeleri kopyalar.
-  5. Windows SDK'daki makeappx ile out/msix/Camada_<sürüm>_x64.msix üretir ve son satırda yolunu yazar.
+  5. packaging/Strings'teki .resw metinlerini makepri ile resources.pri'ye derler (Başlat girişleri İngilizce/Türkçe),
+     Windows SDK'daki makeappx ile out/msix/Camada_<sürüm>_x64.msix üretir ve son satırda yolunu yazar.
   -Register: (yalnız geliştirici denemesi) katmanı gevşek kayıtla kurar. Geliştirici modu kapalıysa durur; kendisi açmaz.
   Çıktı bilerek depodaki out/ altında: %TEMP% yeniden başlatmada temizlenebiliyor.
 .EXAMPLE
@@ -47,7 +48,8 @@ Get-ChildItem -LiteralPath $layout -Filter *.pdb -Recurse | Remove-Item -Force
 
 # 4) Katman denetimi: .NET, WPF, Windows Forms (ManagedShell) ve Ada'nın yerel kütüphaneleri
 $required = @('hostfxr.dll', 'coreclr.dll', 'System.Private.CoreLib.dll', 'PresentationFramework.dll',
-    'System.Windows.Forms.dll', 'sherpa-onnx-c-api.dll', 'onnxruntime.dll', 'Assets\WakeWord')
+    'System.Windows.Forms.dll', 'sherpa-onnx-c-api.dll', 'onnxruntime.dll', 'Assets\WakeWord',
+    'tr\CamAda.Core.resources.dll') # Türkçe arayüz metinleri (uydu derleme)
 foreach ($item in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $layout $item))) { throw "Paket eksik: $item" }
 }
@@ -72,15 +74,30 @@ Copy-Item -Path (Join-Path $repo 'packaging\Assets\*') -Destination (Join-Path $
 
 # 6) Paketle
 $sdkBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
-$makeappx = Get-ChildItem -LiteralPath $sdkBin -Directory -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
-    Sort-Object { [version]$_.Name } -Descending |
-    ForEach-Object { Join-Path $_.FullName 'x64\makeappx.exe' } |
-    Where-Object { Test-Path -LiteralPath $_ } |
-    Select-Object -First 1
+function Find-SdkTool([string]$name) {
+    Get-ChildItem -LiteralPath $sdkBin -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+        Sort-Object { [version]$_.Name } -Descending |
+        ForEach-Object { Join-Path $_.FullName "x64\$name" } |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1
+}
+$makeappx = Find-SdkTool 'makeappx.exe'
 if (-not $makeappx) { throw "Windows SDK makeappx.exe bulunamadı ($sdkBin\<sürüm>\x64)." }
+$makepri = Find-SdkTool 'makepri.exe'
+if (-not $makepri) { throw "Windows SDK makepri.exe bulunamadı ($sdkBin\<sürüm>\x64)." }
 
 New-Item -ItemType Directory -Force $out | Out-Null
+
+# 6a) Manifestteki ms-resource: metinleri (Başlat menüsü girişleri, açıklama) resources.pri'ye; varsayılan dil en-US.
+$strings = Join-Path $layout 'Strings'
+if (Test-Path -LiteralPath $strings) { Remove-Item -LiteralPath $strings -Recurse -Force }
+Copy-Item -LiteralPath (Join-Path $repo 'packaging\Strings') -Destination $strings -Recurse
+Get-ChildItem -LiteralPath $layout -Filter 'resources*.pri' | Remove-Item -Force # önceki (bölünmüş) çıktılar kalmasın
+$priConfig = Join-Path $repo 'packaging\priconfig.xml' # bölme yok, yalnız Assets ve Strings (dosyadaki açıklama)
+$priLog = & $makepri new /pr $layout /cf $priConfig /mn (Join-Path $layout 'AppxManifest.xml') /of (Join-Path $layout 'resources.pri') /o 2>&1
+if ($LASTEXITCODE -ne 0) { $priLog | Select-Object -Last 15 | ForEach-Object { Write-Output $_ }; throw "makepri new başarısız oldu." }
+Remove-Item -LiteralPath $strings -Recurse -Force # metinler artık resources.pri içinde
 $msix = Join-Path $out "Camada_${version}_x64.msix"
 $log = & $makeappx pack /d $layout /p $msix /o 2>&1
 if ($LASTEXITCODE -ne 0) {
