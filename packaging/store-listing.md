@@ -5,7 +5,8 @@ Partner Center'daki alanlara kopyalanacak metinler. İlk gönderim gizli (özel 
 ## Fiyat ve görünürlük
 
 - Fiyat: Ücretsiz
-- Görünürlük: Özel hedef kitle (yalnız geliştiricinin Microsoft hesabı); "Store'da bulunabilir" kapalı
+- Görünürlük: Genel hedef kitle, Store'da bulunabilir (27.11 gönderimi; 1.0.0 ve 1.1.0 özel hedef kitleyle geçti)
+- Store ID: 9PH3GB5S05MM (https://apps.microsoft.com/detail/9PH3GB5S05MM; `winget install --id 9PH3GB5S05MM --source msstore`)
 - Kategori: Kişiselleştirme (yoksa: Yardımcı programlar ve araçlar)
 - Gizlilik politikası adresi: https://camada-azure.vercel.app/gizlilik (geçici; Vercel projesi "camada", `site/gizlilik.html`)
 - Destek iletişimi: erdemoz2003@gmail.com

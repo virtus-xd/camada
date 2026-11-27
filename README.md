@@ -7,6 +7,10 @@
 <p align="center"><b>A glass island that replaces the Windows 11 taskbar, with an optional voice assistant.</b></p>
 
 <p align="center">
+  <a href="https://apps.microsoft.com/detail/9PH3GB5S05MM?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" width="200"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/virtus-xd/camada/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/virtus-xd/camada?label=release"></a>
   <a href="https://github.com/virtus-xd/camada/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
@@ -31,9 +35,15 @@ https://github.com/user-attachments/assets/d1baf50b-d273-454d-ac15-0a2342cc7311
 - Optional voice assistant with "Hey Ada"
 - The taskbar comes back with one click
 
+## Install
+
+- **Microsoft Store** (free): [Camada on the Microsoft Store](https://apps.microsoft.com/detail/9PH3GB5S05MM)
+- **winget:** `winget install --id 9PH3GB5S05MM --source msstore`
+- **From source:** see [Building from source](#building-from-source)
+
 ## Status
 
-Early release. The interface is available in English and Turkish: it follows your Windows display language, and you can switch it with **Dil / Language** in the island's right-click menu. Ada speaks the interface language and switches to another language when you ask. Camada is coming to the Microsoft Store.
+Early release. The interface is available in English and Turkish: it follows your Windows display language, and you can switch it with **Dil / Language** in the island's right-click menu. Ada speaks the interface language and switches to another language when you ask. Camada is available on the Microsoft Store.
 
 ## Taskbar safety net
 

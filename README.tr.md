@@ -7,6 +7,10 @@
 <p align="center"><b>Windows 11 görev çubuğunun yerine geçen cam ada; isteğe bağlı sesli asistanıyla.</b></p>
 
 <p align="center">
+  <a href="https://apps.microsoft.com/detail/9PH3GB5S05MM?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/tr%20dark.svg" alt="Microsoft'tan edinin" width="200"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/virtus-xd/camada/releases/latest"><img alt="Son sürüm" src="https://img.shields.io/github/v/release/virtus-xd/camada?label=release"></a>
   <a href="https://github.com/virtus-xd/camada/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="Lisans: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
@@ -31,9 +35,15 @@ https://github.com/user-attachments/assets/d1baf50b-d273-454d-ac15-0a2342cc7311
 - "Hey Ada" ile isteğe bağlı sesli asistan
 - Görev çubuğu tek tıkla geri gelir
 
+## Kurulum
+
+- **Microsoft Store** (ücretsiz): [Microsoft Store'da Camada](https://apps.microsoft.com/detail/9PH3GB5S05MM)
+- **winget:** `winget install --id 9PH3GB5S05MM --source msstore`
+- **Kaynaktan:** [Kaynaktan derleme](#kaynaktan-derleme) bölümüne bakın
+
 ## Durum
 
-Erken sürüm. Arayüz İngilizce ve Türkçe: Windows'un görüntü dilini izler, adanın sağ tık menüsündeki **Dil / Language** ile değiştirilebilir. Ada arayüz dilinde konuşur, istersen başka bir dile geçer. Camada yakında Microsoft Store'da da olacak.
+Erken sürüm. Arayüz İngilizce ve Türkçe: Windows'un görüntü dilini izler, adanın sağ tık menüsündeki **Dil / Language** ile değiştirilebilir. Ada arayüz dilinde konuşur, istersen başka bir dile geçer. Camada Microsoft Store'da.
 
 ## Görev çubuğu güvenlik ağı
 
