@@ -60,7 +60,8 @@ Camada is a desktop shell that replaces the Windows taskbar with a floating "isl
 - Uninstalling or updating the app while the taskbar is hidden restores it (tested).
 - The optional voice assistant is off by default and requires the user's own Google Gemini API key; no test account is
   needed.
-- UI language: Turkish.
+- UI language: English and Turkish, following the Windows display language ("Dil / Language" in the island's right-click
+  menu switches it). The optional voice assistant Ada speaks Turkish for now.
 
 ## runFullTrust gerekçesi (restricted capability justification)
 
@@ -68,3 +69,39 @@ Camada is a desktop shell (taskbar replacement) built with WPF. It needs full tr
 area), enumerate and switch top-level windows, register as an app bar, hide/restore the Windows taskbar, control audio
 devices and screen brightness, and register global hotkeys. These are Win32 APIs that are not available to
 AppContainer apps.
+
+## English listing
+
+Partner Center → Store listings → add **English (United States)**, then paste these. The UI follows the Windows display
+language; Ada speaks Turkish for now.
+
+### Short description
+
+A glass island that replaces the taskbar: apps, music, quick settings, clipboard and the voice assistant Ada in one place.
+
+### Description
+
+Camada replaces the Windows taskbar with a sleek glass island at the top of the screen. The island is small by default and
+shows the time and the music that is playing. Hover over it and it expands: pinned apps, open windows, the system tray,
+Wi‑Fi, Bluetooth, volume, brightness, a calendar, clipboard history and screenshots are one click away.
+
+The optional voice assistant Ada wakes up when you say "Hey Ada": it opens apps, adjusts volume and brightness, searches the
+web, takes notes, sets reminders and tells you the weather. Ada runs on your own Google Gemini API key, is off by default and
+speaks Turkish for now.
+
+Hiding the Windows taskbar is entirely your choice and can be undone with one click. The "Restore taskbar" entry in the Start
+menu always brings the taskbar back, and uninstalling the app restores it automatically.
+
+### Product features
+
+- A glass island at the top of the screen that replaces the taskbar
+- Now playing and the clock at a glance
+- Pinned apps, open windows and the system tray
+- Quick settings for Wi‑Fi, Bluetooth, volume and brightness
+- Clipboard history (Win+Alt+V) and screenshots
+- Optional voice assistant with "Hey Ada"
+- The taskbar comes back with one click
+
+### Search terms (max 7)
+
+taskbar, glass, customization, dock, voice assistant, desktop, Windows 11

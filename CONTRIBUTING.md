@@ -21,7 +21,7 @@ dotnet test tests/CamAda.Core.Tests
 
 ## Taskbar safety net
 
-Hiding the Windows taskbar is off by default; it is turned on and off with "Görev çubuğunu gizle" (Hide taskbar) in the island's right-click menu. On its first run Camada registers itself to start at sign-in; "Windows açılınca başlat" (Start with Windows) in the same menu turns that off. Create the restore shortcut **before** running the app from source:
+Hiding the Windows taskbar is off by default; it is turned on and off with **Hide taskbar** in the island's right-click menu. On its first run Camada registers itself to start at sign-in; **Start with Windows** in the same menu turns that off. Create the restore shortcut **before** running the app from source:
 
 ```powershell
 dotnet build CamAda.slnx
@@ -44,7 +44,7 @@ A change that touches the code that hides or restores the taskbar, or the watchd
 
 - **Trust:** no Camada feature may require generating certificates, adding certificates to the trust store, developer mode, admin rights or unofficial install routes; changes that need them are not accepted. Undocumented Windows interfaces are not used where a documented way exists. Where there is no other way, they are kept in their own file with the reason written down; today's cases are `IPolicyConfig` for changing the default audio device (`src/CamAda/Audio/PolicyConfig.cs`) and ManagedShell's system tray hosting.
 - **Secrets:** never commit API keys, tokens, passwords or personal folder paths. The Gemini key and the Spotify Client ID are entered by the user in the app.
-- **Language:** UI text is Turkish (an English UI is planned). Code comments may be in Turkish or English.
+- **UI text:** every string the user sees or a screen reader reads lives in `src/CamAda.Core/Text/UiStrings.resx` (English) and `UiStrings.tr.resx` (Turkish) — or `CoreStrings` for text built in `CamAda.Core`. Add new keys to both files; `NoHardcodedTurkishTests` and `ResourceParityTests` fail on hard-coded text or a missing translation. Ada's spoken side (what goes to the model) is still Turkish and is marked `// i18n-ignore`. Code comments may be in Turkish or English.
 - **Commit messages:** short, in Turkish or English, with a prefix: `feat:`, `fix:`, `docs:`, `build:`, `test:`.
 
 ## Sending a pull request
@@ -70,6 +70,6 @@ Camada'ya katkı vermek istediğiniz için teşekkürler!
 - **Kodun yapısı:** Windows'a bağlı olmayan mantık `src/CamAda.Core`'da (`net10.0`) ve xUnit ile test edilir; yeni mantık için önce testi yazın, kırmızı olduğunu görün, sonra kodu yazın. WPF arayüzü ve Windows entegrasyonu `src/CamAda`'da. Store paketi `packaging/` ve `tools/package.ps1`. Tasarım kararları `docs/superpowers/specs/`'te (Türkçe).
 - **Güven:** Hiçbir özellik sertifika üretmeyi, güven deposuna sertifika eklemeyi, geliştirici modunu, yönetici iznini ya da resmi olmayan kurulum yollarını gerektirmez; bunları gerektiren değişiklikler kabul edilmez. Belgelenmiş bir yolu olan işte belgelenmemiş Windows arayüzü kullanılmaz. Başka yolu olmayan yerde ayrı bir dosyada tutulur ve gerekçesi yazılır; bugünkü örnekler varsayılan ses cihazını değiştiren `IPolicyConfig` (`src/CamAda/Audio/PolicyConfig.cs`) ve ManagedShell'in sistem tepsisini barındırmasıdır.
 - **Gizli bilgi:** API anahtarı, belirteç, parola ya da kişisel klasör yolu commit etmeyin; Gemini anahtarı ve Spotify Client ID uygulamada girilir.
-- **Dil ve commit:** Arayüz metinleri Türkçe (İngilizce arayüz planlanıyor), yorumlar Türkçe ya da İngilizce olabilir. Commit mesajları kısa, `feat:`/`fix:`/`docs:`/`build:`/`test:` önekiyle.
+- **Dil ve commit:** Kullanıcının gördüğü ya da ekran okuyucunun okuduğu her metin `src/CamAda.Core/Text/UiStrings.resx` (İngilizce) ve `UiStrings.tr.resx` (Türkçe) dosyalarında (çekirdekte üretilenler `CoreStrings`'te); yeni anahtar iki dosyaya da eklenir, testler kodda sabit metni ve eksik çeviriyi yakalar. Ada'nın modele giden tarafı henüz Türkçe ve `// i18n-ignore` ile işaretli. Yorumlar Türkçe ya da İngilizce olabilir. Commit mesajları kısa, `feat:`/`fix:`/`docs:`/`build:`/`test:` önekiyle.
 - **PR:** Depoyu çatallayın, yeni dal açın, değişikliği testleriyle yapın, PR şablonunu doldurun. CI Windows'ta derleyip testleri çalıştırır; yeşil olmadan birleştirme yapılmaz.
 - **Lisans:** Katkılar [Apache License 2.0](LICENSE) Madde 5 gereği aynı lisansla kabul edilir; ayrı bir sözleşme gerekmez.

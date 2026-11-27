@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/d1baf50b-d273-454d-ac15-0a2342cc7311
 
 ## Durum
 
-Erken sürüm. Arayüz şimdilik yalnız Türkçe; İngilizce arayüz planlanıyor. Camada yakında Microsoft Store'da da olacak.
+Erken sürüm. Arayüz İngilizce ve Türkçe: Windows'un görüntü dilini izler, adanın sağ tık menüsündeki **Dil / Language** ile değiştirilebilir. Ada şimdilik Türkçe konuşuyor; İngilizcesi sırada. Camada yakında Microsoft Store'da da olacak.
 
 ## Görev çubuğu güvenlik ağı
 
