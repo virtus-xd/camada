@@ -26,13 +26,15 @@ Erken sürüm. Arayüz şimdilik yalnız Türkçe; İngilizce arayüz planlanıy
 
 ## Görev çubuğu güvenlik ağı
 
-Kaynaktan derlenen sürüm **ilk açılışta** Windows görev çubuğunu gizler ve oturum açılışında kendiliğinden başlamak için kendini kaydeder. İkisini de adaya sağ tıklayınca açılan menüden kapatabilirsiniz: **"Görev çubuğunu gizle"** ve **"Windows açılınca başlat"**. Uygulamayı kapatmak için aynı menüde **"Çıkış"** vardır. Görev çubuğu her zaman geri getirilebilir:
+Windows görev çubuğunu gizleme **varsayılan olarak kapalıdır**. Adaya sağ tıklayınca açılan menüdeki **"Görev çubuğunu gizle"** ile açıp kapatabilirsiniz. Camada ilk açılışta ayrıca oturum açılışında kendiliğinden başlamak için kendini kaydeder; bunu aynı menüdeki **"Windows açılınca başlat"** ile kapatabilirsiniz. Uygulamayı kapatmak için menüde **"Çıkış"** vardır.
 
-- `CamAda.exe --restore-taskbar` adayı kapatır ve Windows görev çubuğunu geri getirir. Ayarı değiştirmez: Camada bir sonraki açılışta görev çubuğunu yine gizler. Kalıcı olarak kapatmak için menüdeki "Görev çubuğunu gizle" işaretini kaldırın.
+Görev çubuğu gizliyken her zaman geri getirilebilir:
+
+- `CamAda.exe --restore-taskbar` adayı kapatır ve Windows görev çubuğunu geri getirir. Ayarı değiştirmez: gizleme açıksa Camada bir sonraki açılışta görev çubuğunu yine gizler. Kalıcı olarak kapatmak için menüdeki "Görev çubuğunu gizle" işaretini kaldırın.
 - Bunun için masaüstüne bir kısayol oluşturabilirsiniz: `powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath <CamAda.exe yolu>` ("Görev çubuğunu geri getir").
-- Microsoft Store sürümünde Başlat menüsünde ayrıca **"Görev çubuğunu geri getir"** girişi bulunur.
+- Microsoft Store sürümü Başlat menüsüne **"Görev çubuğunu geri getir"** girişini ekler; uygulamayı kaldırınca da görev çubuğu geri gelir.
 - Camada beklenmedik şekilde kapanırsa ayrı çalışan bir bekçi görev çubuğunu kendiliğinden geri getirir.
-- Beklenmeyen hatalar `%LOCALAPPDATA%\CamAda\crash.log` dosyasına yazılır; hata bildirirken bu dosyayı paylaşabilirsiniz.
+- Beklenmeyen hatalar `%LOCALAPPDATA%\CamAda\crash.log` dosyasına yazılır (Store sürümünde: `%LOCALAPPDATA%\Packages\VirtusTech.Camada_6ccshz4mw4fd6\LocalCache\Local\CamAda\crash.log`). Hata bildirirken bu dosyayı paylaşabilirsiniz; önce kişisel bilgi içermediğini kontrol edin.
 
 ## Gereksinimler
 
@@ -50,21 +52,21 @@ dotnet build CamAda.slnx
 dotnet test tests/CamAda.Core.Tests
 ```
 
-Çalıştırmadan **önce** kurtarma kısayolunu oluşturun, sonra uygulamayı başlatın. İlk açılışta görev çubuğu gizlenir ve Camada oturum açılışında başlamak için kendini kaydeder (bkz. [Görev çubuğu güvenlik ağı](#görev-çubuğu-güvenlik-ağı)).
+Çalıştırmadan **önce** kurtarma kısayolunu oluşturun (görev çubuğu gizlemeyi açınca işinize yarar), sonra uygulamayı başlatın. Camada ilk açılışta oturum açılışında başlamak için kendini kaydeder (bkz. [Görev çubuğu güvenlik ağı](#görev-çubuğu-güvenlik-ağı)).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath .\src\CamAda\bin\Debug\net10.0-windows10.0.22621.0\CamAda.exe
 dotnet run --project src/CamAda
 ```
 
-Kalıcı kurulum için `.\tools\install.ps1`: Release sürümünü derler, `%LOCALAPPDATA%\Programs\CamAda` klasörüne kurar, kurtarma kısayolunu oluşturur ve Camada'yı başlatır. Camada bundan sonra oturum açılışında kendiliğinden başlar. PowerShell betik çalıştırmayı engelliyorsa: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (yalnız bu komut için geçerlidir).
+Kalıcı kurulum için `.\tools\install.ps1`: Release sürümünü derler, `%LOCALAPPDATA%\Programs\CamAda` klasörüne kurar, kurtarma kısayolunu oluşturur ve Camada'yı başlatır. PowerShell betik çalıştırmayı engelliyorsa yukarıdaki biçimi kullanın: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (yalnız bu komut için geçerlidir).
 
 ## Kaldırma
 
 1. Adaya sağ tıklayın, "Windows açılınca başlat" ve "Görev çubuğunu gizle" işaretlerini kaldırın, sonra "Çıkış"ı seçin.
-2. Oturum açılış kaydı kaldıysa silin (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` altındaki `CamAda` değeri):
+2. `install.ps1` ile kurduysanız `powershell -ExecutionPolicy Bypass -File .\tools\uninstall-dev.ps1` çalıştırın (önce ne yapacağını görmek için `-WhatIf` ekleyin). Oturum açılış kaydını, masaüstü kısayolunu ve `%LOCALAPPDATA%\Programs\CamAda` klasörünü siler; ayarlarınıza ve Ada'nın verilerine dokunmaz.
+3. Camada'yı doğrudan derleme klasöründen çalıştırdıysanız oturum açılış kaydı o klasörü gösteriyor olabilir. Silin (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` altındaki `CamAda` değeri):
    `Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name CamAda -ErrorAction SilentlyContinue`
-3. Kurulum dosyalarını silin: `%LOCALAPPDATA%\Programs\CamAda` klasörü ve masaüstündeki "Görev çubuğunu geri getir" kısayolu.
 4. Ayarları ve Ada verilerini de silmek isterseniz: `%APPDATA%\CamAda` ve `%LOCALAPPDATA%\CamAda`. Ada'nın notları (Belgeler\Ada Notları) ve ekran görüntüleri (Resimler) yerinde kalır.
 
 Microsoft Store sürümü Windows Ayarlar → Uygulamalar'dan kaldırılır; görev çubuğu kendiliğinden geri gelir.
@@ -76,8 +78,10 @@ Microsoft Store sürümü Windows Ayarlar → Uygulamalar'dan kaldırılır; gö
 | `src/CamAda.Core` | Windows'a bağlı olmayan, test edilen mantık (`net10.0`) |
 | `src/CamAda` | WPF arayüzü ve Windows entegrasyonu: ada, paneller, tepsi, ses, Ada |
 | `tests/CamAda.Core.Tests` | `CamAda.Core` için xUnit testleri |
-| `tools/` | Kurulum, kurtarma kısayolu ve yardımcı betikler |
-| `docs/superpowers/specs/` | Tasarım kararları ve gerekçeleri (Türkçe) |
+| `tools/` | Kurulum, kaldırma, kurtarma kısayolu, paketleme ve yardımcı betikler |
+| `packaging/` | MSIX manifesti, görseller, Store kimliği ve liste metinleri (`tools/package.ps1` paketi oluşturur) |
+| `site/` | Gizlilik politikası sayfası |
+| [docs/superpowers/specs/](docs/superpowers/specs/) | Tasarım kararları ve gerekçeleri (Türkçe) |
 
 ## Gizlilik
 

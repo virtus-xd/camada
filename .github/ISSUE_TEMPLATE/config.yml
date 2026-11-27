@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Güvenlik açığı / Security vulnerability
+  - name: Security vulnerability / Güvenlik açığı
     url: https://github.com/virtus-xd/camada/security/advisories/new
-    about: Güvenlik açıklarını herkese açık issue yerine buradan özel olarak bildirin. / Report vulnerabilities privately here.
+    about: Report vulnerabilities privately here instead of a public issue. / Güvenlik açıklarını herkese açık issue yerine buradan özel olarak bildirin.

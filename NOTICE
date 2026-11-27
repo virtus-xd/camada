@@ -1,16 +1,17 @@
 Camada
 Copyright 2026 VirtusTech
 
-Bu ürün Apache License 2.0 ile lisanslanmıştır (bkz. LICENSE).
-"Camada" adı ve logosu bu lisansa dahil değildir (Apache License 2.0, Madde 6).
-This product is licensed under the Apache License 2.0. The "Camada" name and logo are not licensed (Section 6).
+This product is licensed under the Apache License 2.0 (see LICENSE). The "Camada" name and logo are not licensed (Section 6).
+Bu ürün Apache License 2.0 ile lisanslanmıştır (bkz. LICENSE). "Camada" adı ve logosu bu lisansa dahil değildir (Madde 6).
 
-Üçüncü taraf bileşenler / Third-party components:
+Third-party components / Üçüncü taraf bileşenler:
 - ManagedShell — Apache-2.0 — https://github.com/cairoshell/ManagedShell
-- NAudio.Wasapi — MIT — https://github.com/naudio/NAudio
+- NAudio.Wasapi, NAudio.Core — MIT — https://github.com/naudio/NAudio
 - org.k2fsa.sherpa.onnx (sherpa-onnx) — Apache-2.0 — https://github.com/k2-fsa/sherpa-onnx
-- System.Management — MIT — https://github.com/dotnet/runtime
-- Anahtar sözcük modeli sherpa-onnx-kws-zipformer-gigaspeech-3.3M — Apache-2.0 — src/CamAda/Assets/WakeWord/LICENSE.txt
-- CAM++ konuşmacı modeli (3D-Speaker) — Apache-2.0 — src/CamAda/Assets/Speaker/LICENSE-models.txt
+- ONNX Runtime (onnxruntime.dll, shipped with sherpa-onnx) — MIT — https://github.com/microsoft/onnxruntime
+- System.Management, System.Data.OleDb, System.ServiceProcess.ServiceController — MIT — https://github.com/dotnet/runtime
+- Microsoft.Windows.SDK.NET, WinRT.Runtime (CsWinRT) — MIT — https://github.com/microsoft/CsWinRT
+- Keyword spotting model sherpa-onnx-kws-zipformer-gigaspeech-3.3M — Apache-2.0 — src/CamAda/Assets/WakeWord/LICENSE.txt
+- CAM++ speaker model (3D-Speaker) — Apache-2.0 — src/CamAda/Assets/Speaker/LICENSE-models.txt
 - Silero VAD — MIT — src/CamAda/Assets/Speaker/LICENSE-models.txt
-- Manrope yazı tipi — SIL Open Font License 1.1 — src/CamAda/Assets/Fonts/OFL.txt
+- Manrope font — SIL Open Font License 1.1 — src/CamAda/Assets/Fonts/OFL.txt

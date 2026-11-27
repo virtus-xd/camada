@@ -26,13 +26,15 @@ Early release. The user interface is Turkish only for now; an English UI is plan
 
 ## Taskbar safety net
 
-On its **first run**, a build from source hides the Windows taskbar and registers itself to start when you sign in. Both can be turned off in the island's right-click menu: **"Görev çubuğunu gizle"** (Hide taskbar) and **"Windows açılınca başlat"** (Start with Windows). The same menu has **"Çıkış"** (Exit) to close the app. The taskbar can always be restored:
+Hiding the Windows taskbar is **off by default**. Turn it on or off with **"Görev çubuğunu gizle"** (Hide taskbar) in the island's right-click menu. On its first run Camada also registers itself to start when you sign in; turn that off with **"Windows açılınca başlat"** (Start with Windows) in the same menu. **"Çıkış"** (Exit) closes the app.
 
-- `CamAda.exe --restore-taskbar` closes the island and brings the Windows taskbar back. It does not change the setting: Camada hides the taskbar again the next time it starts. To turn hiding off for good, uncheck "Görev çubuğunu gizle" in the menu.
+When the taskbar is hidden, it can always be restored:
+
+- `CamAda.exe --restore-taskbar` closes the island and brings the Windows taskbar back. It does not change the setting: if hiding is on, Camada hides the taskbar again the next time it starts. To turn hiding off for good, uncheck "Görev çubuğunu gizle" in the menu.
 - You can put a shortcut for this on your desktop: `powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath <path to CamAda.exe>` ("Görev çubuğunu geri getir").
-- The Microsoft Store version also adds a **"Görev çubuğunu geri getir"** (Restore taskbar) entry to the Start menu.
+- The Microsoft Store version adds a **"Görev çubuğunu geri getir"** (Restore taskbar) entry to the Start menu, and uninstalling it brings the taskbar back.
 - If Camada closes unexpectedly, a separate watchdog restores the taskbar automatically.
-- Unexpected errors are written to `%LOCALAPPDATA%\CamAda\crash.log`; you can attach this file when reporting a bug.
+- Unexpected errors are written to `%LOCALAPPDATA%\CamAda\crash.log` (Store version: `%LOCALAPPDATA%\Packages\VirtusTech.Camada_6ccshz4mw4fd6\LocalCache\Local\CamAda\crash.log`). You can attach this file when reporting a bug; check it for personal data first.
 
 ## Requirements
 
@@ -50,21 +52,21 @@ dotnet build CamAda.slnx
 dotnet test tests/CamAda.Core.Tests
 ```
 
-Create the restore shortcut **before** running the app, then start it. On the first run the taskbar is hidden and Camada registers itself to start at sign-in (see [Taskbar safety net](#taskbar-safety-net)).
+Create the restore shortcut **before** running the app (you will want it once taskbar hiding is on), then start it. On the first run Camada registers itself to start at sign-in (see [Taskbar safety net](#taskbar-safety-net)).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath .\src\CamAda\bin\Debug\net10.0-windows10.0.22621.0\CamAda.exe
 dotnet run --project src/CamAda
 ```
 
-For a permanent install, run `.\tools\install.ps1`: it builds the Release version, installs it to `%LOCALAPPDATA%\Programs\CamAda`, creates the restore shortcut and starts Camada. Camada then starts automatically when you sign in. If PowerShell blocks scripts: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (applies to this command only).
+For a permanent install, run `.\tools\install.ps1`: it builds the Release version, installs it to `%LOCALAPPDATA%\Programs\CamAda`, creates the restore shortcut and starts Camada. If PowerShell blocks scripts, use the same form as above: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (applies to this command only).
 
 ## Uninstalling
 
 1. Right-click the island, uncheck "Windows açılınca başlat" (Start with Windows) and "Görev çubuğunu gizle" (Hide taskbar), then choose "Çıkış" (Exit).
-2. If the sign-in entry is still there, delete it (the `CamAda` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`):
+2. If you installed with `install.ps1`, run `powershell -ExecutionPolicy Bypass -File .\tools\uninstall-dev.ps1` (add `-WhatIf` to preview). It removes the sign-in entry, the desktop shortcut and `%LOCALAPPDATA%\Programs\CamAda`, and keeps your settings and Ada's data.
+3. If you ran Camada straight from a build, its sign-in entry may still point to the build folder. Delete it (the `CamAda` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`):
    `Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name CamAda -ErrorAction SilentlyContinue`
-3. Delete the installed files: the `%LOCALAPPDATA%\Programs\CamAda` folder and the "Görev çubuğunu geri getir" shortcut on your desktop.
 4. To also remove settings and Ada's data: `%APPDATA%\CamAda` and `%LOCALAPPDATA%\CamAda`. Ada's notes (Documents\Ada Notları) and screenshots (Pictures) stay where they are.
 
 The Microsoft Store version is removed from Windows Settings → Apps; the taskbar comes back automatically.
@@ -76,8 +78,10 @@ The Microsoft Store version is removed from Windows Settings → Apps; the taskb
 | `src/CamAda.Core` | Platform-independent, tested logic (`net10.0`) |
 | `src/CamAda` | WPF UI and Windows integration: island, panels, tray, audio, Ada |
 | `tests/CamAda.Core.Tests` | xUnit tests for `CamAda.Core` |
-| `tools/` | Install, restore shortcut and helper scripts |
-| `docs/superpowers/specs/` | Design decisions and their reasoning (Turkish) |
+| `tools/` | Install, uninstall, restore shortcut, packaging and helper scripts |
+| `packaging/` | MSIX manifest, assets, Store identity and listing texts (`tools/package.ps1` builds the package) |
+| `site/` | The privacy policy page |
+| [docs/superpowers/specs/](docs/superpowers/specs/) | Design decisions and their reasoning (Turkish) |
 
 ## Privacy
 

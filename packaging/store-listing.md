@@ -10,14 +10,17 @@ Partner Center'daki alanlara kopyalanacak metinler. İlk gönderim gizli (özel 
 - Gizlilik politikası adresi: https://camada-azure.vercel.app/gizlilik (geçici; Vercel projesi "camada", `site/gizlilik.html`)
 - Destek iletişimi: erdemoz2003@gmail.com
 
+> 27.11 düzeltme: 1.0.0 gönderiminde açıklama ve özelliklerde "bildirimler" geçiyordu (bildirimler iptal edildi). Sonraki
+> gönderimde Partner Center'daki metin bu dosyadakiyle güncellenmeli.
+
 ## Kısa açıklama
 
 Görev çubuğunun yerine geçen cam ada: uygulamalar, müzik, hızlı ayarlar, pano ve sesli asistan Ada tek yerde.
 
 ## Açıklama
 
-Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam ada koyar. Ada normalde küçüktür; saati, çalan
-müziği ve bildirimleri gösterir. Üzerine gelince genişler: sabitlediğiniz uygulamalar, açık pencereler, sistem tepsisi,
+Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam ada koyar. Ada normalde küçüktür; saati ve çalan
+müziği gösterir. Üzerine gelince genişler: sabitlediğiniz uygulamalar, açık pencereler, sistem tepsisi,
 Wi‑Fi, Bluetooth, ses, parlaklık, takvim, pano geçmişi ve ekran görüntüleri tek dokunuş uzağınızdadır.
 
 İsteğe bağlı sesli asistan Ada, "Hey Ada" dediğinizde uyanır: uygulama açar, ses ve parlaklığı ayarlar, web'de arar,
@@ -31,7 +34,7 @@ kendiliğinden geri gelir.
 ## Ürün özellikleri (Product features)
 
 - Görev çubuğunun yerine ekranın üstünde duran cam ada
-- Çalan müzik, saat ve bildirimler bir bakışta
+- Çalan müzik ve saat bir bakışta
 - Sabitlenmiş uygulamalar, açık pencereler ve sistem tepsisi
 - Wi‑Fi, Bluetooth, ses ve parlaklık için hızlı ayarlar
 - Pano geçmişi (Win+Alt+V) ve ekran görüntüleri

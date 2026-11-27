@@ -1,17 +1,17 @@
-# Davranış kuralları
+# Code of Conduct
 
-Camada topluluğu [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/) davranış kurallarını benimser. Kısaca:
+The Camada community adopts the [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). In short:
 
-- Herkese saygılı ve nazik davranın; farklı görüşlere ve deneyimlere açık olun.
-- Yapıcı eleştiri verin ve kabul edin; kişiyi değil işi konuşun.
-- Taciz, aşağılama, ayrımcı ya da cinsel içerikli dil, başkasının kişisel bilgilerini izinsiz paylaşmak kabul edilmez.
+- Be respectful and kind; stay open to different views and experiences.
+- Give and accept constructive feedback; discuss the work, not the person.
+- Harassment, demeaning, discriminatory or sexual language, and sharing other people's private information without permission are not acceptable.
 
-Bu kurallar issue'larda, değişiklik isteklerinde, tartışmalarda ve projeyi temsil ettiğiniz her yerde geçerlidir. Proje sahibi kurallara uymayan yorumları silebilir, düzenleyebilir ya da kişiyi projeden uzaklaştırabilir.
+These rules apply in issues, pull requests, discussions and anywhere you represent the project. The maintainer may remove or edit comments that break them, or remove a person from the project.
 
-**Bildirim:** Kurallara aykırı bir davranışla karşılaşırsanız proje sahibine [gizlilik sayfasındaki](https://camada-azure.vercel.app/gizlilik) iletişim adresinden yazın. Bildirimler gizli tutulur.
+**Reporting:** if you experience or witness unacceptable behavior, contact the maintainer via the address on the [privacy page](https://camada-azure.vercel.app/gizlilik). Reports are kept confidential.
 
 ---
 
-## In English
+## Türkçe
 
-Camada adopts the [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Be respectful and kind, give and accept constructive feedback, and never harass, demean or share others' private information. To report a problem, contact the maintainer via the address on the [privacy page](https://camada-azure.vercel.app/gizlilik); reports are kept confidential.
+Camada topluluğu [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/) davranış kurallarını benimser. Herkese saygılı ve nazik davranın; yapıcı eleştiri verin ve kabul edin, kişiyi değil işi konuşun. Taciz, aşağılama, ayrımcı ya da cinsel içerikli dil ve başkasının kişisel bilgilerini izinsiz paylaşmak kabul edilmez. Bu kurallar issue'larda, değişiklik isteklerinde, tartışmalarda ve projeyi temsil ettiğiniz her yerde geçerlidir; proje sahibi kurallara uymayan yorumları silebilir, düzenleyebilir ya da kişiyi projeden uzaklaştırabilir. Kurallara aykırı bir davranışla karşılaşırsanız proje sahibine [gizlilik sayfasındaki](https://camada-azure.vercel.app/gizlilik) iletişim adresinden yazın; bildirimler gizli tutulur.

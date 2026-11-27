@@ -1,25 +1,25 @@
-name: Hata bildirimi / Bug report
-description: Çalışmayan ya da beklenmedik davranan bir şeyi bildirin. / Report something that is broken.
+name: Bug report / Hata bildirimi
+description: Report something that is broken. / Çalışmayan ya da beklenmedik davranan bir şeyi bildirin.
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        **Görev çubuğu gizli kaldıysa / If the taskbar stays hidden:** `CamAda.exe --restore-taskbar` çalıştırın ya da Başlat menüsündeki "Görev çubuğunu geri getir" girişini açın. / Run `CamAda.exe --restore-taskbar` or open "Görev çubuğunu geri getir" from the Start menu.
+        **If the taskbar stays hidden / Görev çubuğu gizli kaldıysa:** run `CamAda.exe --restore-taskbar`, open the "Görev çubuğunu geri getir" shortcut on your desktop, or (Store version) the "Görev çubuğunu geri getir" entry in the Start menu. / `CamAda.exe --restore-taskbar` çalıştırın, masaüstündeki "Görev çubuğunu geri getir" kısayolunu ya da (Store sürümünde) Başlat menüsündeki aynı adlı girişi açın.
   - type: textarea
     id: ne-oldu
     attributes:
-      label: Ne oldu? / What happened?
+      label: What happened? / Ne oldu?
     validations:
       required: true
   - type: textarea
     id: beklenen
     attributes:
-      label: Ne bekliyordunuz? / What did you expect?
+      label: What did you expect? / Ne bekliyordunuz?
   - type: textarea
     id: adimlar
     attributes:
-      label: Yeniden üretme adımları / Steps to reproduce
+      label: Steps to reproduce / Yeniden üretme adımları
       placeholder: |
         1. ...
         2. ...
@@ -28,7 +28,7 @@ body:
   - type: input
     id: windows
     attributes:
-      label: Windows sürümü / Windows version
+      label: Windows version / Windows sürümü
       description: "winver"
       placeholder: 11 24H2 (26100.xxxx)
     validations:
@@ -36,11 +36,11 @@ body:
   - type: input
     id: surum
     attributes:
-      label: Camada sürümü ya da commit / Camada version or commit
+      label: Camada version or commit / Camada sürümü ya da commit
       placeholder: Store 1.0.0 / main @ abc1234
   - type: textarea
     id: crash-log
     attributes:
       label: crash.log
-      description: '%LOCALAPPDATA%\CamAda\crash.log varsa içeriği. Kişisel bilgi olmadığını kontrol edin. / Contents of %LOCALAPPDATA%\CamAda\crash.log if present. Check it contains no personal data.'
+      description: 'Contents of %LOCALAPPDATA%\CamAda\crash.log (Store version: %LOCALAPPDATA%\Packages\VirtusTech.Camada_6ccshz4mw4fd6\LocalCache\Local\CamAda\crash.log) if present. Check it contains no personal data. / Varsa içeriği; kişisel bilgi olmadığını kontrol edin.'
       render: text

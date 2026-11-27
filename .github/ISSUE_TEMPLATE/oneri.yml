@@ -1,20 +1,20 @@
-name: Öneri / Feature request
-description: Yeni bir özellik ya da iyileştirme önerin. / Suggest a feature or improvement.
+name: Feature request / Öneri
+description: Suggest a feature or improvement. / Yeni bir özellik ya da iyileştirme önerin.
 labels: [enhancement]
 body:
   - type: textarea
     id: ihtiyac
     attributes:
-      label: İhtiyaç ya da sorun / Need or problem
-      description: Neyi yapmakta zorlanıyorsunuz, ne eksik? / What is hard or missing today?
+      label: Need or problem / İhtiyaç ya da sorun
+      description: What is hard or missing today? / Neyi yapmakta zorlanıyorsunuz, ne eksik?
     validations:
       required: true
   - type: textarea
     id: cozum
     attributes:
-      label: Önerilen çözüm / Proposed solution
-      description: Nasıl çalışmasını isterdiniz? / How would you like it to work?
+      label: Proposed solution / Önerilen çözüm
+      description: How would you like it to work? / Nasıl çalışmasını isterdiniz?
   - type: textarea
     id: alternatifler
     attributes:
-      label: Düşünülen alternatifler / Alternatives considered
+      label: Alternatives considered / Düşünülen alternatifler
