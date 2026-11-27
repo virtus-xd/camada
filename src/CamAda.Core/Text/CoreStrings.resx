@@ -35,11 +35,14 @@
   <data name="Format_IslandDate" xml:space="preserve"><value>ddd, MMMM d</value></data>
   <data name="Format_MonthTitle" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="Format_Percent" xml:space="preserve"><value>{0}%</value></data>
+  <data name="Format_ReminderClock" xml:space="preserve"><value>h:mm tt</value></data>
+  <data name="Format_ReminderDay" xml:space="preserve"><value>dddd, MMMM d</value></data>
   <data name="Format_ShortDate" xml:space="preserve"><value>MMM d</value></data>
   <data name="Language_Automatic" xml:space="preserve"><value>Automatic (Windows)</value></data>
   <data name="Language_English" xml:space="preserve"><value>English</value></data>
   <data name="Language_MenuTitle" xml:space="preserve"><value>Dil / Language</value></data>
   <data name="Language_Turkish" xml:space="preserve"><value>Türkçe</value></data>
+  <data name="List_And" xml:space="preserve"><value>and</value></data>
   <data name="Network_ConnectedLower" xml:space="preserve"><value>connected</value></data>
   <data name="Network_Ethernet" xml:space="preserve"><value>Ethernet, {0}</value></data>
   <data name="Network_InternetAccess" xml:space="preserve"><value>internet access</value></data>
@@ -50,6 +53,11 @@
   <data name="Network_WifiOff" xml:space="preserve"><value>Wi‑Fi off</value></data>
   <data name="Note_FileNamePrefix" xml:space="preserve"><value>Note</value></data>
   <data name="PinnedApp_FileExplorer" xml:space="preserve"><value>File Explorer</value></data>
+  <data name="Reminder_MissedMany" xml:space="preserve"><value>Missed reminders: {0}.</value></data>
+  <data name="Reminder_MissedOne" xml:space="preserve"><value>Missed reminder: {0}, {1}.</value></data>
+  <data name="Reminder_OnDay" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="Reminder_TimeUp" xml:space="preserve"><value>Time's up: {0}.</value></data>
+  <data name="Reminder_Tomorrow" xml:space="preserve"><value>tomorrow {0}</value></data>
   <data name="Screenshot_FileName" xml:space="preserve"><value>Screenshot {0}.png</value></data>
   <data name="Search_Web" xml:space="preserve"><value>Search the web: “{0}”</value></data>
   <data name="SettingsPage_Apps" xml:space="preserve"><value>Apps</value></data>

@@ -434,7 +434,7 @@ public partial class App : Application
     /// </summary>
     private async void OnRemindersDue(IReadOnlyList<Reminder> due)
     {
-        var sentence = ReminderText.Announcement(due, DateTimeOffset.Now);
+        var sentence = ReminderText.Announcement(due, DateTimeOffset.Now, System.Globalization.CultureInfo.CurrentUICulture);
         ShowReminderText(sentence);
         if (_ada is not { } ada)
         {

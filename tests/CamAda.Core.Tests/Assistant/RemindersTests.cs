@@ -223,11 +223,41 @@ public class RemindersTests
     {
         Reminder R(string text, bool missed = false, int hour = 14, int minute = 32) => new(Guid.NewGuid(), text, At(26, hour, minute), missed);
 
-        Assert.Equal("Süre doldu: makarna.", ReminderText.Announcement([R("makarna")], Now));
-        Assert.Equal("Süre doldu: makarna ve çay.", ReminderText.Announcement([R("makarna"), R("çay")], Now));
-        Assert.Equal("Süre doldu: a, b ve c.", ReminderText.Announcement([R("a"), R("b"), R("c")], Now));
-        Assert.Equal("Kaçırılan hatırlatma: toplantı, 09.00.", ReminderText.Announcement([R("toplantı", true, 9, 0)], Now));
+        Assert.Equal("Süre doldu: makarna.", ReminderText.Announcement([R("makarna")], Now, Cultures.Tr));
+        Assert.Equal("Süre doldu: makarna ve çay.", ReminderText.Announcement([R("makarna"), R("çay")], Now, Cultures.Tr));
+        Assert.Equal("Süre doldu: a, b ve c.", ReminderText.Announcement([R("a"), R("b"), R("c")], Now, Cultures.Tr));
+        Assert.Equal("Kaçırılan hatırlatma: toplantı, 09.00.", ReminderText.Announcement([R("toplantı", true, 9, 0)], Now, Cultures.Tr));
         Assert.Equal("Süre doldu: makarna. Kaçırılan hatırlatmalar: toplantı (09.00) ve ilaç (10.00).",
-            ReminderText.Announcement([R("makarna"), R("toplantı", true, 9, 0), R("ilaç", true, 10, 0)], Now));
+            ReminderText.Announcement([R("makarna"), R("toplantı", true, 9, 0), R("ilaç", true, 10, 0)], Now, Cultures.Tr));
+    }
+
+    [Fact]
+    public void English_announcement()
+    {
+        Reminder R(string text, bool missed = false, int day = 26, int hour = 14, int minute = 32) => new(Guid.NewGuid(), text, At(day, hour, minute), missed);
+
+        Assert.Equal("Time's up: pasta.", ReminderText.Announcement([R("pasta")], Now, Cultures.En));
+        Assert.Equal("Time's up: a, b and c.", ReminderText.Announcement([R("a"), R("b"), R("c")], Now, Cultures.En));
+        Assert.Equal("Missed reminder: meeting, 9:00 AM.", ReminderText.Announcement([R("meeting", true, 26, 9, 0)], Now, Cultures.En));
+        Assert.Equal("Time's up: pasta. Missed reminders: meeting (9:00 AM) and pills (10:00 AM).",
+            ReminderText.Announcement([R("pasta"), R("meeting", true, 26, 9, 0), R("pills", true, 26, 10, 0)], Now, Cultures.En));
+    }
+
+    [Fact]
+    public void English_when_texts()
+    {
+        Assert.Equal("2:41 PM", ReminderText.When(At(26, 14, 41), Now, Cultures.En));
+        Assert.Equal("tomorrow 9:00 AM", ReminderText.When(At(27, 9, 0), Now, Cultures.En));
+        Assert.Equal("Saturday, November 28, 9:00 AM", ReminderText.When(At(28, 9, 0), Now, Cultures.En));
+        Assert.Equal("2:41 pm", ReminderText.When(At(26, 14, 41), Now, Cultures.EnGb));
+        Assert.Equal("28 Kasım Cumartesi 09.00", ReminderText.When(At(28, 9, 0), Now, Cultures.Tr));
+    }
+
+    [Fact]
+    public void Announcement_keeps_braces_in_reminder_text()
+    {
+        Reminder R(string text) => new(Guid.NewGuid(), text, At(26, 14, 32), false);
+        Assert.Equal("Time's up: a {0} b.", ReminderText.Announcement([R("a {0} b")], Now, Cultures.En));
+        Assert.Equal("Süre doldu: {x}.", ReminderText.Announcement([R("{x}")], Now, Cultures.Tr));
     }
 }

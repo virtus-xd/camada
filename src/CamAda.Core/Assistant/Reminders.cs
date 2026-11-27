@@ -249,22 +249,26 @@ public static partial class ReminderTime
     private static partial Regex ClockPattern();
 }
 
-/// <summary>Hatırlatmaların Türkçe metinleri: Ada'nın söylediği zaman, adadaki geri sayım ve süre dolunca söylenen cümle.</summary>
+/// <summary>Hatırlatma metinleri: işlev sonucundaki zaman (Türkçe), adadaki geri sayım ve süre dolunca söylenen cümle (arayüz dilinde).</summary>
 public static class ReminderText
 {
     private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
-    /// <summary>"14.41" (bugün), "yarın 09.00", "28 Kasım Cumartesi 09.00".</summary>
-    public static string When(DateTimeOffset at, DateTimeOffset now)
+    /// <summary>İşlev sonucunda (modele giden) Türkçe: "14.41" (bugün), "yarın 09.00", "28 Kasım Cumartesi 09.00".</summary>
+    public static string When(DateTimeOffset at, DateTimeOffset now) => When(at, now, Turkish);
+
+    /// <summary>Arayüz dilinde: Türkçe yukarıdaki gibi; İngilizce "2:41 PM", "tomorrow 9:00 AM", "Saturday, November 28, 9:00 AM".</summary>
+    public static string When(DateTimeOffset at, DateTimeOffset now, CultureInfo ui)
     {
         var local = at.ToOffset(now.Offset);
-        var clock = local.ToString("HH.mm", Turkish);
+        var clock = local.ToString(CoreText.Get(nameof(CoreStrings.Format_ReminderClock), ui), ui);
         var days = DateOnly.FromDateTime(local.DateTime).DayNumber - DateOnly.FromDateTime(now.DateTime).DayNumber;
         return days switch
         {
             0 => clock,
-            1 => "yarın " + clock,
-            _ => local.ToString("d MMMM dddd", Turkish) + " " + clock,
+            1 => CoreText.Format(ui, nameof(CoreStrings.Reminder_Tomorrow), clock),
+            _ => CoreText.Format(ui, nameof(CoreStrings.Reminder_OnDay),
+                local.ToString(CoreText.Get(nameof(CoreStrings.Format_ReminderDay), ui), ui), clock),
         };
     }
 
@@ -299,35 +303,37 @@ public static class ReminderText
     }
 
     /// <summary>
-    /// Süre dolunca söylenen cümle: "Süre doldu: makarna ve çay." Kaçırılanlar ayrı cümle, saatleriyle: "Kaçırılan hatırlatma:
-    /// toplantı, 09.00." ya da "Kaçırılan hatırlatmalar: toplantı (09.00) ve ilaç (10.00)."
+    /// Süre dolunca arayüz dilinde söylenen cümle: "Süre doldu: makarna ve çay." Kaçırılanlar ayrı cümle, saatleriyle:
+    /// "Kaçırılan hatırlatma: toplantı, 09.00." ya da "Kaçırılan hatırlatmalar: toplantı (09.00) ve ilaç (10.00)."
+    /// Hatırlatma metni hep bağımsız değişken olarak geçer (içindeki "{0}" biçim sayılmaz).
     /// </summary>
-    public static string Announcement(IReadOnlyList<Reminder> due, DateTimeOffset now)
+    public static string Announcement(IReadOnlyList<Reminder> due, DateTimeOffset now, CultureInfo ui)
     {
         var parts = new List<string>();
         var done = due.Where(r => !r.Missed).Select(r => r.Text).ToList();
         if (done.Count > 0)
         {
-            parts.Add("Süre doldu: " + Join(done) + ".");
+            parts.Add(CoreText.Format(ui, nameof(CoreStrings.Reminder_TimeUp), Join(done, ui)));
         }
 
         var missed = due.Where(r => r.Missed).ToList();
         if (missed.Count == 1)
         {
-            parts.Add($"Kaçırılan hatırlatma: {missed[0].Text}, {When(missed[0].At, now)}.");
+            parts.Add(CoreText.Format(ui, nameof(CoreStrings.Reminder_MissedOne), missed[0].Text, When(missed[0].At, now, ui)));
         }
         else if (missed.Count > 1)
         {
-            parts.Add("Kaçırılan hatırlatmalar: " + Join(missed.Select(m => $"{m.Text} ({When(m.At, now)})").ToList()) + ".");
+            parts.Add(CoreText.Format(ui, nameof(CoreStrings.Reminder_MissedMany),
+                Join(missed.Select(m => $"{m.Text} ({When(m.At, now, ui)})").ToList(), ui)));
         }
 
         return string.Join(" ", parts);
     }
 
-    private static string Join(IReadOnlyList<string> items) => items.Count switch
+    private static string Join(IReadOnlyList<string> items, CultureInfo ui) => items.Count switch
     {
         0 => "",
         1 => items[0],
-        _ => string.Join(", ", items.Take(items.Count - 1)) + " ve " + items[^1],
+        _ => string.Join(", ", items.Take(items.Count - 1)) + " " + CoreText.Get(nameof(CoreStrings.List_And), ui) + " " + items[^1],
     };
 }
