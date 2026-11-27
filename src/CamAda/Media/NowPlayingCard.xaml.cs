@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using CamAda.Core.Media;
 using MediaTimeline = CamAda.Core.Media.MediaTimeline;
+using CamAda.Core.Text;
 
 namespace CamAda.Media;
 
@@ -126,7 +127,7 @@ public sealed partial class NowPlayingCard : UserControl
 
         var playing = track.State == PlaybackState.Playing;
         PlayPauseButton.Content = playing ? PauseGlyph : PlayGlyph;
-        AutomationProperties.SetName(PlayPauseButton, playing ? "Duraklat" : "Oynat");
+        AutomationProperties.SetName(PlayPauseButton, playing ? UiStrings.Card_Pause : UiStrings.Card_Play);
 
         UpdateProgress();
         UpdateProgressTimer();
@@ -176,7 +177,7 @@ public sealed partial class NowPlayingCard : UserControl
             LikeButton.Visibility = Visibility.Visible;
             LikeButton.Content = saved ? HeartFilledGlyph : HeartGlyph;
             LikeButton.Foreground = saved ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextBrush");
-            AutomationProperties.SetName(LikeButton, saved ? "Beğenmekten vazgeç" : "Beğen");
+            AutomationProperties.SetName(LikeButton, saved ? UiStrings.Card_Unlike : UiStrings.Card_Like);
         }
         else
         {

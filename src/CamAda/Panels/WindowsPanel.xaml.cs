@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using CamAda.Core.Apps;
 using CamAda.Interop;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -61,7 +62,7 @@ public sealed partial class WindowsPanel : UserControl
         return columns * CardWidth + (columns - 1) * Gap;
     }
 
-    private void UpdateWindowCount() => WindowCount.Text = $"{_windowCount} pencere";
+    private void UpdateWindowCount() => WindowCount.Text = string.Format(Plural.Pick(_windowCount, UiStrings.Windows_Count_One, UiStrings.Windows_Count_Other), _windowCount);
 
     private Button CreateCard(RunningWindow window, Action<RunningWindow> activate, Action<RunningWindow> close)
     {
@@ -76,7 +77,7 @@ public sealed partial class WindowsPanel : UserControl
         };
 
         var closeButton = new Button { Style = (Style)FindResource("PanelCloseButton") };
-        AutomationProperties.SetName(closeButton, $"{window.Title} penceresini kapat");
+        AutomationProperties.SetName(closeButton, string.Format(UiStrings.Windows_Close, window.Title));
 
         var header = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(closeButton, Dock.Right);

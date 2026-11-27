@@ -11,7 +11,7 @@ public partial class ResourceParityTests
     public static TheoryData<string> Pairs => new()
     {
         "src/CamAda.Core/Text/CoreStrings",
-        "src/CamAda/Text/UiStrings",
+        "src/CamAda.Core/Text/UiStrings",
     };
 
     [Theory]

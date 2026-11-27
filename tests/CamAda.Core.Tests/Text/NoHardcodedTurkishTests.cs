@@ -29,8 +29,8 @@ public partial class NoHardcodedTurkishTests
 
     private static readonly string[] Pending =
     [
+        "src/CamAda.Core/Assistant/AdaText.cs",
         "src/CamAda.Core/Assistant/VoiceEnrollmentText.cs",
-        "src/CamAda/App.xaml.cs",
         "src/CamAda/Assistant/AdaAssistant.cs",
         "src/CamAda/Assistant/AdaState.cs",
         "src/CamAda/Assistant/Audio/EchoCancelledMic.cs",
@@ -40,17 +40,8 @@ public partial class NoHardcodedTurkishTests
         "src/CamAda/Assistant/NotepadWriter.cs",
         "src/CamAda/Assistant/ReminderFile.cs",
         "src/CamAda/Clips/ClipboardService.cs",
-        "src/CamAda/Input/GlobalHotkeys.cs",
-        "src/CamAda/Island/DockItemViewModel.cs",
-        "src/CamAda/Island/IslandBar.xaml",
-        "src/CamAda/Island/IslandBar.xaml.cs",
-        "src/CamAda/Island/IslandWindow.xaml",
-        "src/CamAda/Island/IslandWindow.xaml.cs",
-        "src/CamAda/Media/NowPlayingCard.xaml",
-        "src/CamAda/Media/NowPlayingCard.xaml.cs",
         "src/CamAda/Panels/AdaPanel.xaml",
         "src/CamAda/Panels/AdaPanel.xaml.cs",
-        "src/CamAda/Panels/AppIndex.cs",
         "src/CamAda/Panels/BluetoothListView.xaml",
         "src/CamAda/Panels/BluetoothListView.xaml.cs",
         "src/CamAda/Panels/CalendarPanel.xaml",
@@ -61,14 +52,8 @@ public partial class NoHardcodedTurkishTests
         "src/CamAda/Panels/QuickSettingsPanel.xaml.cs",
         "src/CamAda/Panels/SoundPanel.xaml",
         "src/CamAda/Panels/SoundPanel.xaml.cs",
-        "src/CamAda/Panels/StartPanel.xaml",
-        "src/CamAda/Panels/StartPanel.xaml.cs",
-        "src/CamAda/Panels/TrayPanel.xaml",
         "src/CamAda/Panels/WifiListView.xaml",
         "src/CamAda/Panels/WifiListView.xaml.cs",
-        "src/CamAda/Panels/WindowsPanel.xaml",
-        "src/CamAda/Record/RecordWindow.xaml",
-        "src/CamAda/Shell/StripAppBar.xaml",
         "src/CamAda/Spotify/LoopbackCallback.cs",
         "src/CamAda/Spotify/SpotifyConnectView.xaml",
         "src/CamAda/Spotify/SpotifyConnectView.xaml.cs",
@@ -87,7 +72,7 @@ public partial class NoHardcodedTurkishTests
         var files = violations.Select(v => v.File).Distinct().Order(StringComparer.Ordinal);
         var lines = violations.Select(v => $"{v.File}:{v.Line}: {v.Text}");
         Assert.True(violations.Count == 0,
-            "Kodda sabit arayüz metni. Dosyalar:\n" + string.Join("\n", files) + "\n\nSatırlar:\n" + string.Join("\n", lines.Take(80)));
+            "Kodda sabit arayüz metni. Dosyalar:\n" + string.Join("\n", files) + "\n\nSatırlar:\n" + string.Join("\n", lines.Take(400)));
     }
 
     [Fact]
@@ -247,7 +232,11 @@ public partial class NoHardcodedTurkishTests
 
     private static int LineOf(string text, int index) => text.AsSpan(0, index).Count('\n') + 1;
 
-    [GeneratedRegex("[çğıöşüÇĞİÖŞÜ]")]
+    /// <summary>
+    /// Türkçe harf ya da Türkçe harf içermeyen sık arayüz sözcüklerinden biri ("Sessiz", "Kopyala", "pencere"…). Sözcük
+    /// listesi bu kodda bulunan kaçakları kapsar; yeni bir kaçak bulunursa buraya eklenir.
+    /// </summary>
+    [GeneratedRegex(@"[çğıöşüÇĞİÖŞÜ]|\b(?:Sesli|asistan|Ses|Sessiz|mikrofon|Mikrofon|uygulama|Uygulama|daha|pencere|penceresini|dikkat|istiyor|dinliyor|Kopyala|Misafir|kipi|Duraklat|Oynat|Kilitle|Uyku|Kapat|Yeni|Ayarlar|Ayar|Dosya|Emin|misin|Geri|Pano|Saat|takvim|Pil|Bulutlu|Sisli|Ara|Hata|deyin|Tamam|Sil|Ekle|Kaydet|Anahtar|Yok|Bekle|Bilinmeyen|Kapat|Sabitle|Gizle|Bul|Aranan|ayarlar|kapat|yok|var|ile|veya|ya da)\b")]
     private static partial Regex TurkishLetter();
 
     [GeneratedRegex(@"(\$@|@\$|\$|@)?""(?:[^""\\]|\\.|"""")*""")]

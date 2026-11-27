@@ -225,7 +225,7 @@ public partial class IslandWindow : Window
     {
         CompactBatteryText.Text = text ?? "";
         CompactBattery.Visibility = text is null ? Visibility.Collapsed : Visibility.Visible;
-        AutomationProperties.SetName(CompactBattery, text is null ? "" : $"Pil düşük: {text}");
+        AutomationProperties.SetName(CompactBattery, text is null ? "" : string.Format(UiStrings.Island_LowBattery, text));
         UpdateDateText(DateTime.Now);
     }
 
@@ -317,7 +317,7 @@ public partial class IslandWindow : Window
 
         EndFlash(immediate: true);
         ShotThumb.ImageSource = thumbnail;
-        ShotCopyText.Text = "Kopyala";
+        ShotCopyText.Text = UiStrings.Island_Copy;
         _shotCopy = copy;
         _shotEdit = edit;
         _shotTimer.Stop();
@@ -411,7 +411,7 @@ public partial class IslandWindow : Window
         var copied = await copy();
         if (_shotCopy == copy) // beklerken yeni ekran görüntüsü geldiyse onun düğmesine dokunma
         {
-            ShotCopyText.Text = copied ? "Kopyalandı" : "Kopyalanamadı";
+            ShotCopyText.Text = copied ? UiStrings.Island_Copied : UiStrings.Island_CopyFailed;
         }
     }
 
@@ -470,7 +470,7 @@ public partial class IslandWindow : Window
         }
 
         AdaLine.Text = text;
-        AutomationProperties.SetName(AdaRow, (_adaGuest ? "Misafir kipi. " : "") + text);
+        AutomationProperties.SetName(AdaRow, (_adaGuest ? UiStrings.Island_GuestModePrefix : "") + text);
         AdaDot.Visibility = micOpen ? Visibility.Visible : Visibility.Collapsed;
         switch (state)
         {
@@ -887,7 +887,7 @@ public partial class IslandWindow : Window
     private bool Fits(string text)
     {
         const double sidePadding = 32, clockAndGap = 60;
-        var formatted = new FormattedText(text, CultureInfo.GetCultureInfo("tr-TR"), FlowDirection.LeftToRight,
+        var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
             new Typeface(CompactDate.FontFamily, CompactDate.FontStyle, CompactDate.FontWeight, CompactDate.FontStretch),
             CompactDate.FontSize, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip);
         return formatted.Width <= IslandLayout.Compact.Width - sidePadding - clockAndGap - IndicatorsWidth();

@@ -1,3 +1,5 @@
+using System.Globalization;
+using CamAda.Core.Text;
 namespace CamAda.Core.Apps;
 
 /// <summary>
@@ -16,7 +18,8 @@ public static class PinnedAppDefaults
     public static IReadOnlyList<PinnedApp> Resolve(
         Func<string, string> expandEnvironment,
         Func<string, bool> fileExists,
-        string? steamExeFromRegistry)
+        string? steamExeFromRegistry,
+        CultureInfo ui)
     {
         var apps = new List<PinnedApp>();
 
@@ -29,7 +32,7 @@ public static class PinnedAppDefaults
         var explorer = expandEnvironment(@"%WINDIR%\explorer.exe");
         if (fileExists(explorer))
         {
-            apps.Add(new PinnedApp("explorer", "Dosya Gezgini", explorer, "", "explorer.exe"));
+            apps.Add(new PinnedApp("explorer", CoreText.Get(nameof(CoreStrings.PinnedApp_FileExplorer), ui), explorer, "", "explorer.exe"));
         }
 
         var steam = steamExeFromRegistry is not null && fileExists(steamExeFromRegistry)

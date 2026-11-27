@@ -10,6 +10,7 @@ using CamAda.Core.Media;
 using CamAda.Core.Network;
 using CamAda.Core.Power;
 using CamAda.QuickSettings;
+using CamAda.Core.Text;
 
 namespace CamAda.Island;
 
@@ -63,7 +64,7 @@ public partial class IslandBar : UserControl
     {
         SoundGlyph.Text = SpeakerGlyph.For(level);
         MicOffBadge.Visibility = micMuted ? Visibility.Visible : Visibility.Collapsed;
-        AutomationProperties.SetName(SoundButton, micMuted ? "Ses ve mikrofon: mikrofon kapalı" : "Ses ve mikrofon");
+        AutomationProperties.SetName(SoundButton, micMuted ? UiStrings.Bar_SoundMicOff : UiStrings.Bar_Sound);
     }
 
     /// <summary>Müzik bölümünü günceller: parça varsa dönen mini plak ve şarkı adı, yoksa soluk nota ve "Spotify".</summary>
@@ -76,8 +77,8 @@ public partial class IslandBar : UserControl
         MusicTitle.Foreground = (Brush)FindResource(hasTrack ? "TextBrush" : "TextSecondaryBrush");
         MusicRecord.Show(cover, track?.State == PlaybackState.Playing);
         AutomationProperties.SetName(MusicButton, track is null
-            ? "Müzik: çalmıyor"
-            : string.IsNullOrWhiteSpace(track.Artist) ? $"Müzik: {track.Title}" : $"Müzik: {track.Title}, {track.Artist}");
+            ? UiStrings.Bar_MusicIdle
+            : string.IsNullOrWhiteSpace(track.Artist) ? string.Format(UiStrings.Bar_Music, track.Title) : string.Format(UiStrings.Bar_MusicArtist, track.Title, track.Artist));
     }
 
     /// <summary>Müzik bölümündeki mini plak yalnız genişlemiş ada ekrandayken döner.</summary>
@@ -125,7 +126,7 @@ public partial class IslandBar : UserControl
             AssistantGlyph.ClearValue(System.Windows.Controls.TextBlock.ForegroundProperty);
         }
 
-        System.Windows.Automation.AutomationProperties.SetName(AssistantButton, active ? "Ada, sesli asistan: dinliyor" : "Ada, sesli asistan");
+        System.Windows.Automation.AutomationProperties.SetName(AssistantButton, active ? UiStrings.Bar_AdaListening : UiStrings.Bar_Ada);
     }
 
     private void WifiButton_Click(object sender, RoutedEventArgs e) => WifiClicked?.Invoke(this, EventArgs.Empty);

@@ -36,6 +36,7 @@
   <data name="Network_Wifi" xml:space="preserve"><value>Wi‑Fi: {0}, {1}</value></data>
   <data name="Network_WifiNotConnected" xml:space="preserve"><value>Wi‑Fi: bağlı değil</value></data>
   <data name="Network_WifiOff" xml:space="preserve"><value>Wi‑Fi kapalı</value></data>
+  <data name="PinnedApp_FileExplorer" xml:space="preserve"><value>Dosya Gezgini</value></data>
   <data name="Screenshot_FileName" xml:space="preserve"><value>Ekran görüntüsü {0}.png</value></data>
   <data name="Search_Web" xml:space="preserve"><value>Web'de ara: “{0}”</value></data>
   <data name="SettingsPage_Apps" xml:space="preserve"><value>Uygulamalar</value></data>

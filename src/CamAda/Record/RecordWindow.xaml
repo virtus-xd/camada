@@ -1,9 +1,10 @@
 <Window x:Class="CamAda.Record.RecordWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core"
         xmlns:local="clr-namespace:CamAda.Record"
         xmlns:glass="clr-namespace:CamAda.Glass"
-        Title="CamAda plak"
+        Title="{x:Static t:UiStrings.Window_Record}"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -19,7 +20,7 @@
         <!-- Plaktan karta geçerken fare olayları kesilmesin diye neredeyse saydam köprü -->
         <Rectangle x:Name="CardBridge" Fill="#01000000" Visibility="Hidden" />
         <local:RecordDisc x:Name="Disc" Focusable="True" Cursor="Hand" FocusVisualStyle="{x:Null}"
-                          AutomationProperties.Name="Plak" AutomationProperties.HelpText="Çal ya da duraklat">
+                          AutomationProperties.Name="{x:Static t:UiStrings.Record_Name}" AutomationProperties.HelpText="{x:Static t:UiStrings.Record_Help}">
             <!-- Gerçekçi plak: hâle, gölge, dönen disk + etiket, dönmeyen yansıma ve parlama -->
             <local:RecordVisual x:Name="Visual" />
             <!-- Klavye odağı halkası -->

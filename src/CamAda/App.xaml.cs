@@ -341,7 +341,7 @@ public partial class App : Application
     private async Task<AssistantError> ValidateGeminiKeyAsync(string key)
     {
         var assistant = _settings.Assistant;
-        var setup = LiveSetup.Build(new LiveSetupOptions(assistant.Model, assistant.Voice, "Anahtar denetimi.", AdaTools.Declarations()));
+        var setup = LiveSetup.Build(new LiveSetupOptions(assistant.Model, assistant.Voice, "Anahtar denetimi.", AdaTools.Declarations())); // i18n-ignore: modele gider (Ada 2. adım)
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
         try
         {
@@ -382,7 +382,7 @@ public partial class App : Application
         });
         if (!_adaHotkeyRegistered)
         {
-            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent("", null, $"{text} kullanılamıyor")),
+            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent("", null, string.Format(UiStrings.Flash_Unavailable, text))),
                 DispatcherPriority.ApplicationIdle);
         }
     }
@@ -479,7 +479,7 @@ public partial class App : Application
         }
 
         var left = next.At - now;
-        _island?.ShowTimer(countdown, $"Zamanlayıcı: {next.Text}, {(int)left.TotalMinutes} dakika {left.Seconds} saniye");
+        _island?.ShowTimer(countdown, string.Format(UiStrings.Timer_A11y, next.Text, (int)left.TotalMinutes, left.Seconds));
     }
 
     private void OnPowerModeForAda(object? sender, Microsoft.Win32.PowerModeChangedEventArgs e) => Dispatcher.BeginInvoke(async () =>
@@ -515,7 +515,7 @@ public partial class App : Application
     {
         if (!TryStartAudio())
         {
-            _island?.Flash(new FlashContent(SpeakerGlyph.For(SpeakerLevel.Muted), null, "Ses hizmetine ulaşılamadı"));
+            _island?.Flash(new FlashContent(SpeakerGlyph.For(SpeakerLevel.Muted), null, UiStrings.Flash_AudioServiceUnavailable));
             return;
         }
 
@@ -552,7 +552,7 @@ public partial class App : Application
                 _island?.Flash(new FlashContent(
                     SpeakerGlyph.For(SpeakerLevels.For(change.Volume, change.Muted)),
                     change.Volume,
-                    change.Muted ? "Sessiz" : $"%{SpeakerLevels.Percent(change.Volume)}"));
+                    change.Muted ? UiStrings.Flash_Muted : Formats.Percent(SpeakerLevels.Percent(change.Volume), System.Globalization.CultureInfo.CurrentUICulture)));
             }
         };
         audio.DevicesChanged += (_, _) => UpdateSoundButton();
@@ -618,7 +618,7 @@ public partial class App : Application
             {
                 if (!change.FromCamAda) // CamAda'nın kaydırıcısıyla değişince panel zaten gösteriyor
                 {
-                    _island?.Flash(new FlashContent(QuickGlyphs.Brightness, change.Level / 100.0, $"%{change.Level}"));
+                    _island?.Flash(new FlashContent(QuickGlyphs.Brightness, change.Level / 100.0, Formats.Percent(change.Level, System.Globalization.CultureInfo.CurrentUICulture)));
                 }
             };
         }
@@ -802,7 +802,7 @@ public partial class App : Application
 
         if (!_hotkeys.Register(hotkey, OnClipboardHotkey))
         {
-            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent("\uE77F", null, $"{text} kullanılamıyor")),
+            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent("\uE77F", null, string.Format(UiStrings.Flash_Unavailable, text))),
                 DispatcherPriority.ApplicationIdle);
         }
     }
@@ -859,7 +859,7 @@ public partial class App : Application
         _island?.Panels.Close();
         if (!copied)
         {
-            _island?.Flash(new FlashContent("\uE8C8", null, "Kopyalanamadı — pano meşgul"));
+            _island?.Flash(new FlashContent("\uE8C8", null, UiStrings.Flash_CopyFailedBusy));
             return;
         }
 
@@ -869,7 +869,7 @@ public partial class App : Application
             return;
         }
 
-        _island?.Flash(new FlashContent("\uE8C8", null, "Kopyalandı — Ctrl+V ile yapıştır"));
+        _island?.Flash(new FlashContent("\uE8C8", null, UiStrings.Flash_CopiedPaste));
     }
 
     /// <summary>
@@ -889,15 +889,15 @@ public partial class App : Application
             audio.ToggleMic();
             _island?.Flash(audio.Mic switch
             {
-                MicState.Off => new FlashContent(SpeakerGlyph.MicOff, null, "Mikrofon kapalı"),
-                MicState.On => new FlashContent(SpeakerGlyph.MicOn, null, "Mikrofon açık"),
-                _ => new FlashContent(SpeakerGlyph.MicOff, null, "Mikrofon bulunamadı"),
+                MicState.Off => new FlashContent(SpeakerGlyph.MicOff, null, UiStrings.Mic_Off),
+                MicState.On => new FlashContent(SpeakerGlyph.MicOn, null, UiStrings.Mic_On),
+                _ => new FlashContent(SpeakerGlyph.MicOff, null, UiStrings.Mic_NotFound),
             });
         });
 
         if (!registered)
         {
-            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent(SpeakerGlyph.MicOn, null, $"{text} kullanılamıyor")),
+            _ = Dispatcher.BeginInvoke(() => _island?.Flash(new FlashContent(SpeakerGlyph.MicOn, null, string.Format(UiStrings.Flash_Unavailable, text))),
                 DispatcherPriority.ApplicationIdle);
         }
     }
@@ -996,7 +996,7 @@ public partial class App : Application
             }
         }
 
-        var pinned = PinnedAppDefaults.Resolve(Environment.ExpandEnvironmentVariables, File.Exists, steamExe);
+        var pinned = PinnedAppDefaults.Resolve(Environment.ExpandEnvironmentVariables, File.Exists, steamExe, System.Globalization.CultureInfo.CurrentUICulture);
         _settings = _settings with { PinnedApps = pinned };
         _settingsStore.Save(_settings);
     }

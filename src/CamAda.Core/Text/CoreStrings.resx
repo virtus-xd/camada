@@ -36,6 +36,7 @@
   <data name="Network_Wifi" xml:space="preserve"><value>Wi‑Fi: {0}, {1}</value></data>
   <data name="Network_WifiNotConnected" xml:space="preserve"><value>Wi‑Fi: not connected</value></data>
   <data name="Network_WifiOff" xml:space="preserve"><value>Wi‑Fi off</value></data>
+  <data name="PinnedApp_FileExplorer" xml:space="preserve"><value>File Explorer</value></data>
   <data name="Screenshot_FileName" xml:space="preserve"><value>Screenshot {0}.png</value></data>
   <data name="Search_Web" xml:space="preserve"><value>Search the web: “{0}”</value></data>
   <data name="SettingsPage_Apps" xml:space="preserve"><value>Apps</value></data>

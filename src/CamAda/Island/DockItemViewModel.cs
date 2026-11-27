@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using CamAda.Core.Apps;
+using CamAda.Core.Text;
 
 namespace CamAda.Island;
 
@@ -62,23 +63,23 @@ public sealed class DockItemViewModel
         {
             if (IsOverflow)
             {
-                return $"{Overflow!.Count} uygulama daha";
+                return string.Format(Plural.Pick(Overflow!.Count, UiStrings.Dock_MoreApps_One, UiStrings.Dock_MoreApps_Other), Overflow!.Count);
             }
 
             var name = Entry!.Pinned?.Name ?? Entry.Windows[0].Title;
             var parts = new List<string> { name };
             if (Entry.Windows.Count >= 2)
             {
-                parts.Add($"{Entry.Windows.Count} pencere");
+                parts.Add(string.Format(UiStrings.Dock_Windows, Entry.Windows.Count));
             }
             else if (Entry.IsRunning)
             {
-                parts.Add("açık");
+                parts.Add(UiStrings.Dock_Open);
             }
 
             if (Entry.NeedsAttention)
             {
-                parts.Add("dikkat istiyor");
+                parts.Add(UiStrings.Dock_NeedsAttention);
             }
 
             return string.Join(", ", parts);

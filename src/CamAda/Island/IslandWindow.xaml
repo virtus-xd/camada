@@ -1,10 +1,11 @@
 ﻿<Window x:Class="CamAda.Island.IslandWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core"
         xmlns:local="clr-namespace:CamAda.Island"
         xmlns:media="clr-namespace:CamAda.Media"
         xmlns:glass="clr-namespace:CamAda.Glass"
-        Title="CamAda ada"
+        Title="{x:Static t:UiStrings.Window_Island}"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -41,24 +42,24 @@
                 CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource HalfHeight}}">
             <Border.ContextMenu>
                 <ContextMenu>
-                    <MenuItem x:Name="HideTaskbarItem" Header="Görev çubuğunu gizle" IsCheckable="True"
+                    <MenuItem x:Name="HideTaskbarItem" Header="{x:Static t:UiStrings.Menu_HideTaskbar}" IsCheckable="True"
                               Click="HideTaskbarItem_Click" />
-                    <MenuItem x:Name="StartWithWindowsItem" Header="Windows açılınca başlat" IsCheckable="True"
+                    <MenuItem x:Name="StartWithWindowsItem" Header="{x:Static t:UiStrings.Menu_StartWithWindows}" IsCheckable="True"
                               Click="StartWithWindowsItem_Click" />
-                    <MenuItem x:Name="HideRecordItem" Header="Plağı gizle" IsCheckable="True"
+                    <MenuItem x:Name="HideRecordItem" Header="{x:Static t:UiStrings.Menu_HideRecord}" IsCheckable="True"
                               Click="HideRecordItem_Click" />
-                    <MenuItem x:Name="AssistantItem" Header="Sesli asistan" IsCheckable="True"
+                    <MenuItem x:Name="AssistantItem" Header="{x:Static t:UiStrings.Menu_Assistant}" IsCheckable="True"
                               Click="AssistantItem_Click" />
-                    <MenuItem Header="Ada ayarları…" Click="AssistantSettingsItem_Click" />
-                    <MenuItem Header="Cam görünümü">
-                        <MenuItem x:Name="GlassWallpaperItem" Header="Duvar kağıdı" Click="GlassItem_Click" Tag="Wallpaper" />
+                    <MenuItem Header="{x:Static t:UiStrings.Menu_AdaSettings}" Click="AssistantSettingsItem_Click" />
+                    <MenuItem Header="{x:Static t:UiStrings.Menu_Glass}">
+                        <MenuItem x:Name="GlassWallpaperItem" Header="{x:Static t:UiStrings.Menu_GlassWallpaper}" Click="GlassItem_Click" Tag="Wallpaper" />
                         <!-- Akrilik, WPF katmanlı penceresinde hap şekline kırpılamadığı için gizli (spec §9) -->
-                        <MenuItem x:Name="GlassAcrylicItem" Header="Akrilik" Click="GlassItem_Click" Tag="Acrylic" Visibility="Collapsed" />
-                        <MenuItem x:Name="GlassSolidItem" Header="Düz" Click="GlassItem_Click" Tag="Solid" />
+                        <MenuItem x:Name="GlassAcrylicItem" Header="{x:Static t:UiStrings.Menu_GlassAcrylic}" Click="GlassItem_Click" Tag="Acrylic" Visibility="Collapsed" />
+                        <MenuItem x:Name="GlassSolidItem" Header="{x:Static t:UiStrings.Menu_GlassSolid}" Click="GlassItem_Click" Tag="Solid" />
                     </MenuItem>
                     <!-- Başlık ve seçenekler koddan (LanguageMenu); başlık her dilde "Dil / Language" -->
                     <MenuItem x:Name="LanguageItem" />
-                    <MenuItem Header="Çıkış" Click="ExitItem_Click" />
+                    <MenuItem Header="{x:Static t:UiStrings.Menu_Exit}" Click="ExitItem_Click" />
                 </ContextMenu>
             </Border.ContextMenu>
 
@@ -97,12 +98,12 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Ada oturumdayken mikrofonun açık olduğunu gösteren kırmızımsı nokta (Plan 5, gizlilik) -->
                         <Ellipse x:Name="CompactAdaDot" Width="8" Height="8" Fill="{StaticResource AdaDotBrush}" Margin="0,0,10,0"
-                                 VerticalAlignment="Center" Visibility="Collapsed" AutomationProperties.Name="Ada dinliyor" />
+                                 VerticalAlignment="Center" Visibility="Collapsed" AutomationProperties.Name="{x:Static t:UiStrings.Island_AdaListening}" />
                         <!-- Mikrofon kapalıyken kırmızımsı işaret (spec §7.1) -->
                         <TextBlock x:Name="CompactMicOff" Text="&#xEC54;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                    FontSize="13" Foreground="{StaticResource WarningBrush}" Margin="0,0,10,0"
                                    VerticalAlignment="Center" Visibility="Collapsed"
-                                   AutomationProperties.Name="Mikrofon kapalı" />
+                                   AutomationProperties.Name="{x:Static t:UiStrings.Mic_Off}" />
                         <!-- Düşük pil (Plan 4.3): yalnız ≤ %20 ve şarjda değilken -->
                         <StackPanel x:Name="CompactBattery" Orientation="Horizontal" Margin="0,0,10,0"
                                     VerticalAlignment="Center" Visibility="Collapsed">
@@ -152,22 +153,22 @@
                             <ImageBrush x:Name="ShotThumb" Stretch="UniformToFill" />
                         </Border.Background>
                     </Border>
-                    <TextBlock Grid.Column="1" Text="Ekran görüntüsü" Margin="12,0,8,0" FontSize="12.5" FontWeight="Bold"
+                    <TextBlock Grid.Column="1" Text="{x:Static t:UiStrings.Island_Screenshot}" Margin="12,0,8,0" FontSize="12.5" FontWeight="Bold"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     <Button x:Name="ShotCopyButton" Grid.Column="2" Style="{StaticResource PanelButton}" Padding="10,5"
-                            Margin="0,0,6,0" Click="ShotCopy_Click" AutomationProperties.Name="Kopyala">
+                            Margin="0,0,6,0" Click="ShotCopy_Click" AutomationProperties.Name="{x:Static t:UiStrings.Island_Copy}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
                                        VerticalAlignment="Center" />
-                            <TextBlock x:Name="ShotCopyText" Text="Kopyala" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="ShotCopyText" Text="{x:Static t:UiStrings.Island_Copy}" Margin="6,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                     <Button Grid.Column="3" Style="{StaticResource PanelButton}" Padding="10,5" Click="ShotEdit_Click"
-                            AutomationProperties.Name="Düzenle">
+                            AutomationProperties.Name="{x:Static t:UiStrings.Island_Edit}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
                                        VerticalAlignment="Center" />
-                            <TextBlock Text="Düzenle" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static t:UiStrings.Island_Edit}" Margin="6,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -175,7 +176,7 @@
                 <!-- Ada'nın oturum satırı (Plan 5): nokta (dinlerken nabız atar), ✦ ya da ⚠ ve tek satır metin. Tıklayınca
                      oturum biter; ada bu sırada fareyle genişlemez. -->
                 <Grid x:Name="AdaRow" Margin="18,0" Opacity="0" Visibility="Collapsed" VerticalAlignment="Center"
-                      Background="Transparent" Cursor="Hand" ToolTip="Ada'yı sustur ve oturumu bitir"
+                      Background="Transparent" Cursor="Hand" ToolTip="{x:Static t:UiStrings.Island_StopAda}"
                       MouseLeftButtonUp="AdaRow_MouseLeftButtonUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />

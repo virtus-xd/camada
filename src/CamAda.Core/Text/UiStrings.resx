@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Bar_Ada" xml:space="preserve"><value>Ada, voice assistant</value></data>
+  <data name="Bar_AdaListening" xml:space="preserve"><value>Ada, voice assistant: listening</value></data>
+  <data name="Bar_Battery" xml:space="preserve"><value>Battery</value></data>
+  <data name="Bar_Clipboard" xml:space="preserve"><value>Clipboard</value></data>
+  <data name="Bar_Clock" xml:space="preserve"><value>Clock and calendar</value></data>
+  <data name="Bar_Music" xml:space="preserve"><value>Music: {0}</value></data>
+  <data name="Bar_MusicArtist" xml:space="preserve"><value>Music: {0}, {1}</value></data>
+  <data name="Bar_MusicIdle" xml:space="preserve"><value>Music: not playing</value></data>
+  <data name="Bar_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Bar_Sound" xml:space="preserve"><value>Sound and microphone</value></data>
+  <data name="Bar_SoundMicOff" xml:space="preserve"><value>Sound and microphone: microphone off</value></data>
+  <data name="Bar_Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Bar_Tray" xml:space="preserve"><value>Apps running in the background</value></data>
+  <data name="Card_Like" xml:space="preserve"><value>Like</value></data>
+  <data name="Card_Next" xml:space="preserve"><value>Next track</value></data>
+  <data name="Card_NothingPlaying" xml:space="preserve"><value>Nothing is playing</value></data>
+  <data name="Card_OpenSpotify" xml:space="preserve"><value>Open Spotify</value></data>
+  <data name="Card_Pause" xml:space="preserve"><value>Pause</value></data>
+  <data name="Card_Play" xml:space="preserve"><value>Play</value></data>
+  <data name="Card_Previous" xml:space="preserve"><value>Previous track</value></data>
+  <data name="Card_Unlike" xml:space="preserve"><value>Remove from Liked Songs</value></data>
+  <data name="Card_UpNext" xml:space="preserve"><value>Up next</value></data>
+  <data name="Dock_MoreApps_One" xml:space="preserve"><value>{0} more app</value></data>
+  <data name="Dock_MoreApps_Other" xml:space="preserve"><value>{0} more apps</value></data>
+  <data name="Dock_NeedsAttention" xml:space="preserve"><value>needs attention</value></data>
+  <data name="Dock_Open" xml:space="preserve"><value>open</value></data>
+  <data name="Dock_Windows" xml:space="preserve"><value>{0} windows</value></data>
+  <data name="Flash_AudioServiceUnavailable" xml:space="preserve"><value>Couldn't reach the audio service</value></data>
+  <data name="Flash_CopiedPaste" xml:space="preserve"><value>Copied — press Ctrl+V to paste</value></data>
+  <data name="Flash_CopyFailedBusy" xml:space="preserve"><value>Couldn't copy — clipboard busy</value></data>
+  <data name="Flash_Muted" xml:space="preserve"><value>Muted</value></data>
+  <data name="Flash_Unavailable" xml:space="preserve"><value>{0} unavailable</value></data>
+  <data name="Island_AdaListening" xml:space="preserve"><value>Ada is listening</value></data>
+  <data name="Island_Copied" xml:space="preserve"><value>Copied</value></data>
+  <data name="Island_Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Island_CopyFailed" xml:space="preserve"><value>Couldn't copy</value></data>
+  <data name="Island_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Island_GuestModePrefix" xml:space="preserve"><value>Guest mode. </value></data>
+  <data name="Island_LowBattery" xml:space="preserve"><value>Battery low: {0}</value></data>
+  <data name="Island_Screenshot" xml:space="preserve"><value>Screenshot</value></data>
+  <data name="Island_StopAda" xml:space="preserve"><value>Mute Ada and end the session</value></data>
+  <data name="Menu_AdaSettings" xml:space="preserve"><value>Ada settings…</value></data>
+  <data name="Menu_Assistant" xml:space="preserve"><value>Voice assistant</value></data>
+  <data name="Menu_Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Menu_Glass" xml:space="preserve"><value>Glass style</value></data>
+  <data name="Menu_GlassAcrylic" xml:space="preserve"><value>Acrylic</value></data>
+  <data name="Menu_GlassSolid" xml:space="preserve"><value>Solid</value></data>
+  <data name="Menu_GlassWallpaper" xml:space="preserve"><value>Wallpaper</value></data>
+  <data name="Menu_HideRecord" xml:space="preserve"><value>Hide record player</value></data>
+  <data name="Menu_HideTaskbar" xml:space="preserve"><value>Hide taskbar</value></data>
+  <data name="Menu_StartWithWindows" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="Mic_NotFound" xml:space="preserve"><value>No microphone found</value></data>
+  <data name="Mic_Off" xml:space="preserve"><value>Microphone off</value></data>
+  <data name="Mic_On" xml:space="preserve"><value>Microphone on</value></data>
+  <data name="Record_Help" xml:space="preserve"><value>Play or pause</value></data>
+  <data name="Record_Name" xml:space="preserve"><value>Record player</value></data>
+  <data name="Start_AllApps" xml:space="preserve"><value>All apps</value></data>
+  <data name="Start_AreYouSure" xml:space="preserve"><value>Are you sure?</value></data>
+  <data name="Start_Back" xml:space="preserve"><value>← Back</value></data>
+  <data name="Start_KindApp" xml:space="preserve"><value>App</value></data>
+  <data name="Start_KindFile" xml:space="preserve"><value>File</value></data>
+  <data name="Start_KindSetting" xml:space="preserve"><value>Setting</value></data>
+  <data name="Start_KindWeb" xml:space="preserve"><value>Web</value></data>
+  <data name="Start_Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Start_Pinned" xml:space="preserve"><value>Pinned</value></data>
+  <data name="Start_Recent" xml:space="preserve"><value>Recent</value></data>
+  <data name="Start_Restart" xml:space="preserve"><value>Restart</value></data>
+  <data name="Start_SearchPlaceholder" xml:space="preserve"><value>Search apps, settings or files</value></data>
+  <data name="Start_Shutdown" xml:space="preserve"><value>Shut down</value></data>
+  <data name="Start_Sleep" xml:space="preserve"><value>Sleep</value></data>
+  <data name="Timer_A11y" xml:space="preserve"><value>Timer: {0}, {1} min {2} s</value></data>
+  <data name="Tray_Empty" xml:space="preserve"><value>No apps are running in the background.</value></data>
+  <data name="Tray_Hint" xml:space="preserve"><value>Left-click opens the app; right-click shows the app's own menu.</value></data>
+  <data name="Tray_Title" xml:space="preserve"><value>Running in the background</value></data>
+  <data name="Window_Island" xml:space="preserve"><value>CamAda island</value></data>
+  <data name="Window_Record" xml:space="preserve"><value>CamAda record player</value></data>
+  <data name="Window_Strip" xml:space="preserve"><value>CamAda strip</value></data>
+  <data name="Windows_Close" xml:space="preserve"><value>Close {0}</value></data>
+  <data name="Windows_Count_One" xml:space="preserve"><value>{0} window</value></data>
+  <data name="Windows_Count_Other" xml:space="preserve"><value>{0} windows</value></data>
+  <data name="Windows_NewWindow" xml:space="preserve"><value>New window</value></data>
+</root>

@@ -1,11 +1,12 @@
 <UserControl x:Class="CamAda.Panels.WindowsPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core">
     <StackPanel>
         <!-- Başlık: uygulama adı, pencere sayısı ve "Yeni pencere" -->
         <DockPanel Margin="4,0,0,12" LastChildFill="True">
             <Button x:Name="NewWindowButton" DockPanel.Dock="Right" Style="{StaticResource PanelButton}"
-                    Content="Yeni pencere" Click="NewWindowButton_Click" />
+                    Content="{x:Static t:UiStrings.Windows_NewWindow}" Click="NewWindowButton_Click" />
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock x:Name="AppName" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="WindowCount" Margin="10,0,0,1" FontSize="12.5" VerticalAlignment="Bottom"

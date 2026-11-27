@@ -19,7 +19,7 @@ public sealed class AppIndex
     private static readonly TimeSpan RefreshAfter = TimeSpan.FromMinutes(10);
 
     /// <summary>Kaldırıcı, yardım ve belge kısayolları uygulama listesini kirletmesin.</summary>
-    private static readonly string[] ExcludedWords = ["Uninstall", "Kaldır", "Help", "Yardım", "Readme"];
+    private static readonly string[] ExcludedWords = ["Uninstall", "Kaldır", "Help", "Yardım", "Readme"]; // i18n-ignore: eşleştirme sözcükleri (iki dilde)
 
     private static readonly string RecentFolder =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Microsoft\Windows\Recent");

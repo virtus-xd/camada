@@ -18,7 +18,7 @@ public sealed class GlobalHotkeys : IDisposable
 
     public GlobalHotkeys()
     {
-        _source = new HwndSource(new HwndSourceParameters("CamAda kısayollar") { ParentWindow = HwndMessage, WindowStyle = 0 });
+        _source = new HwndSource(new HwndSourceParameters("CamAda hotkeys") { ParentWindow = HwndMessage, WindowStyle = 0 });
         _source.AddHook(Hook);
     }
 

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Bar_Ada" xml:space="preserve"><value>Ada, sesli asistan</value></data>
+  <data name="Bar_AdaListening" xml:space="preserve"><value>Ada, sesli asistan: dinliyor</value></data>
+  <data name="Bar_Battery" xml:space="preserve"><value>Pil</value></data>
+  <data name="Bar_Clipboard" xml:space="preserve"><value>Pano</value></data>
+  <data name="Bar_Clock" xml:space="preserve"><value>Saat ve takvim</value></data>
+  <data name="Bar_Music" xml:space="preserve"><value>Müzik: {0}</value></data>
+  <data name="Bar_MusicArtist" xml:space="preserve"><value>Müzik: {0}, {1}</value></data>
+  <data name="Bar_MusicIdle" xml:space="preserve"><value>Müzik: çalmıyor</value></data>
+  <data name="Bar_Search" xml:space="preserve"><value>Ara</value></data>
+  <data name="Bar_Sound" xml:space="preserve"><value>Ses ve mikrofon</value></data>
+  <data name="Bar_SoundMicOff" xml:space="preserve"><value>Ses ve mikrofon: mikrofon kapalı</value></data>
+  <data name="Bar_Start" xml:space="preserve"><value>Başlat</value></data>
+  <data name="Bar_Tray" xml:space="preserve"><value>Arka planda çalışan uygulamalar</value></data>
+  <data name="Card_Like" xml:space="preserve"><value>Beğen</value></data>
+  <data name="Card_Next" xml:space="preserve"><value>Sonraki şarkı</value></data>
+  <data name="Card_NothingPlaying" xml:space="preserve"><value>Şu an bir şey çalmıyor</value></data>
+  <data name="Card_OpenSpotify" xml:space="preserve"><value>Spotify'ı aç</value></data>
+  <data name="Card_Pause" xml:space="preserve"><value>Duraklat</value></data>
+  <data name="Card_Play" xml:space="preserve"><value>Oynat</value></data>
+  <data name="Card_Previous" xml:space="preserve"><value>Önceki şarkı</value></data>
+  <data name="Card_Unlike" xml:space="preserve"><value>Beğenmekten vazgeç</value></data>
+  <data name="Card_UpNext" xml:space="preserve"><value>Sıradaki</value></data>
+  <data name="Dock_MoreApps_One" xml:space="preserve"><value>{0} uygulama daha</value></data>
+  <data name="Dock_MoreApps_Other" xml:space="preserve"><value>{0} uygulama daha</value></data>
+  <data name="Dock_NeedsAttention" xml:space="preserve"><value>dikkat istiyor</value></data>
+  <data name="Dock_Open" xml:space="preserve"><value>açık</value></data>
+  <data name="Dock_Windows" xml:space="preserve"><value>{0} pencere</value></data>
+  <data name="Flash_AudioServiceUnavailable" xml:space="preserve"><value>Ses hizmetine ulaşılamadı</value></data>
+  <data name="Flash_CopiedPaste" xml:space="preserve"><value>Kopyalandı — Ctrl+V ile yapıştır</value></data>
+  <data name="Flash_CopyFailedBusy" xml:space="preserve"><value>Kopyalanamadı — pano meşgul</value></data>
+  <data name="Flash_Muted" xml:space="preserve"><value>Sessiz</value></data>
+  <data name="Flash_Unavailable" xml:space="preserve"><value>{0} kullanılamıyor</value></data>
+  <data name="Island_AdaListening" xml:space="preserve"><value>Ada dinliyor</value></data>
+  <data name="Island_Copied" xml:space="preserve"><value>Kopyalandı</value></data>
+  <data name="Island_Copy" xml:space="preserve"><value>Kopyala</value></data>
+  <data name="Island_CopyFailed" xml:space="preserve"><value>Kopyalanamadı</value></data>
+  <data name="Island_Edit" xml:space="preserve"><value>Düzenle</value></data>
+  <data name="Island_GuestModePrefix" xml:space="preserve"><value>Misafir kipi. </value></data>
+  <data name="Island_LowBattery" xml:space="preserve"><value>Pil düşük: {0}</value></data>
+  <data name="Island_Screenshot" xml:space="preserve"><value>Ekran görüntüsü</value></data>
+  <data name="Island_StopAda" xml:space="preserve"><value>Ada'yı sustur ve oturumu bitir</value></data>
+  <data name="Menu_AdaSettings" xml:space="preserve"><value>Ada ayarları…</value></data>
+  <data name="Menu_Assistant" xml:space="preserve"><value>Sesli asistan</value></data>
+  <data name="Menu_Exit" xml:space="preserve"><value>Çıkış</value></data>
+  <data name="Menu_Glass" xml:space="preserve"><value>Cam görünümü</value></data>
+  <data name="Menu_GlassAcrylic" xml:space="preserve"><value>Akrilik</value></data>
+  <data name="Menu_GlassSolid" xml:space="preserve"><value>Düz</value></data>
+  <data name="Menu_GlassWallpaper" xml:space="preserve"><value>Duvar kağıdı</value></data>
+  <data name="Menu_HideRecord" xml:space="preserve"><value>Plağı gizle</value></data>
+  <data name="Menu_HideTaskbar" xml:space="preserve"><value>Görev çubuğunu gizle</value></data>
+  <data name="Menu_StartWithWindows" xml:space="preserve"><value>Windows açılınca başlat</value></data>
+  <data name="Mic_NotFound" xml:space="preserve"><value>Mikrofon bulunamadı</value></data>
+  <data name="Mic_Off" xml:space="preserve"><value>Mikrofon kapalı</value></data>
+  <data name="Mic_On" xml:space="preserve"><value>Mikrofon açık</value></data>
+  <data name="Record_Help" xml:space="preserve"><value>Çal ya da duraklat</value></data>
+  <data name="Record_Name" xml:space="preserve"><value>Plak</value></data>
+  <data name="Start_AllApps" xml:space="preserve"><value>Tüm uygulamalar</value></data>
+  <data name="Start_AreYouSure" xml:space="preserve"><value>Emin misin?</value></data>
+  <data name="Start_Back" xml:space="preserve"><value>← Geri</value></data>
+  <data name="Start_KindApp" xml:space="preserve"><value>Uygulama</value></data>
+  <data name="Start_KindFile" xml:space="preserve"><value>Dosya</value></data>
+  <data name="Start_KindSetting" xml:space="preserve"><value>Ayar</value></data>
+  <data name="Start_KindWeb" xml:space="preserve"><value>Web</value></data>
+  <data name="Start_Lock" xml:space="preserve"><value>Kilitle</value></data>
+  <data name="Start_Pinned" xml:space="preserve"><value>Sabitlenmiş</value></data>
+  <data name="Start_Recent" xml:space="preserve"><value>Son açılanlar</value></data>
+  <data name="Start_Restart" xml:space="preserve"><value>Yeniden başlat</value></data>
+  <data name="Start_SearchPlaceholder" xml:space="preserve"><value>Uygulama, ayar ya da dosya ara</value></data>
+  <data name="Start_Shutdown" xml:space="preserve"><value>Kapat</value></data>
+  <data name="Start_Sleep" xml:space="preserve"><value>Uyku</value></data>
+  <data name="Timer_A11y" xml:space="preserve"><value>Zamanlayıcı: {0}, {1} dakika {2} saniye</value></data>
+  <data name="Tray_Empty" xml:space="preserve"><value>Arka planda çalışan uygulama yok.</value></data>
+  <data name="Tray_Hint" xml:space="preserve"><value>Sol tık uygulamayı açar, sağ tık uygulamanın kendi menüsünü gösterir.</value></data>
+  <data name="Tray_Title" xml:space="preserve"><value>Arka planda çalışanlar</value></data>
+  <data name="Window_Island" xml:space="preserve"><value>CamAda ada</value></data>
+  <data name="Window_Record" xml:space="preserve"><value>CamAda plak</value></data>
+  <data name="Window_Strip" xml:space="preserve"><value>CamAda şerit</value></data>
+  <data name="Windows_Close" xml:space="preserve"><value>{0} penceresini kapat</value></data>
+  <data name="Windows_Count_One" xml:space="preserve"><value>{0} pencere</value></data>
+  <data name="Windows_Count_Other" xml:space="preserve"><value>{0} pencere</value></data>
+  <data name="Windows_NewWindow" xml:space="preserve"><value>Yeni pencere</value></data>
+</root>

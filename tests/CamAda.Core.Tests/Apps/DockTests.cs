@@ -1,4 +1,5 @@
 using CamAda.Core.Apps;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Apps;
 
@@ -24,7 +25,7 @@ public class DockTests
     public void Defaults_keep_order_and_skip_missing()
     {
         var existing = new HashSet<string> { ChromePath, DiscordPath };
-        var apps = PinnedAppDefaults.Resolve(Expand, existing.Contains, steamExeFromRegistry: null);
+        var apps = PinnedAppDefaults.Resolve(Expand, existing.Contains, steamExeFromRegistry: null, ui: Tr);
         Assert.Equal(new[] { "chrome", "discord" }, apps.Select(a => a.Id));
     }
 
@@ -32,7 +33,7 @@ public class DockTests
     public void All_four_defaults_in_order()
     {
         var existing = new HashSet<string> { ChromePath, DiscordPath, SteamDefault, @"C:\Windows\explorer.exe" };
-        var apps = PinnedAppDefaults.Resolve(Expand, existing.Contains, steamExeFromRegistry: null);
+        var apps = PinnedAppDefaults.Resolve(Expand, existing.Contains, steamExeFromRegistry: null, ui: Tr);
         Assert.Equal(new[] { "chrome", "explorer", "steam", "discord" }, apps.Select(a => a.Id));
         Assert.Equal("Dosya Gezgini", apps[1].Name);
         Assert.Equal("explorer.exe", apps[1].ProcessName);
@@ -42,7 +43,7 @@ public class DockTests
     public void Chrome_falls_back_to_per_user_install()
     {
         var perUser = @"C:\Users\u\AppData\Local\Google\Chrome\Application\chrome.exe";
-        var apps = PinnedAppDefaults.Resolve(Expand, p => p == perUser, steamExeFromRegistry: null);
+        var apps = PinnedAppDefaults.Resolve(Expand, p => p == perUser, steamExeFromRegistry: null, ui: Tr);
         Assert.Equal(perUser, Assert.Single(apps).LaunchPath);
     }
 
@@ -50,14 +51,14 @@ public class DockTests
     public void Steam_from_registry_wins()
     {
         var registry = @"D:\Oyun\Steam\steam.exe";
-        var apps = PinnedAppDefaults.Resolve(Expand, p => p == registry || p == SteamDefault, registry);
+        var apps = PinnedAppDefaults.Resolve(Expand, p => p == registry || p == SteamDefault, registry, Tr);
         Assert.Equal(registry, Assert.Single(apps).LaunchPath);
     }
 
     [Fact]
     public void Discord_uses_update_exe_with_process_start()
     {
-        var discord = Assert.Single(PinnedAppDefaults.Resolve(Expand, p => p == DiscordPath, null));
+        var discord = Assert.Single(PinnedAppDefaults.Resolve(Expand, p => p == DiscordPath, null, Tr));
         Assert.Equal(DiscordPath, discord.LaunchPath);
         Assert.Equal("--processStart Discord.exe", discord.Arguments);
         Assert.Equal("discord.exe", discord.ProcessName);

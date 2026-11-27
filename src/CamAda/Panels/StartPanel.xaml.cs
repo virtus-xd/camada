@@ -11,6 +11,7 @@ using CamAda.Core.Power;
 using CamAda.Core.Search;
 using CamAda.Interop;
 using ManagedShell.Common.Helpers;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -38,7 +39,7 @@ public sealed partial class StartPanel : UserControl
         InitializeComponent();
         _index = index;
 
-        foreach (var tile in pinned.Append(new StartTile("Ayarlar", null, () => Open(SettingsPages.For(System.Globalization.CultureInfo.CurrentUICulture)[^1]))))
+        foreach (var tile in pinned.Append(new StartTile(SettingsPages.For(System.Globalization.CultureInfo.CurrentUICulture)[^1].Name, null, () => Open(SettingsPages.For(System.Globalization.CultureInfo.CurrentUICulture)[^1]))))
         {
             PinnedGrid.Children.Add(CreateTile(tile));
         }
@@ -171,7 +172,7 @@ public sealed partial class StartPanel : UserControl
         var items = await _index.GetItemsAsync();
         AllAppsList.ItemsSource = items
             .Where(i => i.Kind == SearchKind.App)
-            .OrderBy(i => i.Name, StringComparer.Create(CultureInfo.GetCultureInfo("tr-TR"), ignoreCase: true))
+            .OrderBy(i => i.Name, StringComparer.Create(CultureInfo.CurrentUICulture, ignoreCase: true))
             .Select(item => new SearchRow(item, _index))
             .ToList();
         AllAppsList.SelectedIndex = 0;
@@ -206,10 +207,10 @@ public sealed partial class StartPanel : UserControl
     }
 
     private void RestartButton_Click(object sender, RoutedEventArgs e) =>
-        Confirm(RestartButton, _restartGate, "Yeniden başlat", PowerHelper.Reboot);
+        Confirm(RestartButton, _restartGate, UiStrings.Start_Restart, PowerHelper.Reboot);
 
     private void ShutdownButton_Click(object sender, RoutedEventArgs e) =>
-        Confirm(ShutdownButton, _shutdownGate, "Kapat", PowerHelper.Shutdown);
+        Confirm(ShutdownButton, _shutdownGate, UiStrings.Start_Shutdown, PowerHelper.Shutdown);
 
     /// <summary>İlk tıklamada düğme "Emin misin?" olur; 3 sn içinde ikinci tıklama işlemi yapar, yoksa düğme geri döner.</summary>
     private void Confirm(Button button, ConfirmGate gate, string label, Action action)
@@ -221,7 +222,7 @@ public sealed partial class StartPanel : UserControl
             return;
         }
 
-        button.Content = "Emin misin?";
+        button.Content = UiStrings.Start_AreYouSure;
         button.Foreground = (Brush)FindResource("AccentBrush");
         var revert = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher) { Interval = ConfirmWindow + TimeSpan.FromMilliseconds(50) };
         revert.Tick += (_, _) =>
@@ -275,10 +276,10 @@ public sealed partial class StartPanel : UserControl
 
         public string KindText => Item.Kind switch
         {
-            SearchKind.App => "Uygulama",
-            SearchKind.Setting => "Ayar",
-            SearchKind.File => "Dosya",
-            _ => "Web",
+            SearchKind.App => UiStrings.Start_KindApp,
+            SearchKind.Setting => UiStrings.Start_KindSetting,
+            SearchKind.File => UiStrings.Start_KindFile,
+            _ => UiStrings.Start_KindWeb,
         };
 
         /// <summary>Ekran okuyucular liste satırının adını buradan okur.</summary>
