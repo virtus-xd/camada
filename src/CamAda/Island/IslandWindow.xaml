@@ -56,6 +56,8 @@
                         <MenuItem x:Name="GlassAcrylicItem" Header="Akrilik" Click="GlassItem_Click" Tag="Acrylic" Visibility="Collapsed" />
                         <MenuItem x:Name="GlassSolidItem" Header="Düz" Click="GlassItem_Click" Tag="Solid" />
                     </MenuItem>
+                    <!-- Başlık ve seçenekler koddan (LanguageMenu); başlık her dilde "Dil / Language" -->
+                    <MenuItem x:Name="LanguageItem" />
                     <MenuItem Header="Çıkış" Click="ExitItem_Click" />
                 </ContextMenu>
             </Border.ContextMenu>

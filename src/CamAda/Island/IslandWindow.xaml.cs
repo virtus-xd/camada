@@ -10,6 +10,7 @@ using CamAda.Assistant;
 using CamAda.Core.Assistant;
 using CamAda.Core.Island;
 using CamAda.Core.Settings;
+using CamAda.Core.Text;
 using CamAda.Core.Time;
 using CamAda.Glass;
 using System.Globalization;
@@ -135,8 +136,14 @@ public partial class IslandWindow : Window
             }
         };
 
+        BuildLanguageMenu();
         PillBorder.ContextMenuOpening += (_, _) =>
         {
+            foreach (var item in LanguageItem.Items.OfType<MenuItem>())
+            {
+                item.IsChecked = item.Tag is LanguageMenu.Option option && LanguageMenu.IsChecked(_commands.GetLanguage(), option.Setting);
+            }
+
             HideTaskbarItem.IsChecked = _commands.IsTaskbarHidden();
             AssistantItem.IsChecked = _commands.IsAssistantEnabled();
             StartWithWindowsItem.IsChecked = _commands.IsStartWithWindows();
@@ -953,6 +960,19 @@ public partial class IslandWindow : Window
         {
             e.Handled = true;
             AdaRowClicked?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>"Dil / Language" alt menüsü: Otomatik (Windows), Türkçe, English.</summary>
+    private void BuildLanguageMenu()
+    {
+        var ui = CultureInfo.CurrentUICulture;
+        LanguageItem.Header = LanguageMenu.Title(ui);
+        foreach (var option in LanguageMenu.Options)
+        {
+            var item = new MenuItem { Header = option.Label(ui), IsCheckable = true, Tag = option };
+            item.Click += (_, _) => _commands.SetLanguage(option.Setting);
+            LanguageItem.Items.Add(item);
         }
     }
 

@@ -185,7 +185,9 @@ public partial class App : Application
             SetRecordHidden: SetRecordHidden,
             IsAssistantEnabled: () => _settings.Assistant.Enabled,
             SetAssistantEnabled: SetAssistantEnabled,
-            OpenAssistantPanel: OpenAssistantPanel), _dock, _media);
+            OpenAssistantPanel: OpenAssistantPanel,
+            GetLanguage: () => _settings.Language,
+            SetLanguage: SetLanguage), _dock, _media);
         _island.Bar.TrayClicked += (_, _) => OpenTrayPanel();
         _island.Bar.StartClicked += (_, _) => OpenStartPanel();
         _island.Bar.SearchClicked += (_, _) => OpenStartPanel();
@@ -1109,6 +1111,19 @@ public partial class App : Application
         {
             return true; // önceki örnek kilidi bırakmadan çıktı: kilit artık bizde
         }
+    }
+
+    /// <summary>Menüden dil seçildi: kaydet ve (değiştiyse) yeniden başla; görev çubuğu ayarı aynen korunur.</summary>
+    private void SetLanguage(string? language)
+    {
+        if (!LanguageMenu.NeedsRestart(_settings.Language, language))
+        {
+            return;
+        }
+
+        _settings = _settings with { Language = language };
+        _settingsStore.Save(_settings);
+        Restart();
     }
 
     /// <summary>Arayüz dilini bir kez uygular: metinler CurrentUICulture'dan, saat/sayı biçimi Windows'un bölge ayarından.</summary>

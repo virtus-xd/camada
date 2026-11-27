@@ -18,6 +18,8 @@ namespace CamAda.Island;
 /// <param name="IsAssistantEnabled">Sesli asistan Ada açık mı.</param>
 /// <param name="SetAssistantEnabled">Ada'yı açar ya da kapatır (anahtar yoksa Ada ayarlarını açar).</param>
 /// <param name="OpenAssistantPanel">Ada ayarları panelini açar.</param>
+/// <param name="GetLanguage">Kayıtlı arayüz dili: null (Windows'a uy), "tr" ya da "en".</param>
+/// <param name="SetLanguage">Dili kaydeder ve değiştiyse uygulamayı yeniden başlatır.</param>
 public sealed record IslandCommands(
     Func<bool> IsTaskbarHidden,
     Action<bool> SetTaskbarHidden,
@@ -30,4 +32,6 @@ public sealed record IslandCommands(
     Action<bool> SetRecordHidden,
     Func<bool> IsAssistantEnabled,
     Action<bool> SetAssistantEnabled,
-    Action OpenAssistantPanel);
+    Action OpenAssistantPanel,
+    Func<string?> GetLanguage,
+    Action<string?> SetLanguage);
