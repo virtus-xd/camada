@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using CamAda.Core.Display;
 using CamAda.Interop;
+using CamAda.Core.Text;
 
 namespace CamAda.QuickSettings;
 
@@ -85,7 +86,7 @@ public sealed class BrightnessService : IDisposable
         var list = new List<BrightnessDisplay>();
         if (internalDisplay is { } i)
         {
-            list.Add(new BrightnessDisplay(InternalId, "Ekran", i.Level, true));
+            list.Add(new BrightnessDisplay(InternalId, UiStrings.Brightness_BuiltIn, i.Level, true));
         }
 
         list.AddRange(external);
@@ -318,7 +319,7 @@ public sealed class BrightnessService : IDisposable
 
                         var id = $"ddc:{device}:{i}";
                         _external[id] = (physical[i].hPhysicalMonitor, min, max);
-                        var name = instance is not null && names.TryGetValue(instance, out var friendly) ? friendly : "Harici ekran";
+                        var name = instance is not null && names.TryGetValue(instance, out var friendly) ? friendly : UiStrings.Brightness_External;
                         result.Add(new BrightnessDisplay(id, name, (int)Math.Round((cur - min) * 100.0 / (max - min)), false));
                     }
                 }

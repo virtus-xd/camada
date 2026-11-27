@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using CamAda.Core.Network;
 using CamAda.QuickSettings;
 using Windows.Devices.Radios;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -86,9 +87,9 @@ public partial class WifiListView : UserControl
     {
         var radios = _services.Radios;
         RadioButton.Visibility = radios?.HasWifi == true ? Visibility.Visible : Visibility.Collapsed;
-        RadioButton.Content = RadioOn ? "Açık" : "Kapalı";
+        RadioButton.Content = RadioOn ? UiStrings.Common_On : UiStrings.Common_Off;
         RadioButton.Style = (Style)FindResource(RadioOn ? "PanelAccentButton" : "PanelButton");
-        AutomationProperties.SetName(RadioButton, RadioOn ? "Wi‑Fi açık; kapat" : "Wi‑Fi kapalı; aç");
+        AutomationProperties.SetName(RadioButton, RadioOn ? UiStrings.Wifi_OnTurnOff : UiStrings.Wifi_OffTurnOn);
     }
 
     private async Task ScanAsync()
@@ -107,7 +108,7 @@ public partial class WifiListView : UserControl
         var scan = _scan = new CancellationTokenSource();
         if (!_scanned)
         {
-            ShowStatus("Aranıyor…");
+            ShowStatus(UiStrings.Wifi_Searching);
         }
 
         WifiScan result;
@@ -157,17 +158,17 @@ public partial class WifiListView : UserControl
         if (!RadioOn)
         {
             LocationButton.Visibility = Visibility.Collapsed;
-            ShowStatus("Wi‑Fi kapalı");
+            ShowStatus(UiStrings.Wifi_Off);
             return;
         }
 
         if (locationBlocked)
         {
-            ShowStatus("Ağ adlarını görmek için Windows konum izni gerekiyor.");
+            ShowStatus(UiStrings.Wifi_NeedsLocation);
         }
         else if (rows.Count == 0)
         {
-            ShowStatus(_scanned ? "Ağ bulunamadı" : "Aranıyor…");
+            ShowStatus(_scanned ? UiStrings.Wifi_NoNetworks : UiStrings.Wifi_Searching);
         }
         else
         {
@@ -190,7 +191,7 @@ public partial class WifiListView : UserControl
 
     private FrameworkElement CreateRow(WifiRow row)
     {
-        var right = row.Connected ? "Bağlı" : row.Security == WifiSecurity.Open ? "Açık ağ" : "";
+        var right = row.Connected ? UiStrings.Common_Connected : row.Security == WifiSecurity.Open ? UiStrings.Wifi_OpenNetwork : "";
         var header = new DockPanel();
         var rightPanel = new StackPanel { Orientation = Orientation.Horizontal };
         DockPanel.SetDock(rightPanel, Dock.Right);
@@ -266,7 +267,7 @@ public partial class WifiListView : UserControl
 
         if (row.Connected)
         {
-            var disconnect = new Button { Style = (Style)FindResource("PanelButton"), Content = "Bağlantıyı kes", HorizontalAlignment = HorizontalAlignment.Left };
+            var disconnect = new Button { Style = (Style)FindResource("PanelButton"), Content = UiStrings.Wifi_Disconnect, HorizontalAlignment = HorizontalAlignment.Left };
             disconnect.Click += (_, _) =>
             {
                 _wifi.Disconnect();
@@ -278,7 +279,7 @@ public partial class WifiListView : UserControl
             return panel;
         }
 
-        var connect = new Button { Style = (Style)FindResource("PanelAccentButton"), Content = "Bağlan", HorizontalAlignment = HorizontalAlignment.Left };
+        var connect = new Button { Style = (Style)FindResource("PanelAccentButton"), Content = UiStrings.Common_Connect, HorizontalAlignment = HorizontalAlignment.Left };
         if (row.Saved || row.Security == WifiSecurity.Open)
         {
             connect.Click += async (_, _) => await ConnectAsync(row.Ssid, null, connect, status);
@@ -297,13 +298,13 @@ public partial class WifiListView : UserControl
             box.Background = Brushes.Transparent;
             box.Foreground = (Brush)FindResource("TextBrush");
             box.BorderThickness = new Thickness(0);
-            AutomationProperties.SetName(box, $"{row.Ssid} şifresi");
+            AutomationProperties.SetName(box, string.Format(UiStrings.Wifi_PasswordFor, row.Ssid));
         }
 
         hidden.CaretBrush = shown.CaretBrush = (Brush)FindResource("TextBrush");
         var reveal = new Button { Style = (Style)FindResource("PanelButton"), Padding = new Thickness(9, 6, 9, 6), Margin = new Thickness(6, 0, 0, 0) };
         reveal.Content = Glyph(QuickGlyphs.Reveal, 13, secondary: false);
-        AutomationProperties.SetName(reveal, "Şifreyi göster");
+        AutomationProperties.SetName(reveal, UiStrings.Wifi_ShowPassword);
         reveal.Click += (_, _) =>
         {
             var show = shown.Visibility != Visibility.Visible;
@@ -320,7 +321,7 @@ public partial class WifiListView : UserControl
 
             shown.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
             hidden.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
-            AutomationProperties.SetName(reveal, show ? "Şifreyi gizle" : "Şifreyi göster");
+            AutomationProperties.SetName(reveal, show ? UiStrings.Wifi_HidePassword : UiStrings.Wifi_ShowPassword);
         };
 
         string Password() => shown.Visibility == Visibility.Visible ? shown.Text : hidden.Password;
@@ -371,7 +372,7 @@ public partial class WifiListView : UserControl
 
         _connecting = true;
         connect.IsEnabled = false;
-        status.Text = "Bağlanıyor…";
+        status.Text = UiStrings.Common_Connecting;
         status.Visibility = Visibility.Visible;
         WifiConnectOutcome outcome;
         try
@@ -392,9 +393,9 @@ public partial class WifiListView : UserControl
         connect.IsEnabled = true;
         status.Text = outcome switch
         {
-            WifiConnectOutcome.Connected => "Bağlandı",
-            WifiConnectOutcome.WrongPassword => "Şifre yanlış olabilir",
-            _ => "Bağlanamadı",
+            WifiConnectOutcome.Connected => UiStrings.Wifi_Connected,
+            WifiConnectOutcome.WrongPassword => UiStrings.Wifi_WrongPassword,
+            _ => UiStrings.Wifi_ConnectFailed,
         };
 
         if (outcome == WifiConnectOutcome.Connected)
@@ -472,8 +473,8 @@ public partial class WifiListView : UserControl
     /// <summary>Telsiz değiştirilemedi (ör. donanım anahtarı, ilke): düğmede 3 sn "Değiştirilemedi", sonra gerçek durum.</summary>
     internal static async Task ShowRadioFailedAsync(Button button, Action restore)
     {
-        button.Content = "Değiştirilemedi";
-        AutomationProperties.SetName(button, "Değiştirilemedi");
+        button.Content = UiStrings.Common_CouldNotChange;
+        AutomationProperties.SetName(button, UiStrings.Common_CouldNotChange);
         await Task.Delay(TimeSpan.FromSeconds(3));
         if (button.IsLoaded)
         {

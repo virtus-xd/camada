@@ -1,6 +1,7 @@
 <UserControl x:Class="CamAda.Panels.CalendarPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core">
     <StackPanel>
         <!-- Başlık: ‹ Kasım 2026 › -->
         <Grid Margin="0,0,0,10">
@@ -10,18 +11,18 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button x:Name="PreviousButton" Style="{StaticResource PanelButton}" Padding="8,6"
-                    AutomationProperties.Name="Önceki ay" Click="PreviousButton_Click">
+                    AutomationProperties.Name="{x:Static t:UiStrings.Cal_PreviousMonth}" Click="PreviousButton_Click">
                 <TextBlock Text="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" />
             </Button>
             <TextBlock x:Name="TitleText" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                        FontSize="14" FontWeight="Bold" />
             <Button x:Name="NextButton" Grid.Column="2" Style="{StaticResource PanelButton}" Padding="8,6"
-                    AutomationProperties.Name="Sonraki ay" Click="NextButton_Click">
+                    AutomationProperties.Name="{x:Static t:UiStrings.Cal_NextMonth}" Click="NextButton_Click">
                 <TextBlock Text="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" />
             </Button>
         </Grid>
 
         <UniformGrid x:Name="Headers" Columns="7" Margin="0,0,0,4" />
-        <UniformGrid x:Name="Days" Columns="7" Rows="6" AutomationProperties.Name="Günler" />
+        <UniformGrid x:Name="Days" Columns="7" Rows="6" AutomationProperties.Name="{x:Static t:UiStrings.Cal_Days}" />
     </StackPanel>
 </UserControl>

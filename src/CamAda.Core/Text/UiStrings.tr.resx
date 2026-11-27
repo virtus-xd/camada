@@ -17,6 +17,22 @@
   <data name="Bar_SoundMicOff" xml:space="preserve"><value>Ses ve mikrofon: mikrofon kapalı</value></data>
   <data name="Bar_Start" xml:space="preserve"><value>Başlat</value></data>
   <data name="Bar_Tray" xml:space="preserve"><value>Arka planda çalışan uygulamalar</value></data>
+  <data name="Brightness_BuiltIn" xml:space="preserve"><value>Ekran</value></data>
+  <data name="Brightness_External" xml:space="preserve"><value>Harici ekran</value></data>
+  <data name="Bt_AddDevice" xml:space="preserve"><value>Yeni cihaz ekle</value></data>
+  <data name="Bt_ConnectFailed" xml:space="preserve"><value>Bağlanamadı — cihaz açık ve yakında mı?</value></data>
+  <data name="Bt_ConnectInSettings" xml:space="preserve"><value>Ayarlarda bağlan ›</value></data>
+  <data name="Bt_Disconnect" xml:space="preserve"><value>Ayır</value></data>
+  <data name="Bt_DisconnectFailed" xml:space="preserve"><value>Ayrılamadı</value></data>
+  <data name="Bt_Disconnecting" xml:space="preserve"><value>Ayrılıyor…</value></data>
+  <data name="Bt_NoPaired" xml:space="preserve"><value>Eşleşmiş cihaz yok</value></data>
+  <data name="Bt_Off" xml:space="preserve"><value>Bluetooth kapalı</value></data>
+  <data name="Bt_OffTurnOn" xml:space="preserve"><value>Bluetooth kapalı; aç</value></data>
+  <data name="Bt_OnTurnOff" xml:space="preserve"><value>Bluetooth açık; kapat</value></data>
+  <data name="Cal_Days" xml:space="preserve"><value>Günler</value></data>
+  <data name="Cal_NextMonth" xml:space="preserve"><value>Sonraki ay</value></data>
+  <data name="Cal_PreviousMonth" xml:space="preserve"><value>Önceki ay</value></data>
+  <data name="Cal_TodaySuffix" xml:space="preserve"><value>, bugün</value></data>
   <data name="Card_Like" xml:space="preserve"><value>Beğen</value></data>
   <data name="Card_Next" xml:space="preserve"><value>Sonraki şarkı</value></data>
   <data name="Card_NothingPlaying" xml:space="preserve"><value>Şu an bir şey çalmıyor</value></data>
@@ -26,6 +42,29 @@
   <data name="Card_Previous" xml:space="preserve"><value>Önceki şarkı</value></data>
   <data name="Card_Unlike" xml:space="preserve"><value>Beğenmekten vazgeç</value></data>
   <data name="Card_UpNext" xml:space="preserve"><value>Sıradaki</value></data>
+  <data name="Clip_ClearUnpinned" xml:space="preserve"><value>Sabitlenmeyenleri sil</value></data>
+  <data name="Clip_Delete" xml:space="preserve"><value>Sil</value></data>
+  <data name="Clip_EmptyHint" xml:space="preserve"><value>Kopyaladıkların burada görünür.</value></data>
+  <data name="Clip_ImageSize" xml:space="preserve"><value>Görsel {0}×{1}</value></data>
+  <data name="Clip_KindCode" xml:space="preserve"><value>Kod</value></data>
+  <data name="Clip_KindImage" xml:space="preserve"><value>Görsel</value></data>
+  <data name="Clip_KindLink" xml:space="preserve"><value>Bağlantı</value></data>
+  <data name="Clip_KindText" xml:space="preserve"><value>Metin</value></data>
+  <data name="Clip_NoScreenshots" xml:space="preserve"><value>Henüz ekran görüntüsü yok</value></data>
+  <data name="Clip_OpenFolder" xml:space="preserve"><value>Klasörü aç</value></data>
+  <data name="Clip_Pin" xml:space="preserve"><value>Sabitle</value></data>
+  <data name="Clip_ScreenshotA11y" xml:space="preserve"><value>Ekran görüntüsü: {0}</value></data>
+  <data name="Clip_Screenshots" xml:space="preserve"><value>Ekran görüntüleri</value></data>
+  <data name="Clip_ShowInFolder" xml:space="preserve"><value>Klasörde göster</value></data>
+  <data name="Clip_Unpin" xml:space="preserve"><value>Sabitlemeyi kaldır</value></data>
+  <data name="Common_Back" xml:space="preserve"><value>Geri</value></data>
+  <data name="Common_Connect" xml:space="preserve"><value>Bağlan</value></data>
+  <data name="Common_Connected" xml:space="preserve"><value>Bağlı</value></data>
+  <data name="Common_Connecting" xml:space="preserve"><value>Bağlanıyor…</value></data>
+  <data name="Common_CouldNotChange" xml:space="preserve"><value>Değiştirilemedi</value></data>
+  <data name="Common_NotConnected" xml:space="preserve"><value>Bağlı değil</value></data>
+  <data name="Common_Off" xml:space="preserve"><value>Kapalı</value></data>
+  <data name="Common_On" xml:space="preserve"><value>Açık</value></data>
   <data name="Dock_MoreApps_One" xml:space="preserve"><value>{0} uygulama daha</value></data>
   <data name="Dock_MoreApps_Other" xml:space="preserve"><value>{0} uygulama daha</value></data>
   <data name="Dock_NeedsAttention" xml:space="preserve"><value>dikkat istiyor</value></data>
@@ -36,6 +75,7 @@
   <data name="Flash_CopyFailedBusy" xml:space="preserve"><value>Kopyalanamadı — pano meşgul</value></data>
   <data name="Flash_Muted" xml:space="preserve"><value>Sessiz</value></data>
   <data name="Flash_Unavailable" xml:space="preserve"><value>{0} kullanılamıyor</value></data>
+  <data name="Format_CalendarDayA11y" xml:space="preserve"><value>d MMMM yyyy, dddd</value></data>
   <data name="Island_AdaListening" xml:space="preserve"><value>Ada dinliyor</value></data>
   <data name="Island_Copied" xml:space="preserve"><value>Kopyalandı</value></data>
   <data name="Island_Copy" xml:space="preserve"><value>Kopyala</value></data>
@@ -58,8 +98,31 @@
   <data name="Mic_NotFound" xml:space="preserve"><value>Mikrofon bulunamadı</value></data>
   <data name="Mic_Off" xml:space="preserve"><value>Mikrofon kapalı</value></data>
   <data name="Mic_On" xml:space="preserve"><value>Mikrofon açık</value></data>
+  <data name="Qs_BatteryOpenSettings" xml:space="preserve"><value>{0}. Pil ayarlarını aç</value></data>
+  <data name="Qs_BrightnessOf" xml:space="preserve"><value>{0} parlaklığı</value></data>
+  <data name="Qs_DarkTheme" xml:space="preserve"><value>Koyu tema</value></data>
+  <data name="Qs_Focus" xml:space="preserve"><value>Odak</value></data>
+  <data name="Qs_OpenInSettings" xml:space="preserve"><value>Ayarlarda aç</value></data>
+  <data name="Qs_TaskManager" xml:space="preserve"><value>Görev Yöneticisi</value></data>
+  <data name="Qs_TileList" xml:space="preserve"><value>{0} listesi</value></data>
+  <data name="Qs_Title" xml:space="preserve"><value>Hızlı ayarlar</value></data>
   <data name="Record_Help" xml:space="preserve"><value>Çal ya da duraklat</value></data>
   <data name="Record_Name" xml:space="preserve"><value>Plak</value></data>
+  <data name="Sound_AppVolume" xml:space="preserve"><value>{0} ses düzeyi</value></data>
+  <data name="Sound_AppVolumeMuted" xml:space="preserve"><value>{0} ses düzeyi, sessiz</value></data>
+  <data name="Sound_Apps" xml:space="preserve"><value>Uygulamalar</value></data>
+  <data name="Sound_Mic" xml:space="preserve"><value>Mikrofon</value></data>
+  <data name="Sound_MicTurnOff" xml:space="preserve"><value>Mikrofonu kapat</value></data>
+  <data name="Sound_MicTurnOn" xml:space="preserve"><value>Mikrofonu aç</value></data>
+  <data name="Sound_Mute" xml:space="preserve"><value>Sesi kapat</value></data>
+  <data name="Sound_MutedInWindows" xml:space="preserve"><value>Windows'ta sessize alınmış</value></data>
+  <data name="Sound_NoApps" xml:space="preserve"><value>Şu an ses çıkaran uygulama yok.</value></data>
+  <data name="Sound_NoMic" xml:space="preserve"><value>Mikrofon bulunamadı.</value></data>
+  <data name="Sound_NoOutput" xml:space="preserve"><value>Ses çıkış cihazı bulunamadı.</value></data>
+  <data name="Sound_Output" xml:space="preserve"><value>Çıkış</value></data>
+  <data name="Sound_Selected" xml:space="preserve"><value>{0}, seçili</value></data>
+  <data name="Sound_Unmute" xml:space="preserve"><value>Sesi aç</value></data>
+  <data name="Sound_Volume" xml:space="preserve"><value>Ses düzeyi</value></data>
   <data name="Start_AllApps" xml:space="preserve"><value>Tüm uygulamalar</value></data>
   <data name="Start_AreYouSure" xml:space="preserve"><value>Emin misin?</value></data>
   <data name="Start_Back" xml:space="preserve"><value>← Geri</value></data>
@@ -78,6 +141,22 @@
   <data name="Tray_Empty" xml:space="preserve"><value>Arka planda çalışan uygulama yok.</value></data>
   <data name="Tray_Hint" xml:space="preserve"><value>Sol tık uygulamayı açar, sağ tık uygulamanın kendi menüsünü gösterir.</value></data>
   <data name="Tray_Title" xml:space="preserve"><value>Arka planda çalışanlar</value></data>
+  <data name="Wifi_ConnectFailed" xml:space="preserve"><value>Bağlanamadı</value></data>
+  <data name="Wifi_Connected" xml:space="preserve"><value>Bağlandı</value></data>
+  <data name="Wifi_Disconnect" xml:space="preserve"><value>Bağlantıyı kes</value></data>
+  <data name="Wifi_HidePassword" xml:space="preserve"><value>Şifreyi gizle</value></data>
+  <data name="Wifi_MoreSettings" xml:space="preserve"><value>Diğer ağlar ve Wi‑Fi ayarları</value></data>
+  <data name="Wifi_NeedsLocation" xml:space="preserve"><value>Ağ adlarını görmek için Windows konum izni gerekiyor.</value></data>
+  <data name="Wifi_NoNetworks" xml:space="preserve"><value>Ağ bulunamadı</value></data>
+  <data name="Wifi_Off" xml:space="preserve"><value>Wi‑Fi kapalı</value></data>
+  <data name="Wifi_OffTurnOn" xml:space="preserve"><value>Wi‑Fi kapalı; aç</value></data>
+  <data name="Wifi_OnTurnOff" xml:space="preserve"><value>Wi‑Fi açık; kapat</value></data>
+  <data name="Wifi_OpenLocationSettings" xml:space="preserve"><value>Konum ayarlarını aç</value></data>
+  <data name="Wifi_OpenNetwork" xml:space="preserve"><value>Açık ağ</value></data>
+  <data name="Wifi_PasswordFor" xml:space="preserve"><value>{0} şifresi</value></data>
+  <data name="Wifi_Searching" xml:space="preserve"><value>Aranıyor…</value></data>
+  <data name="Wifi_ShowPassword" xml:space="preserve"><value>Şifreyi göster</value></data>
+  <data name="Wifi_WrongPassword" xml:space="preserve"><value>Şifre yanlış olabilir</value></data>
   <data name="Window_Island" xml:space="preserve"><value>CamAda ada</value></data>
   <data name="Window_Record" xml:space="preserve"><value>CamAda plak</value></data>
   <data name="Window_Strip" xml:space="preserve"><value>CamAda şerit</value></data>

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using CamAda.Core.Calendar;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -15,8 +16,6 @@ namespace CamAda.Panels;
 public partial class CalendarPanel : UserControl
 {
     public const double PanelWidth = 300;
-
-    private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
     private readonly DateOnly _today;
     private int _year;
@@ -58,7 +57,7 @@ public partial class CalendarPanel : UserControl
     {
         var text = new TextBlock
         {
-            Text = day.Date.Day.ToString(Turkish),
+            Text = day.Date.Day.ToString(CultureInfo.CurrentUICulture),
             FontSize = 12.5,
             FontWeight = day.IsToday ? FontWeights.ExtraBold : FontWeights.SemiBold,
             Foreground = (Brush)FindResource(day.IsToday ? "OnAccentBrush" : "TextBrush"),
@@ -74,7 +73,7 @@ public partial class CalendarPanel : UserControl
 
         cell.Children.Add(text);
         // Ad metne verilir: Grid'in erişilebilirlik karşılığı yok, ekran okuyucu yalnız metni görür.
-        AutomationProperties.SetName(text, day.Date.ToString("d MMMM yyyy, dddd", Turkish) + (day.IsToday ? ", bugün" : ""));
+        AutomationProperties.SetName(text, day.Date.ToString(UiStrings.Format_CalendarDayA11y, CultureInfo.CurrentUICulture) + (day.IsToday ? UiStrings.Cal_TodaySuffix : ""));
         return cell;
     }
 

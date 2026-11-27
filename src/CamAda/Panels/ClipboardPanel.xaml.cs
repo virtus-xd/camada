@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using CamAda.Clips;
 using CamAda.Core.Clipboard;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -122,7 +123,7 @@ public partial class ClipboardPanel : UserControl
                 Background = new SolidColorBrush(Color.FromArgb(0xB0, 0x14, 0x18, 0x2A)),
                 Child = new TextBlock
                 {
-                    Text = _copyFailed ? "Kopyalanamadı" : "Kopyalandı",
+                    Text = _copyFailed ? UiStrings.Island_CopyFailed : UiStrings.Island_Copied,
                     FontSize = 11.5,
                     FontWeight = FontWeights.Bold,
                     Foreground = (Brush)FindResource(_copyFailed ? "WarningBrush" : "AccentBrush"),
@@ -141,12 +142,12 @@ public partial class ClipboardPanel : UserControl
             Content = content,
             ToolTip = name,
         };
-        AutomationProperties.SetName(button, $"Ekran görüntüsü: {name}");
+        AutomationProperties.SetName(button, string.Format(UiStrings.Clip_ScreenshotA11y, name));
         button.Click += (_, _) => ChooseShot(file.Path);
 
-        var edit = new MenuItem { Header = "Düzenle" };
+        var edit = new MenuItem { Header = UiStrings.Island_Edit };
         edit.Click += (_, _) => ScreenshotLibrary.OpenForEdit(file.Path);
-        var show = new MenuItem { Header = "Klasörde göster" };
+        var show = new MenuItem { Header = UiStrings.Clip_ShowInFolder };
         show.Click += (_, _) => ScreenshotLibrary.ShowInFolder(file.Path);
         button.ContextMenu = new ContextMenu { Items = { edit, show } };
 
@@ -253,7 +254,7 @@ public partial class ClipboardPanel : UserControl
         var copied = item.Id == _copiedId;
         var age = new TextBlock
         {
-            Text = !copied ? ClipAge.Format(item.CopiedAt, now, System.Globalization.CultureInfo.CurrentUICulture) : _copyFailed ? "Kopyalanamadı" : "Kopyalandı",
+            Text = !copied ? ClipAge.Format(item.CopiedAt, now, System.Globalization.CultureInfo.CurrentUICulture) : _copyFailed ? UiStrings.Island_CopyFailed : UiStrings.Island_Copied,
             FontSize = 11.5,
             FontWeight = copied ? FontWeights.Bold : FontWeights.SemiBold,
             Foreground = (Brush)FindResource(!copied ? "TextSecondaryBrush" : _copyFailed ? "WarningBrush" : "AccentBrush"),
@@ -262,7 +263,7 @@ public partial class ClipboardPanel : UserControl
         Grid.SetColumn(age, 2);
         grid.Children.Add(age);
 
-        var pin = CreateIconButton(item.Pinned ? "" : "", item.Pinned ? "Sabitlemeyi kaldır" : "Sabitle", () =>
+        var pin = CreateIconButton(item.Pinned ? "" : "", item.Pinned ? UiStrings.Clip_Unpin : UiStrings.Clip_Pin, () =>
         {
             if (item.Pinned)
             {
@@ -278,7 +279,7 @@ public partial class ClipboardPanel : UserControl
             pin.Foreground = (Brush)FindResource("AccentBrush");
         }
 
-        var remove = CreateIconButton("", "Sil", () => _clips.Remove(item.Id));
+        var remove = CreateIconButton("", UiStrings.Clip_Delete, () => _clips.Remove(item.Id));
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(6, 0, 0, 0) };
         actions.Children.Add(pin);
         actions.Children.Add(remove);
@@ -423,10 +424,10 @@ public partial class ClipboardPanel : UserControl
 
     private static string KindName(ClipKind kind) => kind switch
     {
-        ClipKind.Link => "Bağlantı",
-        ClipKind.Code => "Kod",
-        ClipKind.Image => "Görsel",
-        _ => "Metin",
+        ClipKind.Link => UiStrings.Clip_KindLink,
+        ClipKind.Code => UiStrings.Clip_KindCode,
+        ClipKind.Image => UiStrings.Clip_KindImage,
+        _ => UiStrings.Clip_KindText,
     };
 
     /// <summary>Satırdaki önizleme: görselde boyut, metinde ilk iki dolu satır (en çok 300 karakter).</summary>
@@ -434,7 +435,7 @@ public partial class ClipboardPanel : UserControl
     {
         if (item.Kind == ClipKind.Image)
         {
-            return $"Görsel {item.Payload.Width}×{item.Payload.Height}";
+            return string.Format(UiStrings.Clip_ImageSize, item.Payload.Width, item.Payload.Height);
         }
 
         var text = item.Payload.Text ?? "";

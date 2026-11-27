@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using CamAda.Core.Bluetooth;
 using CamAda.QuickSettings;
 using Windows.Devices.Radios;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -62,9 +63,9 @@ public partial class BluetoothListView : UserControl
     {
         var radios = _services.Radios;
         RadioButton.Visibility = radios?.HasBluetooth == true ? Visibility.Visible : Visibility.Collapsed;
-        RadioButton.Content = RadioOn ? "Açık" : "Kapalı";
+        RadioButton.Content = RadioOn ? UiStrings.Common_On : UiStrings.Common_Off;
         RadioButton.Style = (Style)FindResource(RadioOn ? "PanelAccentButton" : "PanelButton");
-        AutomationProperties.SetName(RadioButton, RadioOn ? "Bluetooth açık; kapat" : "Bluetooth kapalı; aç");
+        AutomationProperties.SetName(RadioButton, RadioOn ? UiStrings.Bt_OnTurnOff : UiStrings.Bt_OffTurnOn);
 
         if (RowKeys.DeferWhilePressed(Rows, Show))
         {
@@ -75,14 +76,14 @@ public partial class BluetoothListView : UserControl
         Rows.Children.Clear();
         if (!RadioOn)
         {
-            ShowStatus("Bluetooth kapalı");
+            ShowStatus(UiStrings.Bt_Off);
             return;
         }
 
         var devices = _bluetooth.Devices;
         if (devices.Count == 0)
         {
-            ShowStatus("Eşleşmiş cihaz yok");
+            ShowStatus(UiStrings.Bt_NoPaired);
             return;
         }
 
@@ -112,18 +113,18 @@ public partial class BluetoothListView : UserControl
             Child = row,
         };
 
-        var status = _notes.TryGetValue(device.Id, out var note) ? note : device.Connected ? "Bağlı" : "Bağlı değil";
+        var status = _notes.TryGetValue(device.Id, out var note) ? note : device.Connected ? UiStrings.Common_Connected : UiStrings.Common_NotConnected;
         if (BluetoothKinds.CanConnect(device.Kind))
         {
             var action = _bluetooth.CanSendAudioCommands
                 ? new Button
                 {
                     Style = (Style)FindResource(device.Connected ? "PanelButton" : "PanelAccentButton"),
-                    Content = device.Connected ? "Ayır" : "Bağlan",
+                    Content = device.Connected ? UiStrings.Bt_Disconnect : UiStrings.Common_Connect,
                     Padding = new Thickness(12, 4, 12, 4),
                     IsEnabled = !_busy.Contains(device.Id),
                 }
-                : new Button { Style = (Style)FindResource("PanelButton"), Content = "Ayarlarda bağlan ›", Padding = new Thickness(12, 4, 12, 4) };
+                : new Button { Style = (Style)FindResource("PanelButton"), Content = UiStrings.Bt_ConnectInSettings, Padding = new Thickness(12, 4, 12, 4) };
             AutomationProperties.SetName(action, $"{device.Name}: {action.Content}");
             RowKeys.SetKey(action, device.Id);
             action.Click += async (_, _) =>
@@ -179,7 +180,7 @@ public partial class BluetoothListView : UserControl
         }
 
         var connecting = !device.Connected;
-        _notes[device.Id] = connecting ? "Bağlanıyor…" : "Ayrılıyor…";
+        _notes[device.Id] = connecting ? UiStrings.Common_Connecting : UiStrings.Bt_Disconnecting;
         Show();
         var ok = connecting ? await _bluetooth.ConnectAsync(device) : await _bluetooth.DisconnectAsync(device);
         _busy.Remove(device.Id);
@@ -189,7 +190,7 @@ public partial class BluetoothListView : UserControl
         }
         else
         {
-            _notes[device.Id] = connecting ? "Bağlanamadı — cihaz açık ve yakında mı?" : "Ayrılamadı";
+            _notes[device.Id] = connecting ? UiStrings.Bt_ConnectFailed : UiStrings.Bt_DisconnectFailed;
         }
 
         if (IsLoaded)

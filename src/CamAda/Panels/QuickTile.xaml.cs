@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -130,7 +131,7 @@ public partial class QuickTile : UserControl
     private void UpdateNames()
     {
         AutomationProperties.SetName(MainPart, $"{_title}: {SubtitleText.Text}");
-        AutomationProperties.SetName(DetailsPart, $"{_title} listesi");
+        AutomationProperties.SetName(DetailsPart, string.Format(UiStrings.Qs_TileList, _title));
     }
 
     private void MainPart_Click(object sender, RoutedEventArgs e)

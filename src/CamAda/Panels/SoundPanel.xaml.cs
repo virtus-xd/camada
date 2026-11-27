@@ -7,6 +7,7 @@ using CamAda.Audio;
 using CamAda.Core.Audio;
 using ManagedShell.Common.Helpers;
 using ManagedShell.Common.Enums;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -64,9 +65,9 @@ public partial class SoundPanel : UserControl
         var off = state == MicState.Off;
         MicGlyph.Text = off ? SpeakerGlyph.MicOff : SpeakerGlyph.MicOn;
         MicGlyph.Foreground = (Brush)FindResource(off ? "WarningBrush" : "TextBrush");
-        MicNameText.Text = _audio.MicName ?? "Mikrofon";
+        MicNameText.Text = _audio.MicName ?? UiStrings.Sound_Mic;
         MicButton.Style = (Style)FindResource(off ? "PanelAccentButton" : "PanelButton");
-        MicButton.Content = off ? "Mikrofonu aç" : "Mikrofonu kapat";
+        MicButton.Content = off ? UiStrings.Sound_MicTurnOn : UiStrings.Sound_MicTurnOff;
     }
 
     private void MicButton_Click(object sender, RoutedEventArgs e) => _audio.ToggleMic();
@@ -99,8 +100,8 @@ public partial class SoundPanel : UserControl
 
             // Windows'un karıştırıcısında sessize alınmış uygulama: satır soluk (kaydırıcı düzeyi yine gösterir).
             view.Element.Opacity = row.Muted ? 0.5 : 1;
-            view.Element.ToolTip = row.Muted ? "Windows'ta sessize alınmış" : null;
-            AutomationProperties.SetName(view.Slider, row.Muted ? $"{row.Name} ses düzeyi, sessiz" : $"{row.Name} ses düzeyi");
+            view.Element.ToolTip = row.Muted ? UiStrings.Sound_MutedInWindows : null;
+            AutomationProperties.SetName(view.Slider, string.Format(row.Muted ? UiStrings.Sound_AppVolumeMuted : UiStrings.Sound_AppVolume, row.Name));
             if (!view.Slider.IsMouseCaptureWithin && !view.Slider.IsKeyboardFocusWithin)
             {
                 _updating = true;
@@ -181,8 +182,8 @@ public partial class SoundPanel : UserControl
         MuteButton.IsEnabled = hasOutput;
         VolumeSlider.IsEnabled = hasOutput;
         MuteGlyph.Text = SpeakerGlyph.For(SpeakerLevels.For(volume, muted || !hasOutput));
-        AutomationProperties.SetName(MuteButton, muted ? "Sesi aç" : "Sesi kapat");
-        PercentText.Text = muted ? "Sessiz" : $"%{SpeakerLevels.Percent(volume)}";
+        AutomationProperties.SetName(MuteButton, muted ? UiStrings.Sound_Unmute : UiStrings.Sound_Mute);
+        PercentText.Text = muted ? UiStrings.Flash_Muted : Formats.Percent(SpeakerLevels.Percent(volume), System.Globalization.CultureInfo.CurrentUICulture);
 
         if (!VolumeSlider.IsMouseCaptureWithin)
         {
@@ -233,7 +234,7 @@ public partial class SoundPanel : UserControl
             }
 
             var button = new Button { Style = (Style)FindResource("PanelRowButton"), Content = row };
-            AutomationProperties.SetName(button, output.IsDefault ? $"{output.Name}, seçili" : output.Name);
+            AutomationProperties.SetName(button, output.IsDefault ? string.Format(UiStrings.Sound_Selected, output.Name) : output.Name);
             var id = output.Id;
             RowKeys.SetKey(button, id);
             button.Click += (_, _) => _audio.SetDefaultOutput(id);

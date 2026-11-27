@@ -17,6 +17,22 @@
   <data name="Bar_SoundMicOff" xml:space="preserve"><value>Sound and microphone: microphone off</value></data>
   <data name="Bar_Start" xml:space="preserve"><value>Start</value></data>
   <data name="Bar_Tray" xml:space="preserve"><value>Apps running in the background</value></data>
+  <data name="Brightness_BuiltIn" xml:space="preserve"><value>Display</value></data>
+  <data name="Brightness_External" xml:space="preserve"><value>External display</value></data>
+  <data name="Bt_AddDevice" xml:space="preserve"><value>Add device</value></data>
+  <data name="Bt_ConnectFailed" xml:space="preserve"><value>Couldn't connect — is the device on and nearby?</value></data>
+  <data name="Bt_ConnectInSettings" xml:space="preserve"><value>Connect in Settings ›</value></data>
+  <data name="Bt_Disconnect" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="Bt_DisconnectFailed" xml:space="preserve"><value>Couldn't disconnect</value></data>
+  <data name="Bt_Disconnecting" xml:space="preserve"><value>Disconnecting…</value></data>
+  <data name="Bt_NoPaired" xml:space="preserve"><value>No paired devices</value></data>
+  <data name="Bt_Off" xml:space="preserve"><value>Bluetooth off</value></data>
+  <data name="Bt_OffTurnOn" xml:space="preserve"><value>Bluetooth off; turn on</value></data>
+  <data name="Bt_OnTurnOff" xml:space="preserve"><value>Bluetooth on; turn off</value></data>
+  <data name="Cal_Days" xml:space="preserve"><value>Days</value></data>
+  <data name="Cal_NextMonth" xml:space="preserve"><value>Next month</value></data>
+  <data name="Cal_PreviousMonth" xml:space="preserve"><value>Previous month</value></data>
+  <data name="Cal_TodaySuffix" xml:space="preserve"><value>, today</value></data>
   <data name="Card_Like" xml:space="preserve"><value>Like</value></data>
   <data name="Card_Next" xml:space="preserve"><value>Next track</value></data>
   <data name="Card_NothingPlaying" xml:space="preserve"><value>Nothing is playing</value></data>
@@ -26,6 +42,29 @@
   <data name="Card_Previous" xml:space="preserve"><value>Previous track</value></data>
   <data name="Card_Unlike" xml:space="preserve"><value>Remove from Liked Songs</value></data>
   <data name="Card_UpNext" xml:space="preserve"><value>Up next</value></data>
+  <data name="Clip_ClearUnpinned" xml:space="preserve"><value>Clear unpinned</value></data>
+  <data name="Clip_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Clip_EmptyHint" xml:space="preserve"><value>Things you copy show up here.</value></data>
+  <data name="Clip_ImageSize" xml:space="preserve"><value>Image {0}×{1}</value></data>
+  <data name="Clip_KindCode" xml:space="preserve"><value>Code</value></data>
+  <data name="Clip_KindImage" xml:space="preserve"><value>Image</value></data>
+  <data name="Clip_KindLink" xml:space="preserve"><value>Link</value></data>
+  <data name="Clip_KindText" xml:space="preserve"><value>Text</value></data>
+  <data name="Clip_NoScreenshots" xml:space="preserve"><value>No screenshots yet</value></data>
+  <data name="Clip_OpenFolder" xml:space="preserve"><value>Open folder</value></data>
+  <data name="Clip_Pin" xml:space="preserve"><value>Pin</value></data>
+  <data name="Clip_ScreenshotA11y" xml:space="preserve"><value>Screenshot: {0}</value></data>
+  <data name="Clip_Screenshots" xml:space="preserve"><value>Screenshots</value></data>
+  <data name="Clip_ShowInFolder" xml:space="preserve"><value>Show in folder</value></data>
+  <data name="Clip_Unpin" xml:space="preserve"><value>Unpin</value></data>
+  <data name="Common_Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Common_Connect" xml:space="preserve"><value>Connect</value></data>
+  <data name="Common_Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="Common_Connecting" xml:space="preserve"><value>Connecting…</value></data>
+  <data name="Common_CouldNotChange" xml:space="preserve"><value>Couldn't change</value></data>
+  <data name="Common_NotConnected" xml:space="preserve"><value>Not connected</value></data>
+  <data name="Common_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Common_On" xml:space="preserve"><value>On</value></data>
   <data name="Dock_MoreApps_One" xml:space="preserve"><value>{0} more app</value></data>
   <data name="Dock_MoreApps_Other" xml:space="preserve"><value>{0} more apps</value></data>
   <data name="Dock_NeedsAttention" xml:space="preserve"><value>needs attention</value></data>
@@ -36,6 +75,7 @@
   <data name="Flash_CopyFailedBusy" xml:space="preserve"><value>Couldn't copy — clipboard busy</value></data>
   <data name="Flash_Muted" xml:space="preserve"><value>Muted</value></data>
   <data name="Flash_Unavailable" xml:space="preserve"><value>{0} unavailable</value></data>
+  <data name="Format_CalendarDayA11y" xml:space="preserve"><value>dddd, MMMM d, yyyy</value></data>
   <data name="Island_AdaListening" xml:space="preserve"><value>Ada is listening</value></data>
   <data name="Island_Copied" xml:space="preserve"><value>Copied</value></data>
   <data name="Island_Copy" xml:space="preserve"><value>Copy</value></data>
@@ -58,8 +98,31 @@
   <data name="Mic_NotFound" xml:space="preserve"><value>No microphone found</value></data>
   <data name="Mic_Off" xml:space="preserve"><value>Microphone off</value></data>
   <data name="Mic_On" xml:space="preserve"><value>Microphone on</value></data>
+  <data name="Qs_BatteryOpenSettings" xml:space="preserve"><value>{0}. Open battery settings</value></data>
+  <data name="Qs_BrightnessOf" xml:space="preserve"><value>{0} brightness</value></data>
+  <data name="Qs_DarkTheme" xml:space="preserve"><value>Dark mode</value></data>
+  <data name="Qs_Focus" xml:space="preserve"><value>Focus</value></data>
+  <data name="Qs_OpenInSettings" xml:space="preserve"><value>Open in Settings</value></data>
+  <data name="Qs_TaskManager" xml:space="preserve"><value>Task Manager</value></data>
+  <data name="Qs_TileList" xml:space="preserve"><value>{0} list</value></data>
+  <data name="Qs_Title" xml:space="preserve"><value>Quick settings</value></data>
   <data name="Record_Help" xml:space="preserve"><value>Play or pause</value></data>
   <data name="Record_Name" xml:space="preserve"><value>Record player</value></data>
+  <data name="Sound_AppVolume" xml:space="preserve"><value>{0} volume</value></data>
+  <data name="Sound_AppVolumeMuted" xml:space="preserve"><value>{0} volume, muted</value></data>
+  <data name="Sound_Apps" xml:space="preserve"><value>Apps</value></data>
+  <data name="Sound_Mic" xml:space="preserve"><value>Microphone</value></data>
+  <data name="Sound_MicTurnOff" xml:space="preserve"><value>Turn microphone off</value></data>
+  <data name="Sound_MicTurnOn" xml:space="preserve"><value>Turn microphone on</value></data>
+  <data name="Sound_Mute" xml:space="preserve"><value>Mute</value></data>
+  <data name="Sound_MutedInWindows" xml:space="preserve"><value>Muted in Windows</value></data>
+  <data name="Sound_NoApps" xml:space="preserve"><value>No apps are playing sound right now.</value></data>
+  <data name="Sound_NoMic" xml:space="preserve"><value>No microphone found.</value></data>
+  <data name="Sound_NoOutput" xml:space="preserve"><value>No audio output device found.</value></data>
+  <data name="Sound_Output" xml:space="preserve"><value>Output</value></data>
+  <data name="Sound_Selected" xml:space="preserve"><value>{0}, selected</value></data>
+  <data name="Sound_Unmute" xml:space="preserve"><value>Unmute</value></data>
+  <data name="Sound_Volume" xml:space="preserve"><value>Volume</value></data>
   <data name="Start_AllApps" xml:space="preserve"><value>All apps</value></data>
   <data name="Start_AreYouSure" xml:space="preserve"><value>Are you sure?</value></data>
   <data name="Start_Back" xml:space="preserve"><value>← Back</value></data>
@@ -78,6 +141,22 @@
   <data name="Tray_Empty" xml:space="preserve"><value>No apps are running in the background.</value></data>
   <data name="Tray_Hint" xml:space="preserve"><value>Left-click opens the app; right-click shows the app's own menu.</value></data>
   <data name="Tray_Title" xml:space="preserve"><value>Running in the background</value></data>
+  <data name="Wifi_ConnectFailed" xml:space="preserve"><value>Couldn't connect</value></data>
+  <data name="Wifi_Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="Wifi_Disconnect" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="Wifi_HidePassword" xml:space="preserve"><value>Hide password</value></data>
+  <data name="Wifi_MoreSettings" xml:space="preserve"><value>More networks and Wi‑Fi settings</value></data>
+  <data name="Wifi_NeedsLocation" xml:space="preserve"><value>Windows location permission is needed to see network names.</value></data>
+  <data name="Wifi_NoNetworks" xml:space="preserve"><value>No networks found</value></data>
+  <data name="Wifi_Off" xml:space="preserve"><value>Wi‑Fi off</value></data>
+  <data name="Wifi_OffTurnOn" xml:space="preserve"><value>Wi‑Fi off; turn on</value></data>
+  <data name="Wifi_OnTurnOff" xml:space="preserve"><value>Wi‑Fi on; turn off</value></data>
+  <data name="Wifi_OpenLocationSettings" xml:space="preserve"><value>Open location settings</value></data>
+  <data name="Wifi_OpenNetwork" xml:space="preserve"><value>Open network</value></data>
+  <data name="Wifi_PasswordFor" xml:space="preserve"><value>{0} password</value></data>
+  <data name="Wifi_Searching" xml:space="preserve"><value>Searching…</value></data>
+  <data name="Wifi_ShowPassword" xml:space="preserve"><value>Show password</value></data>
+  <data name="Wifi_WrongPassword" xml:space="preserve"><value>The password may be wrong</value></data>
   <data name="Window_Island" xml:space="preserve"><value>CamAda island</value></data>
   <data name="Window_Record" xml:space="preserve"><value>CamAda record player</value></data>
   <data name="Window_Strip" xml:space="preserve"><value>CamAda strip</value></data>

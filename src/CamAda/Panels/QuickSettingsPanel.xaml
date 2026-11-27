@@ -1,6 +1,7 @@
 <UserControl x:Class="CamAda.Panels.QuickSettingsPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core"
              xmlns:local="clr-namespace:CamAda.Panels">
     <Grid ClipToBounds="True">
         <!-- Ana sayfa (tasarım "Panel"): başlık + pil, 2×2 kutucuk, parlaklık, düğmeler -->
@@ -15,7 +16,7 @@
                                    Typography.NumeralAlignment="Tabular" />
                     </StackPanel>
                 </Button>
-                <TextBlock Text="Hızlı ayarlar" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Static t:UiStrings.Qs_Title}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
             </DockPanel>
 
             <UniformGrid Columns="2">
@@ -29,10 +30,10 @@
             <StackPanel x:Name="BrightnessRows" Margin="0,14,0,0" Visibility="Collapsed" />
 
             <UniformGrid Columns="2" Margin="0,14,0,0">
-                <Button Style="{StaticResource PanelButton}" Content="Ekran görüntüsü" Margin="0,0,5,8" Click="Screenshot_Click" />
-                <Button Style="{StaticResource PanelButton}" Content="Kilitle" Margin="5,0,0,8" Click="Lock_Click" />
-                <Button Style="{StaticResource PanelButton}" Content="Uyku" Margin="0,0,5,0" Click="Sleep_Click" />
-                <Button Style="{StaticResource PanelButton}" Content="Görev Yöneticisi" Margin="5,0,0,0" Click="TaskManager_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Island_Screenshot}" Margin="0,0,5,8" Click="Screenshot_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Start_Lock}" Margin="5,0,0,8" Click="Lock_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Start_Sleep}" Margin="0,0,5,0" Click="Sleep_Click" />
+                <Button Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Qs_TaskManager}" Margin="5,0,0,0" Click="TaskManager_Click" />
             </UniformGrid>
         </StackPanel>
 

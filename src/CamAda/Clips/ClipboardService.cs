@@ -84,7 +84,7 @@ public sealed class ClipboardService : IDisposable
         _source.AddHook(Hook);
         if (!Native.AddClipboardFormatListener(_source.Handle))
         {
-            log(new InvalidOperationException($"Pano dinleyicisi kurulamadı ({Marshal.GetLastWin32Error()})."));
+            log(new InvalidOperationException($"Pano dinleyicisi kurulamadı ({Marshal.GetLastWin32Error()}).")); // i18n-ignore: günlük
         }
     }
 

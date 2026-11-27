@@ -23,6 +23,7 @@ public partial class NoHardcodedTurkishTests
         "src/CamAda/Assistant/AdaToolRunner.cs",
         "src/CamAda/Assistant/CurrentInfoClient.cs",
         "src/CamAda/Assistant/AdaSpeech.cs",
+        "src/CamAda/Weather/WeatherLookup.cs",
     ];
 
     private static readonly string[] PermanentPrefixes = ["src/CamAda/Assistant/AdaProbes"];
@@ -39,25 +40,11 @@ public partial class NoHardcodedTurkishTests
         "src/CamAda/Assistant/MemoryFile.cs",
         "src/CamAda/Assistant/NotepadWriter.cs",
         "src/CamAda/Assistant/ReminderFile.cs",
-        "src/CamAda/Clips/ClipboardService.cs",
         "src/CamAda/Panels/AdaPanel.xaml",
         "src/CamAda/Panels/AdaPanel.xaml.cs",
-        "src/CamAda/Panels/BluetoothListView.xaml",
-        "src/CamAda/Panels/BluetoothListView.xaml.cs",
-        "src/CamAda/Panels/CalendarPanel.xaml",
-        "src/CamAda/Panels/CalendarPanel.xaml.cs",
-        "src/CamAda/Panels/ClipboardPanel.xaml",
-        "src/CamAda/Panels/ClipboardPanel.xaml.cs",
-        "src/CamAda/Panels/QuickSettingsPanel.xaml",
-        "src/CamAda/Panels/QuickSettingsPanel.xaml.cs",
-        "src/CamAda/Panels/SoundPanel.xaml",
-        "src/CamAda/Panels/SoundPanel.xaml.cs",
-        "src/CamAda/Panels/WifiListView.xaml",
-        "src/CamAda/Panels/WifiListView.xaml.cs",
         "src/CamAda/Spotify/LoopbackCallback.cs",
         "src/CamAda/Spotify/SpotifyConnectView.xaml",
         "src/CamAda/Spotify/SpotifyConnectView.xaml.cs",
-        "src/CamAda/Weather/WeatherLookup.cs",
     ];
 
     private static readonly HashSet<string> Brands = new(StringComparer.Ordinal)

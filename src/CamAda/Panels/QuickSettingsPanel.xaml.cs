@@ -10,6 +10,7 @@ using CamAda.Core.Network;
 using CamAda.Core.Power;
 using CamAda.QuickSettings;
 using Windows.Devices.Radios;
+using CamAda.Core.Text;
 
 namespace CamAda.Panels;
 
@@ -43,10 +44,10 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         BluetoothTile.HasDetails = services.Bluetooth is not null;
         BluetoothTile.DetailsRequested += (_, _) => ShowPage(QuickPage.Bluetooth);
         FocusTile.Glyph = QuickGlyphs.Focus;
-        FocusTile.Title = "Odak";
-        FocusTile.Subtitle = "Ayarlarda aç";
+        FocusTile.Title = UiStrings.Qs_Focus;
+        FocusTile.Subtitle = UiStrings.Qs_OpenInSettings;
         ThemeTile.Glyph = QuickGlyphs.Theme;
-        ThemeTile.Title = "Koyu tema";
+        ThemeTile.Title = UiStrings.Qs_DarkTheme;
 
         Loaded += (_, _) =>
         {
@@ -213,7 +214,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
             Margin = new Thickness(16, 0, 8, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
-        AutomationProperties.SetName(slider, $"{display.Name} parlaklığı");
+        AutomationProperties.SetName(slider, string.Format(UiStrings.Qs_BrightnessOf, display.Name));
         var percent = new TextBlock
         {
             FontSize = 12.5,
@@ -232,11 +233,11 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         _updatingBrightness = true;
         slider.Value = display.Level;
         _updatingBrightness = false;
-        percent.Text = $"%{display.Level}";
+        percent.Text = Formats.Percent(display.Level, System.Globalization.CultureInfo.CurrentUICulture);
         slider.ValueChanged += (_, e) =>
         {
             var level = (int)Math.Round(e.NewValue);
-            percent.Text = $"%{level}";
+            percent.Text = Formats.Percent(level, System.Globalization.CultureInfo.CurrentUICulture);
             if (!_updatingBrightness)
             {
                 brightness.Set(id, level);
@@ -263,7 +264,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         _updatingBrightness = true;
         row.Slider.Value = change.Level;
         _updatingBrightness = false;
-        row.Percent.Text = $"%{change.Level}";
+        row.Percent.Text = Formats.Percent(change.Level, System.Globalization.CultureInfo.CurrentUICulture);
     }
 
     private void Refresh()
@@ -274,7 +275,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         BatteryHeaderText.Text = header ?? "";
         BatteryHeaderGlyph.Text = QuickGlyphs.Battery(BatteryText.Icon(battery));
         System.Windows.Automation.AutomationProperties.SetName(BatteryHeader,
-            $"{BatteryText.AccessibleName(battery, System.Globalization.CultureInfo.CurrentUICulture)}. Pil ayarlarını aç");
+            string.Format(UiStrings.Qs_BatteryOpenSettings, BatteryText.AccessibleName(battery, System.Globalization.CultureInfo.CurrentUICulture)));
 
         var radios = _services.Radios;
         WifiTile.IsAvailable = radios?.HasWifi == true;
@@ -287,7 +288,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         BluetoothTile.Subtitle = BluetoothKinds.TileSubtitle(radios?.HasBluetooth == true, radios?.BluetoothOn == true, connected, System.Globalization.CultureInfo.CurrentUICulture);
 
         ThemeTile.IsOn = _services.Theme.IsDark;
-        ThemeTile.Subtitle = _services.Theme.IsDark ? "Açık" : "Kapalı";
+        ThemeTile.Subtitle = _services.Theme.IsDark ? UiStrings.Common_On : UiStrings.Common_Off;
     }
 
     private async Task ToggleRadioAsync(QuickTile tile, RadioKind kind, bool currentlyOn)
@@ -302,7 +303,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         tile.IsBusy = false;
         if (!ok)
         {
-            tile.ShowNote("Değiştirilemedi");
+            tile.ShowNote(UiStrings.Common_CouldNotChange);
         }
 
         Refresh();
@@ -329,7 +330,7 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or System.IO.IOException)
         {
-            ThemeTile.ShowNote("Değiştirilemedi");
+            ThemeTile.ShowNote(UiStrings.Common_CouldNotChange);
         }
         finally
         {
