@@ -1,8 +1,19 @@
-# Camada
+<p align="center">
+  <img src="docs/media/camada-banner.jpg" alt="Camada logosu: parlayan camdan bir C harfi">
+</p>
 
-[English](README.md) · **Türkçe**
+<h1 align="center">Camada</h1>
 
-[![CI](https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg)](https://github.com/virtus-xd/camada/actions/workflows/ci.yml) · Lisans: [Apache 2.0](LICENSE)
+<p align="center"><b>Windows 11 görev çubuğunun yerine geçen cam ada; isteğe bağlı sesli asistanıyla.</b></p>
+
+<p align="center">
+  <a href="https://github.com/virtus-xd/camada/releases/latest"><img alt="Son sürüm" src="https://img.shields.io/github/v/release/virtus-xd/camada?label=release"></a>
+  <a href="https://github.com/virtus-xd/camada/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="Lisans: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
+  <img alt="Windows 11" src="https://img.shields.io/badge/Windows-11-0078D4">
+</p>
+
+<p align="center"><a href="README.md">English</a> · <b>Türkçe</b></p>
 
 Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam ada koyar. Ada normalde küçüktür; saati ve çalan müziği gösterir. Üzerine gelince genişler: sabitlediğiniz uygulamalar, açık pencereler, sistem tepsisi, Wi‑Fi, Bluetooth, ses, parlaklık, takvim, pano geçmişi ve ekran görüntüleri tek dokunuş uzağınızdadır.
 

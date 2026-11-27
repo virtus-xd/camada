@@ -486,3 +486,5 @@ $RECYCLE.BIN/
 
 # Store paketi çıktısı (tools/package.ps1)
 out/
+# Playwright tarayıcı denemelerinin dökümleri
+.playwright-mcp/

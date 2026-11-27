@@ -1,8 +1,19 @@
-# Camada
+<p align="center">
+  <img src="docs/media/camada-banner.jpg" alt="Camada logo: a glowing glass letter C">
+</p>
 
-**English** · [Türkçe](README.tr.md)
+<h1 align="center">Camada</h1>
 
-[![CI](https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg)](https://github.com/virtus-xd/camada/actions/workflows/ci.yml) · License: [Apache 2.0](LICENSE)
+<p align="center"><b>A glass island that replaces the Windows 11 taskbar, with an optional voice assistant.</b></p>
+
+<p align="center">
+  <a href="https://github.com/virtus-xd/camada/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/virtus-xd/camada?label=release"></a>
+  <a href="https://github.com/virtus-xd/camada/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue"></a>
+  <img alt="Windows 11" src="https://img.shields.io/badge/Windows-11-0078D4">
+</p>
+
+<p align="center"><b>English</b> · <a href="README.tr.md">Türkçe</a></p>
 
 Camada replaces the Windows taskbar with a sleek glass island at the top of the screen. The island is small by default and shows the time and the music that is playing. Hover over it and it expands: pinned apps, open windows, the system tray, Wi‑Fi, Bluetooth, volume, brightness, a calendar, clipboard history and screenshots are one click away.
 
