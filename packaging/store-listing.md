@@ -61,7 +61,7 @@ Camada is a desktop shell that replaces the Windows taskbar with a floating "isl
 - The optional voice assistant is off by default and requires the user's own Google Gemini API key; no test account is
   needed.
 - UI language: English and Turkish, following the Windows display language ("Dil / Language" in the island's right-click
-  menu switches it). The optional voice assistant Ada speaks Turkish for now.
+  menu switches it). The optional voice assistant Ada speaks the interface language.
 
 ## runFullTrust gerekçesi (restricted capability justification)
 
@@ -73,7 +73,7 @@ AppContainer apps.
 ## English listing
 
 Partner Center → Store listings → add **English (United States)**, then paste these. The UI follows the Windows display
-language; Ada speaks Turkish for now.
+language; Ada speaks the same language.
 
 ### Short description
 
@@ -87,7 +87,7 @@ Wi‑Fi, Bluetooth, volume, brightness, a calendar, clipboard history and screen
 
 The optional voice assistant Ada wakes up when you say "Hey Ada": it opens apps, adjusts volume and brightness, searches the
 web, takes notes, sets reminders and tells you the weather. Ada runs on your own Google Gemini API key, is off by default and
-speaks Turkish for now.
+speaks your interface language.
 
 Hiding the Windows taskbar is entirely your choice and can be undone with one click. The "Restore taskbar" entry in the Start
 menu always brings the taskbar back, and uninstalling the app restores it automatically.

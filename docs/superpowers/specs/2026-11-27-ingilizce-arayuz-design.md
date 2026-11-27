@@ -76,7 +76,7 @@ Kullanıcı "nasıl" kısmını bana bıraktı; A'yı seçtim. Dil değişince *
 
 ### Ada bu adımda
 - Ada panelinin ayar ekranı, adadaki durum/hata satırları ("Dinliyorum…", bağlantı hataları) çevrilir: ekranda görünen = 1. adım, modele giden = 2. adım.
-- İngilizce arayüzde Ada panelinde tek satır not: "Ada speaks Turkish for now — English is coming." (Türkçe arayüzde görünmez.)
+- İngilizce arayüzde Ada panelinde tek satır not: "Ada speaks Turkish for now — English is coming." (Türkçe arayüzde görünmez.) **Plan 12 ile kalktı:** Ada artık arayüz dilinde açılıyor (`2026-11-27-ada-arayuz-dili-design.md`).
 
 ### Paket (MSIX)
 - Başlat menüsü girişleri ve paket açıklaması yerelleştirilir: `packaging/Strings/en-US/Resources.resw` ve `packaging/Strings/tr-TR/Resources.resw`; manifestte `ms-resource:` başvuruları ("Görev çubuğunu geri getir" / "Restore taskbar"); `tools/package.ps1` `makepri` ile `resources.pri` üretir; varsayılan dil `en-US`. Sürüm 1.1.0.
@@ -90,7 +90,7 @@ Kullanıcı "nasıl" kısmını bana bıraktı; A'yı seçtim. Dil değişince *
 - Elle canlı deneme (kullanıcıyla): dil "English" → yeniden başlatma → her panel; "Türkçe" → bugünküyle aynı; "Otomatik"; görev çubuğu gizliyken dil değiştirme (görev çubuğu ve ada yerinde kalmalı); paketli deneme (Başlat menüsü girişi İngilizce/Türkçe).
 
 ### Yayın
-- README (EN/TR): "UI: English and Turkish; Ada speaks Turkish for now."
+- README (EN/TR): "UI: English and Turkish; Ada speaks Turkish for now." (Plan 12 ile: Ada arayüz dilinde konuşur.)
 - `packaging/store-listing.md`: İngilizce liste metni (kısa açıklama, açıklama, özellikler, arama terimleri); Partner Center'da İngilizce listeyi kullanıcı ekler.
 
 ## Geliştiriciye kalanlar

@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/d1baf50b-d273-454d-ac15-0a2342cc7311
 
 ## Status
 
-Early release. The interface is available in English and Turkish: it follows your Windows display language, and you can switch it with **Dil / Language** in the island's right-click menu. Ada speaks Turkish for now; English is next. Camada is coming to the Microsoft Store.
+Early release. The interface is available in English and Turkish: it follows your Windows display language, and you can switch it with **Dil / Language** in the island's right-click menu. Ada speaks the interface language and switches to another language when you ask. Camada is coming to the Microsoft Store.
 
 ## Taskbar safety net
 

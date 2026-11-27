@@ -56,7 +56,6 @@ internal sealed partial class AdaPanel : UserControl
     public AdaPanel(AdaPanelServices services)
     {
         InitializeComponent();
-        TurkishOnlyNote.Visibility = UiLanguage.IsTurkish(CultureInfo.CurrentUICulture) ? Visibility.Collapsed : Visibility.Visible;
         _services = services;
         Loaded += (_, _) => _services.Memory.Changed += OnMemoryChanged;
         Unloaded += (_, _) =>

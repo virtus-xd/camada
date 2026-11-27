@@ -19,7 +19,6 @@
   <data name="AdaPanel_MyVoice" xml:space="preserve"><value>My voice</value></data>
   <data name="AdaPanel_Save" xml:space="preserve"><value>Save</value></data>
   <data name="AdaPanel_Title" xml:space="preserve"><value>Ada — voice assistant</value></data>
-  <data name="AdaPanel_TurkishOnlyNote" xml:space="preserve"><value>Ada speaks Turkish for now — English is coming.</value></data>
   <data name="AdaPanel_VoiceIntro" xml:space="preserve"><value>When other voices are around, Ada only listens to sentences that start with "Ada". Your recording isn't kept; only a numeric voiceprint is stored, encrypted, on this PC.</value></data>
   <data name="Ada_Error_ConnectionLost" xml:space="preserve"><value>Connection lost</value></data>
   <data name="Ada_Error_InvalidKey" xml:space="preserve"><value>Gemini key is invalid — renew it in Ada settings</value></data>
