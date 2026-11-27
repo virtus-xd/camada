@@ -31,7 +31,19 @@
     <!-- WFO0003: DPI ayarı app.manifest'te WPF için; Windows Forms pencere açmaz. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Temel dil İngilizce; Türkçe tr uydu derlemesinde (Text/*.tr.resx). -->
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Text\UiStrings.resx">
+      <StronglyTypedLanguage>CSharp</StronglyTypedLanguage>
+      <StronglyTypedNamespace>CamAda.Text</StronglyTypedNamespace>
+      <StronglyTypedClassName>UiStrings</StronglyTypedClassName>
+      <StronglyTypedFileName>$(IntermediateOutputPath)UiStrings.Designer.cs</StronglyTypedFileName>
+      <PublicClass>true</PublicClass>
+    </EmbeddedResource>
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Windows Forms yalnız ManagedShell için (.NET içinde paketlenince gerekir); WPF adlarıyla çakışmasın. -->

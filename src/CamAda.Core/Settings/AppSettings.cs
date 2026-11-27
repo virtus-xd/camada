@@ -55,6 +55,9 @@ public sealed record AppSettings
     /// <summary>Kullanıcının Spotify geliştirici uygulamasının Client ID'si (beğen ve sıradaki için). null: bağlı değil.</summary>
     public string? SpotifyClientId { get; init; }
 
+    /// <summary>Arayüz dili: null = Windows'un görüntü diline uy, "tr" ya da "en" (bkz. Text.UiLanguage).</summary>
+    public string? Language { get; init; }
+
     /// <summary>Genel kısayollar (ör. Ctrl+Shift+M ile mikrofon).</summary>
     public HotkeySettings Hotkeys { get; init; } = new();
 

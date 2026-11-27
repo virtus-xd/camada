@@ -120,6 +120,7 @@ public sealed class SettingsStore
             Record = SanitizeRecord(s.Record),
             Assistant = SanitizeAssistant(s.Assistant),
             SpotifyClientId = string.IsNullOrWhiteSpace(s.SpotifyClientId) ? null : s.SpotifyClientId.Trim(),
+            Language = s.Language is "tr" or "en" ? s.Language : null,
             Hotkeys = new HotkeySettings
             {
                 MicToggle = Input.Hotkey.TryParse(s.Hotkeys?.MicToggle)?.ToString() ?? HotkeySettings.DefaultMicToggle,

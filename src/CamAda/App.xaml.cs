@@ -18,6 +18,7 @@ using CamAda.Core.Diagnostics;
 using CamAda.Core.Safety;
 using CamAda.Core.Settings;
 using CamAda.Core.Startup;
+using CamAda.Core.Text;
 using CamAda.Interop;
 using CamAda.Island;
 using CamAda.Media;
@@ -33,6 +34,9 @@ namespace CamAda;
 
 public partial class App : Application
 {
+    /// <summary>Windows'un görüntü dili: uygulama kendi arayüz dilini ayarlamadan önce, sınıf yüklenirken okunur.</summary>
+    private static readonly System.Globalization.CultureInfo WindowsUiCulture = System.Globalization.CultureInfo.CurrentUICulture;
+
     private static readonly string RoamingDir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CamAda");
 
@@ -134,6 +138,7 @@ public partial class App : Application
 
         _settingsStore = new SettingsStore(RoamingDir);
         _settings = _settingsStore.Load();
+        ApplyUiLanguage(_settings.Language); // ilk pencereden önce
         EnsurePinnedApps();
         _autostart = new AutostartService(PackageContext.IsPackaged, LogCrash);
         _ = _autostart.ApplyAsync(_settings.StartWithWindows);
@@ -1104,6 +1109,14 @@ public partial class App : Application
         {
             return true; // önceki örnek kilidi bırakmadan çıktı: kilit artık bizde
         }
+    }
+
+    /// <summary>Arayüz dilini bir kez uygular: metinler CurrentUICulture'dan, saat/sayı biçimi Windows'un bölge ayarından.</summary>
+    private static void ApplyUiLanguage(string? setting)
+    {
+        var ui = UiLanguage.Resolve(setting, WindowsUiCulture);
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = ui;
+        System.Globalization.CultureInfo.CurrentUICulture = ui;
     }
 
     /// <summary>Yeni örneği başlatır (önceki kapanana kadar bekler) ve bu örneği temiz kapatır.</summary>
