@@ -49,7 +49,7 @@ Tüm komutlar Git Bash'te, depo kökünde.
 - [ ] **Step 1: Başlangıç durumunu doğrula**
 
 Run: `git status --porcelain; git stash list; git branch --format='%(refname:short)'`
-Expected: ilk ikisi boş; dallar tam olarak `github-acik-kaynak`, `main`, `plan-10-store-paketi`.
+Expected: `git status` yalnız `?? out/` gösterir (Store paket çıktısı; `out/` kuralı yalnız Store dalının `.gitignore`'unda, `main`'de yok — dokunma, asla commit etme, commit'lerde hep açık yol ver); stash boş; dallar tam olarak `github-acik-kaynak`, `main`, `plan-10-store-paketi`.
 
 - [ ] **Step 2: Test sayılarını kaydet**
 
@@ -116,7 +116,7 @@ CAMADA_DEGISTIR="$T/degistir.json" git filter-repo --force \
   --message-callback "$(cat "$T/message.py")"
 cp .git/filter-repo/commit-map .git/filter-repo/ref-map "$USERPROFILE/camada-yedek-2026-11-27/"
 ```
-Expected: hatasız biter; `git status --porcelain` boş; `.superpowers/` ve `out/` yerinde.
+Expected: hatasız biter; `git status --porcelain` yalnız `?? out/`; `.superpowers/` ve `out/` yerinde.
 
 - [ ] **Step 9: Tarayıcı ve sır taraması temiz (yeşil)**
 
