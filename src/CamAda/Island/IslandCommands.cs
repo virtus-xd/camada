@@ -8,8 +8,11 @@ namespace CamAda.Island;
 /// <param name="Exit">Görev çubuğunu geri getirip uygulamadan çıkar.</param>
 /// <param name="GetGlassMode">Kayıtlı cam görünümü.</param>
 /// <param name="SetGlassMode">Cam görünümünü ayarlara kaydeder.</param>
-/// <param name="IsStartWithWindows">Oturum açılınca başlama açık mı.</param>
-/// <param name="SetStartWithWindows">Ayarı kaydeder ve Run anahtarını yazar ya da siler.</param>
+/// <param name="IsStartWithWindows">Oturum açılınca başlama Windows'ta şu an açık mı.</param>
+/// <param name="SetStartWithWindows">
+/// Ayarı kaydeder; paketliyse başlangıç görevini, değilse Run anahtarını uygular. Kullanıcı Windows'ta kapatmışsa
+/// başlangıç uygulamaları ayarını açar.
+/// </param>
 /// <param name="IsRecordHidden">Masaüstü plağı şu an gizli mi.</param>
 /// <param name="SetRecordHidden">Ayarı kaydeder ve plağı kapatır ya da yeniden kurar.</param>
 /// <param name="IsAssistantEnabled">Sesli asistan Ada açık mı.</param>

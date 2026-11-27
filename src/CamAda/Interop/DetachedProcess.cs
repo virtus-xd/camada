@@ -8,7 +8,8 @@ namespace CamAda.Interop;
 /// <summary>
 /// Bekçi süreci, ana süreçle birlikte öldürülemesin diye Explorer'ın alt süreci olarak ve ana sürecin
 /// iş nesnesinin (job) dışında başlatır. Böylece "Süreç ağacını sonlandır" ya da kapanınca alt süreçleri
-/// öldüren bir başlatıcı bekçiyi de götürmez.
+/// öldüren bir başlatıcı bekçiyi de götürmez. Paketliyken Explorer'ın çocuğu yapılan süreç Explorer'ın jetonunu
+/// alıp paket kimliğini kaybeder; o yüzden paketliyken Windows'un uygulama etkinleştirmesi kullanılır.
 /// </summary>
 internal static class DetachedProcess
 {
@@ -18,9 +19,26 @@ internal static class DetachedProcess
     private const uint CREATE_NO_WINDOW = 0x08000000;
     private static readonly nint PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = 0x00020000;
 
-    /// <summary>Süreci başlatır ve kimliğini döner. Explorer üstünden başlatılamazsa normal yolla başlatır.</summary>
+    /// <summary>
+    /// Süreci başlatır ve kimliğini döner. Paketliyken uygulama etkinleştirmesiyle (olmazsa paket kimliğini miras alan
+    /// alt süreç olarak), paketsizken Explorer üstünden (olmazsa normal yolla) başlatır.
+    /// </summary>
     public static int Start(string exePath, string arguments)
     {
+        if (Startup.PackageContext.IsPackaged)
+        {
+            try
+            {
+                return Startup.PackagedActivation.Start(arguments);
+            }
+            catch (Exception ex) when (ex is COMException or InvalidOperationException or UnauthorizedAccessException)
+            {
+                Debug.WriteLine($"Paketli etkinleştirme başarısız, alt süreç olarak başlatılıyor: {ex.Message}");
+            }
+
+            return StartChild(exePath, arguments);
+        }
+
         var explorerPid = GetShellProcessId();
         if (explorerPid != 0)
         {
@@ -33,9 +51,15 @@ internal static class DetachedProcess
             }
         }
 
-        using var fallback = Process.Start(new ProcessStartInfo(exePath, arguments) { UseShellExecute = false })
-                             ?? throw new Win32Exception("Bekçi süreci başlatılamadı.");
-        return fallback.Id;
+        return StartChild(exePath, arguments);
+    }
+
+    /// <summary>Kendi alt sürecimiz olarak başlatır (paketliyken paket kimliğini miras alır).</summary>
+    private static int StartChild(string exePath, string arguments)
+    {
+        using var child = Process.Start(new ProcessStartInfo(exePath, arguments) { UseShellExecute = false })
+                          ?? throw new Win32Exception("Süreç başlatılamadı.");
+        return child.Id;
     }
 
     private static int GetShellProcessId()

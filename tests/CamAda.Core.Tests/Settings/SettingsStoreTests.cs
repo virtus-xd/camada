@@ -12,7 +12,7 @@ public class SettingsStoreTests : IDisposable
     {
         var store = new SettingsStore(_dir);
         var s = store.Load();
-        Assert.True(s.HideWindowsTaskbar);
+        Assert.False(s.HideWindowsTaskbar); // yeni kullanıcı onaylamadan görev çubuğu gizlenmez
         Assert.True(s.StartWithWindows);
         Assert.Equal(GlassMode.Wallpaper, s.GlassMode);
         Assert.Equal(56, s.StripHeight);

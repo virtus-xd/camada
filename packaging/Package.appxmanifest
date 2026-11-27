@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Store paketi manifest şablonu. tools/package.ps1 {Name}, {Publisher}, {PublisherDisplayName} ve {Version} belirteçlerini
+  doldurup out/msix/layout/AppxManifest.xml olarak yazar. Kimlik değerleri packaging/store-identity.json'dan gelir.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap10 desktop rescap">
+  <Identity Name="{Name}" Publisher="{Publisher}" Version="{Version}" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>Camada</DisplayName>
+    <PublisherDisplayName>{PublisherDisplayName}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22621.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="tr-TR" />
+  </Resources>
+  <Applications>
+    <Application Id="CamAda" Executable="CamAda.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Camada" Description="Görev çubuğunun yerine geçen cam ada" BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <desktop:Extension Category="windows.startupTask" Executable="CamAda.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="CamAdaStartup" Enabled="true" DisplayName="Camada" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+    <Application Id="Kurtar" Executable="CamAda.exe" EntryPoint="Windows.FullTrustApplication" uap10:Parameters="--restore-taskbar">
+      <uap:VisualElements DisplayName="Görev çubuğunu geri getir" Description="Camada'yı kapatır ve Windows görev çubuğunu geri getirir"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <DeviceCapability Name="microphone" />
+    <DeviceCapability Name="location" />
+    <DeviceCapability Name="wiFiControl" />
+    <DeviceCapability Name="bluetooth" />
+    <DeviceCapability Name="radios" />
+  </Capabilities>
+</Package>

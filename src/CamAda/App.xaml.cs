@@ -27,6 +27,7 @@ using CamAda.Spotify;
 using CamAda.Weather;
 using CamAda.Safety;
 using CamAda.Shell;
+using CamAda.Startup;
 
 namespace CamAda;
 
@@ -44,6 +45,7 @@ public partial class App : Application
     private StripAppBar? _strip;
     private IslandWindow? _island;
     private Process? _watchdog;
+    private AutostartService? _autostart;
     private DockViewModel? _dock;
     private NowPlayingService? _media;
     private WeatherService? _weather;
@@ -117,6 +119,11 @@ public partial class App : Application
             return;
         }
 
+        if (PackageContext.IsPackaged)
+        {
+            AppRestart.RegisterAfterUpdate(); // Store güncellemesi kapattıktan sonra Windows yeniden açsın
+        }
+
         // Önceki oturum hem ana süreci hem bekçiyi kaybettiyse görev çubuğunu önce geri getir.
         if (WatchdogDecision.ShouldRestore(_safety.Load()))
         {
@@ -128,7 +135,8 @@ public partial class App : Application
         _settingsStore = new SettingsStore(RoamingDir);
         _settings = _settingsStore.Load();
         EnsurePinnedApps();
-        ApplyAutostart(_settings.StartWithWindows);
+        _autostart = new AutostartService(PackageContext.IsPackaged, LogCrash);
+        _ = _autostart.ApplyAsync(_settings.StartWithWindows);
 
         _hostsTray = _settings.HideWindowsTaskbar;
         _shell = new ShellHost(_hostsTray);
@@ -166,7 +174,7 @@ public partial class App : Application
                 _settings = _settings with { GlassMode = mode };
                 _settingsStore.Save(_settings);
             },
-            IsStartWithWindows: () => _settings.StartWithWindows,
+            IsStartWithWindows: () => _autostart!.IsOn,
             SetStartWithWindows: SetStartWithWindows,
             IsRecordHidden: () => _record is null,
             SetRecordHidden: SetRecordHidden,
@@ -616,15 +624,18 @@ public partial class App : Application
             Launcher = CreateQuickLauncher(),
             Radios = IsAbsentForTest("radios") ? null : _radios,
             Brightness = _brightness,
-            Wifi = await CreateWifiAsync(),
+            Wifi = await CreateWifiAsync(_radios?.HasWifi ?? false),
             Bluetooth = _bluetooth = IsAbsentForTest("bluetooth") ? null : new BluetoothService(Dispatcher),
         };
         _island.Bar.WifiClicked += (_, _) => OpenQuickSettings();
         _island.Bar.BatteryClicked += (_, _) => OpenQuickSettings();
     }
 
-    /// <summary>Wi‑Fi listesi; adaptör yoksa ya da kurulamazsa null (kutucukta liste oku görünmez).</summary>
-    private static async Task<WifiService?> CreateWifiAsync()
+    /// <summary>
+    /// Wi‑Fi listesi; adaptör yoksa ya da kurulamazsa null (kutucukta liste oku görünmez). Paketliyken erişim izni
+    /// açılışta değil, liste ilk açıldığında istenir.
+    /// </summary>
+    private static async Task<WifiService?> CreateWifiAsync(bool hasWifiRadio)
     {
         if (IsAbsentForTest("wifi"))
         {
@@ -633,7 +644,12 @@ public partial class App : Application
 
         try
         {
-            return await WifiService.CreateAsync();
+            return WifiStartup.Decide(PackageContext.IsPackaged, hasWifiRadio) switch
+            {
+                WifiStartupMode.RequestNow => await WifiService.CreateAsync(),
+                WifiStartupMode.Deferred => WifiService.CreateDeferred(),
+                _ => null,
+            };
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
         {
@@ -1037,34 +1053,22 @@ public partial class App : Application
         _record = null;
     }
 
-    private void SetStartWithWindows(bool enabled)
+    private async void SetStartWithWindows(bool enabled)
     {
         _settings = _settings with { StartWithWindows = enabled };
         _settingsStore.Save(_settings);
-        ApplyAutostart(enabled);
-    }
-
-    /// <summary>
-    /// HKCU\...\Run altına çalışan exe'yi yazar ya da değeri siler. Her açılışta yeniden yazılır; uygulama taşınırsa
-    /// (ör. kurulum betiğiyle) Run değeri yeni yeri gösterir.
-    /// </summary>
-    private static void ApplyAutostart(bool enabled)
-    {
-        try
+        var action = await _autostart!.ApplyAsync(enabled);
+        if (action is StartupTaskAction.BlockedByUser or StartupTaskAction.BlockedByPolicy)
         {
-            using var run = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
-            if (enabled && Environment.ProcessPath is { } exe)
+            // Kullanıcı Windows'ta kapatmış: uygulama zorla açamaz, açabileceği yeri gösterir.
+            try
             {
-                run.SetValue(AutostartCommand.RunValueName, AutostartCommand.Build(exe));
+                Process.Start(new ProcessStartInfo("ms-settings:startupapps") { UseShellExecute = true })?.Dispose();
             }
-            else
+            catch (System.ComponentModel.Win32Exception ex)
             {
-                run.DeleteValue(AutostartCommand.RunValueName, throwOnMissingValue: false);
+                LogCrash(ex);
             }
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
-        {
-            Debug.WriteLine($"Açılışta başlatma ayarlanamadı: {ex.Message}");
         }
     }
 

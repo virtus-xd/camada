@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camada — Gizlilik / Privacy</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1b1e26; --muted: #5b6272; --bg: #f7f8fa; --card: #ffffff; --line: #e3e6ec; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #e8ebf1; --muted: #a3aaba; --bg: #14161c; --card: #1b1e26; --line: #2a2f3a; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 8px; }
+  p, li { color: var(--fg); }
+  .muted { color: var(--muted); font-size: 14px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 24px 20px; margin-top: 24px; }
+  ul { padding-left: 20px; }
+  nav a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Camada — Gizlilik politikası</h1>
+  <p class="muted">Son güncelleme: 26 Kasım 2026 · <nav style="display:inline"><a href="#en">English below</a></nav></p>
+
+  <section>
+    <h2>Kısaca</h2>
+    <p>Camada, Windows görev çubuğunun yerine geçen bir masaüstü uygulamasıdır. Hesap açtırmaz, reklam göstermez, kullanım
+      istatistiği ya da başka bir analiz verisi toplamaz ve bize hiçbir veri göndermez. Uygulamanın internete çıktığı tek
+      durumlar aşağıda listelenen, sizin açtığınız özelliklerdir.</p>
+
+    <h2>Sesli asistan Ada (isteğe bağlı, varsayılan olarak kapalı)</h2>
+    <ul>
+      <li>Ada açıkken mikrofon, uyandırma sözcüğünü ("Hey Ada") yakalamak için <strong>yalnız bilgisayarınızda</strong>
+        dinlenir. Bu dinleme sırasında ses hiçbir yere gönderilmez.</li>
+      <li>Uyandırma sözcüğü algılandıktan sonra konuşmanız, yanıt üretilmesi için Google'ın Gemini hizmetine gönderilir.
+        Bu istekler Ada ayarlarına girdiğiniz <strong>kendi Google Gemini API anahtarınızla</strong> yapılır; Google'ın
+        <a href="https://ai.google.dev/gemini-api/terms">Gemini API şartları</a> ve gizlilik politikası geçerlidir.
+        Ücretsiz Gemini anahtarlarında Google, gönderilen içeriği ürünlerini geliştirmek için kullanabilir.</li>
+      <li>Güncel bilgi gerektiren sorularda sorunun metni yine Gemini'ye (Google araması ile) gönderilir.</li>
+      <li>Ada'nın hafızası, hatırlatmaları ve API anahtarınız bilgisayarınızda Windows'un şifrelemesiyle (DPAPI) saklanır.</li>
+      <li>"Misafir kipi"ni kullanırsanız sesinizden çıkarılan ses izi yalnız bilgisayarınızda, şifreli saklanır ve hiçbir
+        yere gönderilmez. Ses izini Ada ayarlarından silebilirsiniz.</li>
+      <li>Ada'nın aldığı notlar Belgeler\Ada Notları, ekran görüntüleri Resimler klasörünüze kaydedilir.</li>
+    </ul>
+
+    <h2>Hava durumu</h2>
+    <p>Hava sorularında seçtiğiniz şehrin adı ve koordinatları, tahmin almak için
+      <a href="https://open-meteo.com/">Open-Meteo</a>'ya gönderilir. Cihazınızın konumu kullanılmaz.</p>
+
+    <h2>Spotify (isteğe bağlı)</h2>
+    <p>Spotify'ı bağlarsanız giriş Spotify'ın kendi sayfasında yapılır; erişim belirteci bilgisayarınızda şifreli saklanır ve
+      yalnız Spotify'a istek yapmak için kullanılır.</p>
+
+    <h2>Wi‑Fi ve konum izni</h2>
+    <p>Windows, çevredeki Wi‑Fi ağlarının listelenmesini konum bilgisi sayar. Camada bu izni yalnız Wi‑Fi listesini
+      açtığınızda ister ve ağ listesini yalnız ekranda göstermek için kullanır; konum bilgisi hiçbir yere gönderilmez.</p>
+
+    <h2>Diğer</h2>
+    <ul>
+      <li>Pano geçmişi bellekte tutulur; yalnız sabitlediğiniz öğeler bilgisayarınıza kaydedilir.</li>
+      <li>Hata kayıtları yalnız bilgisayarınızda tutulur.</li>
+      <li>Uygulamayı kaldırdığınızda ayarları ve Ada verileri de silinir; Belgeler ve Resimler'deki dosyalarınız kalır.</li>
+    </ul>
+
+    <h2>İletişim</h2>
+    <p>Sorularınız için: <a href="mailto:erdemoz2003@gmail.com">erdemoz2003@gmail.com</a></p>
+  </section>
+
+  <section id="en" lang="en">
+    <h2>Camada — Privacy policy (English)</h2>
+    <p>Camada is a desktop app that replaces the Windows taskbar. It has no accounts, no ads, no usage analytics, and sends
+      no data to us. It only connects to the internet for the optional features below, when you turn them on.</p>
+    <ul>
+      <li><strong>Ada voice assistant (optional, off by default):</strong> while Ada is on, the microphone is processed
+        <strong>on your PC only</strong> to detect the wake word ("Hey Ada"). After the wake word, your speech is sent to
+        Google Gemini using <strong>your own Gemini API key</strong>; Google's
+        <a href="https://ai.google.dev/gemini-api/terms">Gemini API terms</a> apply, and on free keys Google may use the
+        content to improve its products. Ada's memory, reminders and your API key are stored on your PC, encrypted with
+        Windows DPAPI. If you use guest mode, your voiceprint is stored encrypted on your PC only and never sent anywhere.</li>
+      <li><strong>Weather:</strong> the city name and its coordinates are sent to Open-Meteo. Your device location is not used.</li>
+      <li><strong>Spotify (optional):</strong> sign-in happens on Spotify's page; the access token is stored encrypted on your PC.</li>
+      <li><strong>Wi‑Fi:</strong> Windows treats listing nearby networks as location data. Camada asks only when you open the
+        Wi‑Fi list and uses it only to show the list on screen.</li>
+      <li>Clipboard history stays in memory (only pinned items are saved). Error logs stay on your PC. Uninstalling removes
+        the app's settings and Ada data; your files in Documents and Pictures remain.</li>
+    </ul>
+    <p><strong>Contact:</strong> <a href="mailto:erdemoz2003@gmail.com">erdemoz2003@gmail.com</a></p>
+  </section>
+</main>
+</body>
+</html>
