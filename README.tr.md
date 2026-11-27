@@ -8,7 +8,7 @@ Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam
 
 İsteğe bağlı sesli asistan Ada, "Hey Ada" dediğinizde uyanır: uygulama açar, ses ve parlaklığı ayarlar, web'de arar, not alır, hatırlatma kurar ve hava durumunu söyler. Ada kendi Google Gemini API anahtarınızla çalışır ve varsayılan olarak kapalıdır.
 
-<!-- Ekran görüntüsü: hakkı olan bir duvar kâğıdıyla eklenecek -->
+https://github.com/user-attachments/assets/d1baf50b-d273-454d-ac15-0a2342cc7311
 
 ## Özellikler
 

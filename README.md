@@ -8,7 +8,7 @@ Camada replaces the Windows taskbar with a sleek glass island at the top of the 
 
 The optional voice assistant Ada wakes up when you say "Hey Ada": it opens apps, adjusts volume and brightness, searches the web, takes notes, sets reminders and tells you the weather. Ada runs on your own Google Gemini API key and is off by default.
 
-<!-- Screenshot: to be added with a wallpaper we have the rights to -->
+https://github.com/user-attachments/assets/d1baf50b-d273-454d-ac15-0a2342cc7311
 
 ## Features
 
