@@ -49,7 +49,7 @@ Depo GitHub'da herkese açık olsun: insanlar Camada'yı indirip kullanabilsin, 
 - Depo adı `camada`, hesap `virtus-xd`; önce **gizli** yüklenir, kullanıcı inceleyip onaylayınca herkese açılır.
 - Telif satırı "VirtusTech" (Store yayıncı adıyla aynı).
 - Yüklenen dallar: `main` ve `plan-10-store-paketi`; bu iş `github-acik-kaynak` dalında yapılıp `main`'e alınır.
-- README Türkçe (`README.md`) + İngilizce (`README.en.md`), en üstte dil bağlantısı. README görev çubuğu güvenlik ağını (kurtarma kısayolu, `--restore-taskbar`) açıkça anlatır, çünkü uygulamayı deneyen biri kendi görev çubuğunu gizler.
+- README İngilizce (`README.md`, GitHub'da ilk görünen) + Türkçe (`README.tr.md`), en üstte dil bağlantısı. (27.11 güncelleme, kullanıcı kararı: varsayılan İngilizce; ilk sürümde tersiydi.) README görev çubuğu güvenlik ağını (kurtarma kısayolu, `--restore-taskbar`) açıkça anlatır, çünkü uygulamayı deneyen biri kendi görev çubuğunu gizler.
 - Eklenecekler: `LICENSE`, `NOTICE` (üçüncü taraf lisansları), `CONTRIBUTING.md`, `SECURITY.md` (GitHub'ın özel güvenlik bildirimi açılır; e-posta gerekmez), `CODE_OF_CONDUCT.md`, hata/öneri şablonları, PR şablonu, `FUNDING.yml`, Windows'ta derleyip test eden iş akışı.
 - `docs/superpowers` belgeleri kalır (tasarım kararlarının kaydı); README'den bağlantı verilir.
 - Depo açıklaması ve konu etiketleri gh ile ayarlanır; Wiki kapalı.

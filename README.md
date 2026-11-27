@@ -1,47 +1,47 @@
 # Camada
 
-**Türkçe** · [English](README.en.md)
+**English** · [Türkçe](README.tr.md)
 
-[![CI](https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg)](https://github.com/virtus-xd/camada/actions/workflows/ci.yml) · Lisans: [Apache 2.0](LICENSE)
+[![CI](https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg)](https://github.com/virtus-xd/camada/actions/workflows/ci.yml) · License: [Apache 2.0](LICENSE)
 
-Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam ada koyar. Ada normalde küçüktür; saati ve çalan müziği gösterir. Üzerine gelince genişler: sabitlediğiniz uygulamalar, açık pencereler, sistem tepsisi, Wi‑Fi, Bluetooth, ses, parlaklık, takvim, pano geçmişi ve ekran görüntüleri tek dokunuş uzağınızdadır.
+Camada replaces the Windows taskbar with a sleek glass island at the top of the screen. The island is small by default and shows the time and the music that is playing. Hover over it and it expands: pinned apps, open windows, the system tray, Wi‑Fi, Bluetooth, volume, brightness, a calendar, clipboard history and screenshots are one click away.
 
-İsteğe bağlı sesli asistan Ada, "Hey Ada" dediğinizde uyanır: uygulama açar, ses ve parlaklığı ayarlar, web'de arar, not alır, hatırlatma kurar ve hava durumunu söyler. Ada kendi Google Gemini API anahtarınızla çalışır ve varsayılan olarak kapalıdır.
+The optional voice assistant Ada wakes up when you say "Hey Ada": it opens apps, adjusts volume and brightness, searches the web, takes notes, sets reminders and tells you the weather. Ada runs on your own Google Gemini API key and is off by default.
 
-<!-- Ekran görüntüsü: hakkı olan bir duvar kâğıdıyla eklenecek -->
+<!-- Screenshot: to be added with a wallpaper we have the rights to -->
 
-## Özellikler
+## Features
 
-- Görev çubuğunun yerine ekranın üstünde duran cam ada
-- Çalan müzik ve saat bir bakışta
-- Sabitlenmiş uygulamalar, açık pencereler ve sistem tepsisi
-- Wi‑Fi, Bluetooth, ses ve parlaklık için hızlı ayarlar
-- Pano geçmişi (Win+Alt+V) ve ekran görüntüleri
-- "Hey Ada" ile isteğe bağlı sesli asistan
-- Görev çubuğu tek tıkla geri gelir
+- A glass island at the top of the screen that replaces the taskbar
+- Now playing and the clock at a glance
+- Pinned apps, open windows and the system tray
+- Quick settings for Wi‑Fi, Bluetooth, volume and brightness
+- Clipboard history (Win+Alt+V) and screenshots
+- Optional voice assistant with "Hey Ada"
+- The taskbar comes back with one click
 
-## Durum
+## Status
 
-Erken sürüm. Arayüz şimdilik yalnız Türkçe; İngilizce arayüz planlanıyor. Camada yakında Microsoft Store'da da olacak.
+Early release. The user interface is Turkish only for now; an English UI is planned. Camada is coming to the Microsoft Store.
 
-## Görev çubuğu güvenlik ağı
+## Taskbar safety net
 
-Kaynaktan derlenen sürüm **ilk açılışta** Windows görev çubuğunu gizler ve oturum açılışında kendiliğinden başlamak için kendini kaydeder. İkisini de adaya sağ tıklayınca açılan menüden kapatabilirsiniz: **"Görev çubuğunu gizle"** ve **"Windows açılınca başlat"**. Uygulamayı kapatmak için aynı menüde **"Çıkış"** vardır. Görev çubuğu her zaman geri getirilebilir:
+On its **first run**, a build from source hides the Windows taskbar and registers itself to start when you sign in. Both can be turned off in the island's right-click menu: **"Görev çubuğunu gizle"** (Hide taskbar) and **"Windows açılınca başlat"** (Start with Windows). The same menu has **"Çıkış"** (Exit) to close the app. The taskbar can always be restored:
 
-- `CamAda.exe --restore-taskbar` adayı kapatır ve Windows görev çubuğunu geri getirir. Ayarı değiştirmez: Camada bir sonraki açılışta görev çubuğunu yine gizler. Kalıcı olarak kapatmak için menüdeki "Görev çubuğunu gizle" işaretini kaldırın.
-- Bunun için masaüstüne bir kısayol oluşturabilirsiniz: `powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath <CamAda.exe yolu>` ("Görev çubuğunu geri getir").
-- Microsoft Store sürümünde Başlat menüsünde ayrıca **"Görev çubuğunu geri getir"** girişi bulunur.
-- Camada beklenmedik şekilde kapanırsa ayrı çalışan bir bekçi görev çubuğunu kendiliğinden geri getirir.
-- Beklenmeyen hatalar `%LOCALAPPDATA%\CamAda\crash.log` dosyasına yazılır; hata bildirirken bu dosyayı paylaşabilirsiniz.
+- `CamAda.exe --restore-taskbar` closes the island and brings the Windows taskbar back. It does not change the setting: Camada hides the taskbar again the next time it starts. To turn hiding off for good, uncheck "Görev çubuğunu gizle" in the menu.
+- You can put a shortcut for this on your desktop: `powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath <path to CamAda.exe>` ("Görev çubuğunu geri getir").
+- The Microsoft Store version also adds a **"Görev çubuğunu geri getir"** (Restore taskbar) entry to the Start menu.
+- If Camada closes unexpectedly, a separate watchdog restores the taskbar automatically.
+- Unexpected errors are written to `%LOCALAPPDATA%\CamAda\crash.log`; you can attach this file when reporting a bug.
 
-## Gereksinimler
+## Requirements
 
-- Windows 11 22H2 ya da sonrası, x64
-- Kaynaktan derlemek için [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- Ada için kendi Google Gemini API anahtarınız (isteğe bağlı)
-- Spotify için kendi Spotify geliştirici uygulamanızın Client ID'si (isteğe bağlı)
+- Windows 11 22H2 or later, x64
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) to build from source
+- Your own Google Gemini API key for Ada (optional)
+- The Client ID of your own Spotify developer app for Spotify (optional)
 
-## Kaynaktan derleme
+## Building from source
 
 ```powershell
 git clone https://github.com/virtus-xd/camada.git
@@ -50,46 +50,46 @@ dotnet build CamAda.slnx
 dotnet test tests/CamAda.Core.Tests
 ```
 
-Çalıştırmadan **önce** kurtarma kısayolunu oluşturun, sonra uygulamayı başlatın. İlk açılışta görev çubuğu gizlenir ve Camada oturum açılışında başlamak için kendini kaydeder (bkz. [Görev çubuğu güvenlik ağı](#görev-çubuğu-güvenlik-ağı)).
+Create the restore shortcut **before** running the app, then start it. On the first run the taskbar is hidden and Camada registers itself to start at sign-in (see [Taskbar safety net](#taskbar-safety-net)).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath .\src\CamAda\bin\Debug\net10.0-windows10.0.22621.0\CamAda.exe
 dotnet run --project src/CamAda
 ```
 
-Kalıcı kurulum için `.\tools\install.ps1`: Release sürümünü derler, `%LOCALAPPDATA%\Programs\CamAda` klasörüne kurar, kurtarma kısayolunu oluşturur ve Camada'yı başlatır. Camada bundan sonra oturum açılışında kendiliğinden başlar. PowerShell betik çalıştırmayı engelliyorsa: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (yalnız bu komut için geçerlidir).
+For a permanent install, run `.\tools\install.ps1`: it builds the Release version, installs it to `%LOCALAPPDATA%\Programs\CamAda`, creates the restore shortcut and starts Camada. Camada then starts automatically when you sign in. If PowerShell blocks scripts: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (applies to this command only).
 
-## Kaldırma
+## Uninstalling
 
-1. Adaya sağ tıklayın, "Windows açılınca başlat" ve "Görev çubuğunu gizle" işaretlerini kaldırın, sonra "Çıkış"ı seçin.
-2. Oturum açılış kaydı kaldıysa silin (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` altındaki `CamAda` değeri):
+1. Right-click the island, uncheck "Windows açılınca başlat" (Start with Windows) and "Görev çubuğunu gizle" (Hide taskbar), then choose "Çıkış" (Exit).
+2. If the sign-in entry is still there, delete it (the `CamAda` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`):
    `Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name CamAda -ErrorAction SilentlyContinue`
-3. Kurulum dosyalarını silin: `%LOCALAPPDATA%\Programs\CamAda` klasörü ve masaüstündeki "Görev çubuğunu geri getir" kısayolu.
-4. Ayarları ve Ada verilerini de silmek isterseniz: `%APPDATA%\CamAda` ve `%LOCALAPPDATA%\CamAda`. Ada'nın notları (Belgeler\Ada Notları) ve ekran görüntüleri (Resimler) yerinde kalır.
+3. Delete the installed files: the `%LOCALAPPDATA%\Programs\CamAda` folder and the "Görev çubuğunu geri getir" shortcut on your desktop.
+4. To also remove settings and Ada's data: `%APPDATA%\CamAda` and `%LOCALAPPDATA%\CamAda`. Ada's notes (Documents\Ada Notları) and screenshots (Pictures) stay where they are.
 
-Microsoft Store sürümü Windows Ayarlar → Uygulamalar'dan kaldırılır; görev çubuğu kendiliğinden geri gelir.
+The Microsoft Store version is removed from Windows Settings → Apps; the taskbar comes back automatically.
 
-## Proje yapısı
+## Project structure
 
-| Klasör | İçerik |
+| Folder | Contents |
 | --- | --- |
-| `src/CamAda.Core` | Windows'a bağlı olmayan, test edilen mantık (`net10.0`) |
-| `src/CamAda` | WPF arayüzü ve Windows entegrasyonu: ada, paneller, tepsi, ses, Ada |
-| `tests/CamAda.Core.Tests` | `CamAda.Core` için xUnit testleri |
-| `tools/` | Kurulum, kurtarma kısayolu ve yardımcı betikler |
-| `docs/superpowers/specs/` | Tasarım kararları ve gerekçeleri (Türkçe) |
+| `src/CamAda.Core` | Platform-independent, tested logic (`net10.0`) |
+| `src/CamAda` | WPF UI and Windows integration: island, panels, tray, audio, Ada |
+| `tests/CamAda.Core.Tests` | xUnit tests for `CamAda.Core` |
+| `tools/` | Install, restore shortcut and helper scripts |
+| `docs/superpowers/specs/` | Design decisions and their reasoning (Turkish) |
 
-## Gizlilik
+## Privacy
 
-Camada hesap açtırmaz, reklam göstermez, kullanım istatistiği toplamaz. İnternete yalnız sizin açtığınız özellikler çıkar: Ada (Google Gemini, kendi anahtarınızla), hava durumu (Open-Meteo) ve Spotify. "Hey Ada" uyandırma sözcüğü yalnız bilgisayarınızda dinlenir. Gemini anahtarı, Ada'nın hafızası ve Spotify belirteci bilgisayarınızda Windows DPAPI ile şifreli saklanır. Ayrıntılar: [gizlilik politikası](https://camada-azure.vercel.app/gizlilik).
+Camada needs no account, shows no ads and collects no usage statistics. Only features you turn on go online: Ada (Google Gemini, with your own key), weather (Open-Meteo) and Spotify. The "Hey Ada" wake word is detected on your PC only. The Gemini key, Ada's memory and the Spotify token are stored on your PC, encrypted with Windows DPAPI. Details: [privacy policy](https://camada-azure.vercel.app/gizlilik).
 
-## Katkı, güvenlik ve destek
+## Contributing, security and support
 
-- Katkı vermek için: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Güvenlik açığı bildirmek için: [SECURITY.md](SECURITY.md)
-- Davranış kuralları: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Projeyi desteklemek isterseniz: [GitHub Sponsors](https://github.com/sponsors/virtus-xd)
+- To contribute: [CONTRIBUTING.md](CONTRIBUTING.md)
+- To report a vulnerability: [SECURITY.md](SECURITY.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- To support the project: [GitHub Sponsors](https://github.com/sponsors/virtus-xd)
 
-## Lisans
+## License
 
-Camada [Apache License 2.0](LICENSE) ile lisanslıdır; üçüncü taraf bileşenler [NOTICE](NOTICE) dosyasında listelenir. "Camada" adı ve logosu lisansa dahil değildir.
+Camada is licensed under the [Apache License 2.0](LICENSE); third-party components are listed in [NOTICE](NOTICE). The "Camada" name and logo are not covered by the license.
