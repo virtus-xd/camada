@@ -1,0 +1,46 @@
+name: Hata bildirimi / Bug report
+description: Çalışmayan ya da beklenmedik davranan bir şeyi bildirin. / Report something that is broken.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Görev çubuğu gizli kaldıysa / If the taskbar stays hidden:** `CamAda.exe --restore-taskbar` çalıştırın ya da Başlat menüsündeki "Görev çubuğunu geri getir" girişini açın. / Run `CamAda.exe --restore-taskbar` or open "Görev çubuğunu geri getir" from the Start menu.
+  - type: textarea
+    id: ne-oldu
+    attributes:
+      label: Ne oldu? / What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: beklenen
+    attributes:
+      label: Ne bekliyordunuz? / What did you expect?
+  - type: textarea
+    id: adimlar
+    attributes:
+      label: Yeniden üretme adımları / Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows sürümü / Windows version
+      description: "winver"
+      placeholder: 11 24H2 (26100.xxxx)
+    validations:
+      required: true
+  - type: input
+    id: surum
+    attributes:
+      label: Camada sürümü ya da commit / Camada version or commit
+      placeholder: Store 1.0.0 / main @ abc1234
+  - type: textarea
+    id: crash-log
+    attributes:
+      label: crash.log
+      description: '%LOCALAPPDATA%\CamAda\crash.log varsa içeriği. Kişisel bilgi olmadığını kontrol edin. / Contents of %LOCALAPPDATA%\CamAda\crash.log if present. Check it contains no personal data.'
+      render: text
