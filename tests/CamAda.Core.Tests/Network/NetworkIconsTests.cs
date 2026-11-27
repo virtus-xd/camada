@@ -1,4 +1,5 @@
 using CamAda.Core.Network;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Network;
 
@@ -48,12 +49,12 @@ public class NetworkIconsTests
     [Fact]
     public void Accessible_names()
     {
-        Assert.Equal("Wi‑Fi: Ev, internet var", NetworkIcons.AccessibleName(Snap(NetworkLink.Wifi, NetworkReach.Internet, ssid: "Ev")));
-        Assert.Equal("Wi‑Fi: Ev, internet yok", NetworkIcons.AccessibleName(Snap(NetworkLink.Wifi, NetworkReach.Local, ssid: "Ev")));
-        Assert.Equal("Ethernet, internet var", NetworkIcons.AccessibleName(Snap(NetworkLink.Ethernet, NetworkReach.Internet)));
-        Assert.Equal("Wi‑Fi kapalı", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None, radioOn: false)));
-        Assert.Equal("Wi‑Fi: bağlı değil", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None)));
-        Assert.Equal("Ağ bağlantısı yok", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None, adapter: false)));
+        Assert.Equal("Wi‑Fi: Ev, internet var", NetworkIcons.AccessibleName(Snap(NetworkLink.Wifi, NetworkReach.Internet, ssid: "Ev"), Tr));
+        Assert.Equal("Wi‑Fi: Ev, internet yok", NetworkIcons.AccessibleName(Snap(NetworkLink.Wifi, NetworkReach.Local, ssid: "Ev"), Tr));
+        Assert.Equal("Ethernet, internet var", NetworkIcons.AccessibleName(Snap(NetworkLink.Ethernet, NetworkReach.Internet), Tr));
+        Assert.Equal("Wi‑Fi kapalı", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None, radioOn: false), Tr));
+        Assert.Equal("Wi‑Fi: bağlı değil", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None), Tr));
+        Assert.Equal("Ağ bağlantısı yok", NetworkIcons.AccessibleName(Snap(NetworkLink.None, NetworkReach.None, adapter: false), Tr));
     }
 
     // Son inceleme: konum izni kapalıyken Windows ağ adını vermez; bağlıyken "Bağlı değil" demek gerçeğe aykırı.
@@ -63,16 +64,16 @@ public class NetworkIconsTests
     public void Hidden_ssid_still_reads_as_connected(string? ssid)
     {
         var snapshot = Snap(NetworkLink.Wifi, NetworkReach.Internet, ssid: ssid);
-        Assert.Equal("Bağlı", NetworkIcons.WifiTileSubtitle(snapshot));
-        Assert.Equal("Wi‑Fi: bağlı, internet var", NetworkIcons.AccessibleName(snapshot));
+        Assert.Equal("Bağlı", NetworkIcons.WifiTileSubtitle(snapshot, Tr));
+        Assert.Equal("Wi‑Fi: bağlı, internet var", NetworkIcons.AccessibleName(snapshot, Tr));
     }
 
     [Fact]
     public void Wifi_tile_subtitle()
     {
-        Assert.Equal("Ev", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Wifi, NetworkReach.Internet, ssid: "Ev")));
-        Assert.Equal("Bağlı değil", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Ethernet, NetworkReach.Internet)));
-        Assert.Equal("Kapalı", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Ethernet, NetworkReach.Internet, radioOn: false)));
-        Assert.Equal("Yok", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Ethernet, NetworkReach.Internet, adapter: false)));
+        Assert.Equal("Ev", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Wifi, NetworkReach.Internet, ssid: "Ev"), Tr));
+        Assert.Equal("Bağlı değil", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Ethernet, NetworkReach.Internet), Tr));
+        Assert.Equal("Kapalı", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Ethernet, NetworkReach.Internet, radioOn: false), Tr));
+        Assert.Equal("Yok", NetworkIcons.WifiTileSubtitle(Snap(NetworkLink.Ethernet, NetworkReach.Internet, adapter: false), Tr));
     }
 }

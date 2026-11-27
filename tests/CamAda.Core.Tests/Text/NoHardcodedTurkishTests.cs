@@ -30,13 +30,6 @@ public partial class NoHardcodedTurkishTests
     private static readonly string[] Pending =
     [
         "src/CamAda.Core/Assistant/VoiceEnrollmentText.cs",
-        "src/CamAda.Core/Bluetooth/BluetoothKinds.cs",
-        "src/CamAda.Core/Clipboard/ClipAge.cs",
-        "src/CamAda.Core/Clipboard/ScreenshotName.cs",
-        "src/CamAda.Core/Network/NetworkIcons.cs",
-        "src/CamAda.Core/Power/BatteryText.cs",
-        "src/CamAda.Core/Search/SettingsPages.cs",
-        "src/CamAda.Core/Weather/OpenMeteo.cs",
         "src/CamAda/App.xaml.cs",
         "src/CamAda/Assistant/AdaAssistant.cs",
         "src/CamAda/Assistant/AdaState.cs",

@@ -269,22 +269,22 @@ public partial class QuickSettingsPanel : UserControl, IPanelEscape
     private void Refresh()
     {
         var battery = _services.Battery.Current;
-        var header = BatteryText.Header(battery);
+        var header = BatteryText.Header(battery, System.Globalization.CultureInfo.CurrentUICulture);
         BatteryHeader.Visibility = header is null ? Visibility.Collapsed : Visibility.Visible;
         BatteryHeaderText.Text = header ?? "";
         BatteryHeaderGlyph.Text = QuickGlyphs.Battery(BatteryText.Icon(battery));
         System.Windows.Automation.AutomationProperties.SetName(BatteryHeader,
-            $"{BatteryText.AccessibleName(battery)}. Pil ayarlarını aç");
+            $"{BatteryText.AccessibleName(battery, System.Globalization.CultureInfo.CurrentUICulture)}. Pil ayarlarını aç");
 
         var radios = _services.Radios;
         WifiTile.IsAvailable = radios?.HasWifi == true;
         WifiTile.IsOn = radios?.WifiOn == true;
-        WifiTile.Subtitle = NetworkIcons.WifiTileSubtitle(_services.Network.Current);
+        WifiTile.Subtitle = NetworkIcons.WifiTileSubtitle(_services.Network.Current, System.Globalization.CultureInfo.CurrentUICulture);
 
         BluetoothTile.IsAvailable = radios?.HasBluetooth == true;
         BluetoothTile.IsOn = radios?.BluetoothOn == true;
         var connected = _services.Bluetooth?.Devices.Where(d => d.Connected).Select(d => d.Name).ToList() ?? [];
-        BluetoothTile.Subtitle = BluetoothKinds.TileSubtitle(radios?.HasBluetooth == true, radios?.BluetoothOn == true, connected);
+        BluetoothTile.Subtitle = BluetoothKinds.TileSubtitle(radios?.HasBluetooth == true, radios?.BluetoothOn == true, connected, System.Globalization.CultureInfo.CurrentUICulture);
 
         ThemeTile.IsOn = _services.Theme.IsDark;
         ThemeTile.Subtitle = _services.Theme.IsDark ? "Açık" : "Kapalı";

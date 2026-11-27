@@ -1,3 +1,6 @@
+using System.Globalization;
+using CamAda.Core.Text;
+
 namespace CamAda.Core.Network;
 
 /// <summary>İnternete çıkılan bağlantının türü.</summary>
@@ -44,24 +47,26 @@ public static class NetworkIcons
         _ => new NetworkIcon(NetworkIconKind.WifiDisconnected, 0, false),
     };
 
-    public static string AccessibleName(NetworkSnapshot s)
+    public static string AccessibleName(NetworkSnapshot s, CultureInfo ui)
     {
-        var internet = s.Reach == NetworkReach.Internet ? "internet var" : "internet yok";
+        var internet = CoreText.Get(s.Reach == NetworkReach.Internet ? nameof(CoreStrings.Network_InternetAccess) : nameof(CoreStrings.Network_NoInternet), ui);
         return s.Link switch
         {
-            NetworkLink.Ethernet => $"Ethernet, {internet}",
-            NetworkLink.Wifi => $"Wi‑Fi: {(string.IsNullOrEmpty(s.Ssid) ? "bağlı" : s.Ssid)}, {internet}",
-            _ when !s.HasWifiAdapter => "Ağ bağlantısı yok",
-            _ when !s.WifiRadioOn => "Wi‑Fi kapalı",
-            _ => "Wi‑Fi: bağlı değil",
+            NetworkLink.Ethernet => CoreText.Format(ui, nameof(CoreStrings.Network_Ethernet), internet),
+            NetworkLink.Wifi => CoreText.Format(ui, nameof(CoreStrings.Network_Wifi),
+                string.IsNullOrEmpty(s.Ssid) ? CoreText.Get(nameof(CoreStrings.Network_ConnectedLower), ui) : s.Ssid, internet),
+            _ when !s.HasWifiAdapter => CoreText.Get(nameof(CoreStrings.Network_None), ui),
+            _ when !s.WifiRadioOn => CoreText.Get(nameof(CoreStrings.Network_WifiOff), ui),
+            _ => CoreText.Get(nameof(CoreStrings.Network_WifiNotConnected), ui),
         };
     }
 
-    public static string WifiTileSubtitle(NetworkSnapshot s) =>
-        !s.HasWifiAdapter ? "Yok"
-        : !s.WifiRadioOn ? "Kapalı"
-        : s.Link == NetworkLink.Wifi ? (string.IsNullOrEmpty(s.Ssid) ? "Bağlı" : s.Ssid) // ad konum izni yüzünden gizli olabilir
-        : "Bağlı değil";
+    public static string WifiTileSubtitle(NetworkSnapshot s, CultureInfo ui) =>
+        !s.HasWifiAdapter ? CoreText.Get(nameof(CoreStrings.Tile_Unavailable), ui)
+        : !s.WifiRadioOn ? CoreText.Get(nameof(CoreStrings.Tile_Off), ui)
+        : s.Link == NetworkLink.Wifi
+            ? (string.IsNullOrEmpty(s.Ssid) ? CoreText.Get(nameof(CoreStrings.Tile_Connected), ui) : s.Ssid) // ad konum izni yüzünden gizli olabilir
+            : CoreText.Get(nameof(CoreStrings.Tile_NotConnected), ui);
 
     /// <summary>Windows'un 0–<paramref name="max"/> çubuğunu adanın 1–4 çubuğuna çevirir (yukarı yuvarlar).</summary>
     public static int BarsFrom(int raw, int max) =>

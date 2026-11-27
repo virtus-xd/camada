@@ -10,4 +10,5 @@ public enum SearchKind
 
 /// <summary>Başlat panelinde aranabilen bir öğe.</summary>
 /// <param name="Target">Exe/.lnk yolu, "shell:AppsFolder\&lt;AUMID&gt;", "ms-settings:..." ya da URL.</param>
-public sealed record SearchItem(string Name, SearchKind Kind, string Target);
+/// <param name="Aliases">Görünmeyen ek arama adları (ör. ayar sayfasının öbür dildeki adı).</param>
+public sealed record SearchItem(string Name, SearchKind Kind, string Target, IReadOnlyList<string>? Aliases = null);

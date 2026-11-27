@@ -1,4 +1,5 @@
 using CamAda.Core.Calendar;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Calendar;
 
@@ -48,7 +49,7 @@ public class MonthGridTests
     [Fact]
     public void Titles_and_headers_are_turkish()
     {
-        Assert.Equal("Kasım 2026", MonthGrid.Title(2026, 11));
-        Assert.Equal(["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], MonthGrid.WeekdayHeaders);
+        Assert.Equal("Kasım 2026", MonthGrid.Title(2026, 11, Tr));
+        Assert.Equal(["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], MonthGrid.WeekdayHeaders(Tr));
     }
 }

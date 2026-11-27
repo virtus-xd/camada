@@ -4,8 +4,67 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Battery_A11y" xml:space="preserve"><value>Battery {0}</value></data>
+  <data name="Battery_A11yCharging" xml:space="preserve"><value>Battery {0}, charging</value></data>
+  <data name="Battery_A11yFull" xml:space="preserve"><value>Battery {0}, fully charged</value></data>
+  <data name="Battery_A11yPluggedIn" xml:space="preserve"><value>Battery {0}, plugged in</value></data>
+  <data name="Battery_A11yRemaining" xml:space="preserve"><value>Battery {0}, {1} left</value></data>
+  <data name="Battery_Charging" xml:space="preserve"><value>Charging · {0}</value></data>
+  <data name="Battery_Full" xml:space="preserve"><value>Fully charged</value></data>
+  <data name="Battery_None" xml:space="preserve"><value>No battery</value></data>
+  <data name="Battery_PluggedIn" xml:space="preserve"><value>Plugged in · {0}</value></data>
+  <data name="Bluetooth_ManyConnected" xml:space="preserve"><value>{0} devices connected</value></data>
+  <data name="Bluetooth_OneConnected" xml:space="preserve"><value>{0} connected</value></data>
+  <data name="ClipAge_Now" xml:space="preserve"><value>now</value></data>
+  <data name="ClipAge_Yesterday" xml:space="preserve"><value>yesterday</value></data>
+  <data name="Duration_Hours" xml:space="preserve"><value>{0} h</value></data>
+  <data name="Duration_HoursMinutes" xml:space="preserve"><value>{0} h {1} min</value></data>
+  <data name="Duration_Minutes" xml:space="preserve"><value>{0} min</value></data>
+  <data name="Format_IslandDate" xml:space="preserve"><value>ddd, MMMM d</value></data>
+  <data name="Format_MonthTitle" xml:space="preserve"><value>MMMM yyyy</value></data>
+  <data name="Format_Percent" xml:space="preserve"><value>{0}%</value></data>
+  <data name="Format_ShortDate" xml:space="preserve"><value>MMM d</value></data>
   <data name="Language_Automatic" xml:space="preserve"><value>Automatic (Windows)</value></data>
   <data name="Language_English" xml:space="preserve"><value>English</value></data>
   <data name="Language_MenuTitle" xml:space="preserve"><value>Dil / Language</value></data>
   <data name="Language_Turkish" xml:space="preserve"><value>Türkçe</value></data>
+  <data name="Network_ConnectedLower" xml:space="preserve"><value>connected</value></data>
+  <data name="Network_Ethernet" xml:space="preserve"><value>Ethernet, {0}</value></data>
+  <data name="Network_InternetAccess" xml:space="preserve"><value>internet access</value></data>
+  <data name="Network_NoInternet" xml:space="preserve"><value>no internet</value></data>
+  <data name="Network_None" xml:space="preserve"><value>No network connection</value></data>
+  <data name="Network_Wifi" xml:space="preserve"><value>Wi‑Fi: {0}, {1}</value></data>
+  <data name="Network_WifiNotConnected" xml:space="preserve"><value>Wi‑Fi: not connected</value></data>
+  <data name="Network_WifiOff" xml:space="preserve"><value>Wi‑Fi off</value></data>
+  <data name="Screenshot_FileName" xml:space="preserve"><value>Screenshot {0}.png</value></data>
+  <data name="Search_Web" xml:space="preserve"><value>Search the web: “{0}”</value></data>
+  <data name="SettingsPage_Apps" xml:space="preserve"><value>Apps</value></data>
+  <data name="SettingsPage_Background" xml:space="preserve"><value>Background</value></data>
+  <data name="SettingsPage_Bluetooth" xml:space="preserve"><value>Bluetooth &amp; devices</value></data>
+  <data name="SettingsPage_Display" xml:space="preserve"><value>Display settings</value></data>
+  <data name="SettingsPage_Keyboard" xml:space="preserve"><value>Keyboard</value></data>
+  <data name="SettingsPage_Mouse" xml:space="preserve"><value>Mouse</value></data>
+  <data name="SettingsPage_Notifications" xml:space="preserve"><value>Notifications</value></data>
+  <data name="SettingsPage_Personalization" xml:space="preserve"><value>Personalization</value></data>
+  <data name="SettingsPage_Power" xml:space="preserve"><value>Power &amp; battery</value></data>
+  <data name="SettingsPage_Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="SettingsPage_Sound" xml:space="preserve"><value>Sound settings</value></data>
+  <data name="SettingsPage_Storage" xml:space="preserve"><value>Storage</value></data>
+  <data name="SettingsPage_Update" xml:space="preserve"><value>Windows Update</value></data>
+  <data name="SettingsPage_Wifi" xml:space="preserve"><value>Wi-Fi</value></data>
+  <data name="Tile_Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="Tile_NotConnected" xml:space="preserve"><value>Not connected</value></data>
+  <data name="Tile_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Tile_On" xml:space="preserve"><value>On</value></data>
+  <data name="Tile_Unavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="Weather_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Weather_Cloudy" xml:space="preserve"><value>Cloudy</value></data>
+  <data name="Weather_Drizzle" xml:space="preserve"><value>Drizzle</value></data>
+  <data name="Weather_Fog" xml:space="preserve"><value>Foggy</value></data>
+  <data name="Weather_PartlyCloudy" xml:space="preserve"><value>Partly cloudy</value></data>
+  <data name="Weather_Rain" xml:space="preserve"><value>Rainy</value></data>
+  <data name="Weather_Showers" xml:space="preserve"><value>Showers</value></data>
+  <data name="Weather_Snow" xml:space="preserve"><value>Snowy</value></data>
+  <data name="Weather_SnowShowers" xml:space="preserve"><value>Snow showers</value></data>
+  <data name="Weather_Storm" xml:space="preserve"><value>Thunderstorm</value></data>
 </root>

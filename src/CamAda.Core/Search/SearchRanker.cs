@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using CamAda.Core.Text;
 
 namespace CamAda.Core.Search;
 
@@ -12,7 +13,7 @@ public static class SearchRanker
 {
     private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
-    public static IReadOnlyList<SearchItem> Rank(string query, IReadOnlyList<SearchItem> items, int limit = 6)
+    public static IReadOnlyList<SearchItem> Rank(string query, IReadOnlyList<SearchItem> items, CultureInfo ui, int limit = 6)
     {
         query = query.Trim();
         if (query.Length == 0)
@@ -22,17 +23,17 @@ public static class SearchRanker
 
         var folded = Fold(query);
         var results = items
-            .Select(item => (Item: item, Score: Score(Fold(item.Name), folded)))
+            .Select(item => (Item: item, Score: BestScore(item, folded)))
             .Where(r => r.Score > 0)
             .OrderByDescending(r => r.Score)
             .ThenBy(r => r.Item.Kind)
-            .ThenBy(r => r.Item.Name, StringComparer.Create(Turkish, ignoreCase: true))
+            .ThenBy(r => r.Item.Name, StringComparer.Create(ui, ignoreCase: true))
             .Take(limit)
             .Select(r => r.Item)
             .ToList();
 
         results.Add(new SearchItem(
-            $"Web'de ara: “{query}”",
+            CoreText.Format(ui, nameof(CoreStrings.Search_Web), query),
             SearchKind.Web,
             "https://www.google.com/search?q=" + Uri.EscapeDataString(query)));
         return results;
@@ -53,6 +54,10 @@ public static class SearchRanker
 
         return builder.ToString();
     }
+
+    /// <summary>Görünen ad ve görünmeyen takma adların en iyi puanı.</summary>
+    private static int BestScore(SearchItem item, string folded) =>
+        (item.Aliases ?? []).Select(alias => Score(Fold(alias), folded)).Append(Score(Fold(item.Name), folded)).Max();
 
     private static int Score(string name, string query)
     {

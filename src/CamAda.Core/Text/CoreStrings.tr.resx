@@ -4,8 +4,67 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Battery_A11y" xml:space="preserve"><value>Pil {0}</value></data>
+  <data name="Battery_A11yCharging" xml:space="preserve"><value>Pil {0}, şarj oluyor</value></data>
+  <data name="Battery_A11yFull" xml:space="preserve"><value>Pil {0}, tam dolu</value></data>
+  <data name="Battery_A11yPluggedIn" xml:space="preserve"><value>Pil {0}, prize takılı</value></data>
+  <data name="Battery_A11yRemaining" xml:space="preserve"><value>Pil {0}, {1} kaldı</value></data>
+  <data name="Battery_Charging" xml:space="preserve"><value>Şarj oluyor · {0}</value></data>
+  <data name="Battery_Full" xml:space="preserve"><value>Tam dolu</value></data>
+  <data name="Battery_None" xml:space="preserve"><value>Pil yok</value></data>
+  <data name="Battery_PluggedIn" xml:space="preserve"><value>Prize takılı · {0}</value></data>
+  <data name="Bluetooth_ManyConnected" xml:space="preserve"><value>{0} cihaz bağlı</value></data>
+  <data name="Bluetooth_OneConnected" xml:space="preserve"><value>{0} bağlı</value></data>
+  <data name="ClipAge_Now" xml:space="preserve"><value>şimdi</value></data>
+  <data name="ClipAge_Yesterday" xml:space="preserve"><value>dün</value></data>
+  <data name="Duration_Hours" xml:space="preserve"><value>{0} sa</value></data>
+  <data name="Duration_HoursMinutes" xml:space="preserve"><value>{0} sa {1} dk</value></data>
+  <data name="Duration_Minutes" xml:space="preserve"><value>{0} dk</value></data>
+  <data name="Format_IslandDate" xml:space="preserve"><value>ddd, d MMMM</value></data>
+  <data name="Format_MonthTitle" xml:space="preserve"><value>MMMM yyyy</value></data>
+  <data name="Format_Percent" xml:space="preserve"><value>%{0}</value></data>
+  <data name="Format_ShortDate" xml:space="preserve"><value>d MMM</value></data>
   <data name="Language_Automatic" xml:space="preserve"><value>Otomatik (Windows)</value></data>
   <data name="Language_English" xml:space="preserve"><value>English</value></data>
   <data name="Language_MenuTitle" xml:space="preserve"><value>Dil / Language</value></data>
   <data name="Language_Turkish" xml:space="preserve"><value>Türkçe</value></data>
+  <data name="Network_ConnectedLower" xml:space="preserve"><value>bağlı</value></data>
+  <data name="Network_Ethernet" xml:space="preserve"><value>Ethernet, {0}</value></data>
+  <data name="Network_InternetAccess" xml:space="preserve"><value>internet var</value></data>
+  <data name="Network_NoInternet" xml:space="preserve"><value>internet yok</value></data>
+  <data name="Network_None" xml:space="preserve"><value>Ağ bağlantısı yok</value></data>
+  <data name="Network_Wifi" xml:space="preserve"><value>Wi‑Fi: {0}, {1}</value></data>
+  <data name="Network_WifiNotConnected" xml:space="preserve"><value>Wi‑Fi: bağlı değil</value></data>
+  <data name="Network_WifiOff" xml:space="preserve"><value>Wi‑Fi kapalı</value></data>
+  <data name="Screenshot_FileName" xml:space="preserve"><value>Ekran görüntüsü {0}.png</value></data>
+  <data name="Search_Web" xml:space="preserve"><value>Web'de ara: “{0}”</value></data>
+  <data name="SettingsPage_Apps" xml:space="preserve"><value>Uygulamalar</value></data>
+  <data name="SettingsPage_Background" xml:space="preserve"><value>Arka plan</value></data>
+  <data name="SettingsPage_Bluetooth" xml:space="preserve"><value>Bluetooth ve cihazlar</value></data>
+  <data name="SettingsPage_Display" xml:space="preserve"><value>Ekran ayarları</value></data>
+  <data name="SettingsPage_Keyboard" xml:space="preserve"><value>Klavye</value></data>
+  <data name="SettingsPage_Mouse" xml:space="preserve"><value>Fare</value></data>
+  <data name="SettingsPage_Notifications" xml:space="preserve"><value>Bildirimler</value></data>
+  <data name="SettingsPage_Personalization" xml:space="preserve"><value>Kişiselleştirme</value></data>
+  <data name="SettingsPage_Power" xml:space="preserve"><value>Güç ve pil</value></data>
+  <data name="SettingsPage_Settings" xml:space="preserve"><value>Ayarlar</value></data>
+  <data name="SettingsPage_Sound" xml:space="preserve"><value>Ses ayarları</value></data>
+  <data name="SettingsPage_Storage" xml:space="preserve"><value>Depolama</value></data>
+  <data name="SettingsPage_Update" xml:space="preserve"><value>Windows Update</value></data>
+  <data name="SettingsPage_Wifi" xml:space="preserve"><value>Wi-Fi</value></data>
+  <data name="Tile_Connected" xml:space="preserve"><value>Bağlı</value></data>
+  <data name="Tile_NotConnected" xml:space="preserve"><value>Bağlı değil</value></data>
+  <data name="Tile_Off" xml:space="preserve"><value>Kapalı</value></data>
+  <data name="Tile_On" xml:space="preserve"><value>Açık</value></data>
+  <data name="Tile_Unavailable" xml:space="preserve"><value>Yok</value></data>
+  <data name="Weather_Clear" xml:space="preserve"><value>Açık</value></data>
+  <data name="Weather_Cloudy" xml:space="preserve"><value>Bulutlu</value></data>
+  <data name="Weather_Drizzle" xml:space="preserve"><value>Çisenti</value></data>
+  <data name="Weather_Fog" xml:space="preserve"><value>Sisli</value></data>
+  <data name="Weather_PartlyCloudy" xml:space="preserve"><value>Parçalı bulutlu</value></data>
+  <data name="Weather_Rain" xml:space="preserve"><value>Yağmurlu</value></data>
+  <data name="Weather_Showers" xml:space="preserve"><value>Sağanak</value></data>
+  <data name="Weather_Snow" xml:space="preserve"><value>Karlı</value></data>
+  <data name="Weather_SnowShowers" xml:space="preserve"><value>Kar sağanağı</value></data>
+  <data name="Weather_Storm" xml:space="preserve"><value>Fırtına</value></data>
 </root>

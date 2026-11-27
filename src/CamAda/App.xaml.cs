@@ -696,7 +696,7 @@ public partial class App : Application
         }
 
         var snapshot = _network.Current;
-        _island.Bar.ShowNetwork(NetworkIcons.For(snapshot), NetworkIcons.AccessibleName(snapshot));
+        _island.Bar.ShowNetwork(NetworkIcons.For(snapshot), NetworkIcons.AccessibleName(snapshot, System.Globalization.CultureInfo.CurrentUICulture));
     }
 
     private void UpdateBatteryButton()
@@ -707,8 +707,8 @@ public partial class App : Application
         }
 
         var snapshot = _battery.Current;
-        _island.Bar.ShowBattery(_battery.Present ? BatteryText.Icon(snapshot) : null, BatteryText.AccessibleName(snapshot));
-        _island.ShowLowBattery(BatteryText.IsLow(snapshot) ? BatteryText.CompactText(snapshot) : null);
+        _island.Bar.ShowBattery(_battery.Present ? BatteryText.Icon(snapshot) : null, BatteryText.AccessibleName(snapshot, System.Globalization.CultureInfo.CurrentUICulture));
+        _island.ShowLowBattery(BatteryText.IsLow(snapshot) ? BatteryText.CompactText(snapshot, System.Globalization.CultureInfo.CurrentUICulture) : null);
     }
 
     /// <summary>Yeni ekran görüntüsü dosyası: adada önizleme; Kopyala dosyayı panoya alır, Düzenle aracı açar.</summary>

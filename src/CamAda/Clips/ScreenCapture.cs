@@ -106,7 +106,7 @@ internal static partial class ScreenCapture
     public static string Save(BitmapSource image, string folder, DateTime now)
     {
         Directory.CreateDirectory(folder);
-        var name = ScreenshotName.For(now);
+        var name = ScreenshotName.For(now, System.Globalization.CultureInfo.CurrentUICulture);
         var stem = Path.GetFileNameWithoutExtension(name);
         var path = Path.Combine(folder, name);
         for (var i = 2; File.Exists(path); i++)

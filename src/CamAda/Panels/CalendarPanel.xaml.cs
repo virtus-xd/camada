@@ -29,7 +29,7 @@ public partial class CalendarPanel : UserControl
         _year = today.Year;
         _month = today.Month;
 
-        foreach (var header in MonthGrid.WeekdayHeaders)
+        foreach (var header in MonthGrid.WeekdayHeaders(System.Globalization.CultureInfo.CurrentUICulture))
         {
             Headers.Children.Add(new TextBlock
             {
@@ -46,7 +46,7 @@ public partial class CalendarPanel : UserControl
 
     private void ShowMonth()
     {
-        TitleText.Text = MonthGrid.Title(_year, _month);
+        TitleText.Text = MonthGrid.Title(_year, _month, System.Globalization.CultureInfo.CurrentUICulture);
         Days.Children.Clear();
         foreach (var day in MonthGrid.Build(_year, _month, _today))
         {

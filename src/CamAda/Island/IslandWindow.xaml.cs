@@ -864,7 +864,7 @@ public partial class IslandWindow : Window
     /// <summary>"Pzt, 23 Kasım · 12° Bulutlu"; sığmazsa durum adı düşer ("Pzt, 23 Kasım · 12°").</summary>
     private void UpdateDateText(DateTime now)
     {
-        var date = ClockFormatter.Date(now);
+        var date = ClockFormatter.Date(now, System.Globalization.CultureInfo.CurrentUICulture);
         if (_weather is not { } weather)
         {
             CompactDate.Text = date;
@@ -872,7 +872,7 @@ public partial class IslandWindow : Window
         }
 
         var shortText = $"{date} · {WeatherText.Temperature(weather.TemperatureC)}";
-        var description = WeatherText.Describe(weather.WeatherCode);
+        var description = WeatherText.Describe(weather.WeatherCode, System.Globalization.CultureInfo.CurrentUICulture);
         var fullText = description.Length > 0 ? $"{shortText} {description}" : shortText;
         CompactDate.Text = Fits(fullText) ? fullText : shortText;
     }
@@ -906,7 +906,7 @@ public partial class IslandWindow : Window
     {
         var now = DateTime.Now;
         UpdateDateText(now);
-        CompactTime.Text = ClockFormatter.Time(now);
+        CompactTime.Text = ClockFormatter.Time(now, System.Globalization.CultureInfo.CurrentUICulture, System.Globalization.CultureInfo.CurrentCulture);
         ExpandedContent.SetTime(CompactTime.Text);
 
         _clockTimer.Stop();

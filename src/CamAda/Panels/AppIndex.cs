@@ -128,7 +128,7 @@ public sealed class AppIndex
             // Store listesi alınamadı: kısayollar ve ayarlarla devam.
         }
 
-        items.AddRange(SettingsPages.All);
+        items.AddRange(SettingsPages.For(System.Globalization.CultureInfo.CurrentUICulture));
         items.AddRange(RecentFiles(RecentInSearch));
 
         lock (_gate)

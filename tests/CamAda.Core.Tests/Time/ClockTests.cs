@@ -1,4 +1,5 @@
 using CamAda.Core.Time;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Time;
 
@@ -6,11 +7,11 @@ public class ClockTests
 {
     [Fact]
     public void Time_is_24h_with_leading_zero() =>
-        Assert.Equal("09:05", ClockFormatter.Time(new DateTime(2026, 11, 23, 9, 5, 0)));
+        Assert.Equal("09:05", ClockFormatter.Time(new DateTime(2026, 11, 23, 9, 5, 0), Tr, Tr));
 
     [Fact]
     public void Date_is_turkish_short_day_and_month() =>
-        Assert.Equal("Pzt, 23 Kasım", ClockFormatter.Date(new DateTime(2026, 11, 23, 14, 32, 0)));
+        Assert.Equal("Pzt, 23 Kasım", ClockFormatter.Date(new DateTime(2026, 11, 23, 14, 32, 0), Tr));
 
     [Fact]
     public void Delay_to_next_minute_mid_minute() =>

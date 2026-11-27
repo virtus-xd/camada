@@ -1,4 +1,5 @@
 using CamAda.Core.Power;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Power;
 
@@ -12,17 +13,17 @@ public class BatteryTextTests
     [Fact]
     public void Header()
     {
-        Assert.Equal("%76 · 3 sa 10 dk", BatteryText.Header(Snap(76, BatteryCharge.Discharging, remaining: ThreeTen)));
-        Assert.Equal("%76", BatteryText.Header(Snap(76, BatteryCharge.Discharging)));
-        Assert.Equal("Şarj oluyor · %76", BatteryText.Header(Snap(76, BatteryCharge.Charging, plugged: true)));
-        Assert.Equal("Tam dolu", BatteryText.Header(Snap(100, BatteryCharge.Idle, plugged: true)));
-        Assert.Equal("Prize takılı · %80", BatteryText.Header(Snap(80, BatteryCharge.Idle, plugged: true)));
-        Assert.Null(BatteryText.Header(Snap(0, BatteryCharge.NotPresent)));
+        Assert.Equal("%76 · 3 sa 10 dk", BatteryText.Header(Snap(76, BatteryCharge.Discharging, remaining: ThreeTen), Tr));
+        Assert.Equal("%76", BatteryText.Header(Snap(76, BatteryCharge.Discharging), Tr));
+        Assert.Equal("Şarj oluyor · %76", BatteryText.Header(Snap(76, BatteryCharge.Charging, plugged: true), Tr));
+        Assert.Equal("Tam dolu", BatteryText.Header(Snap(100, BatteryCharge.Idle, plugged: true), Tr));
+        Assert.Equal("Prize takılı · %80", BatteryText.Header(Snap(80, BatteryCharge.Idle, plugged: true), Tr));
+        Assert.Null(BatteryText.Header(Snap(0, BatteryCharge.NotPresent), Tr));
     }
 
     [Fact]
     public void Remaining_of_a_day_or_more_is_unknown() =>
-        Assert.Equal("%76", BatteryText.Header(Snap(76, BatteryCharge.Discharging, remaining: TimeSpan.FromHours(30))));
+        Assert.Equal("%76", BatteryText.Header(Snap(76, BatteryCharge.Discharging, remaining: TimeSpan.FromHours(30)), Tr));
 
     [Theory]
     [InlineData(3, 10, 0, "3 sa 10 dk")]
@@ -31,16 +32,16 @@ public class BatteryTextTests
     [InlineData(0, 59, 59, "59 dk")]
     [InlineData(0, 0, 30, "1 dk")]
     public void FormatRemaining(int hours, int minutes, int seconds, string expected) =>
-        Assert.Equal(expected, BatteryText.FormatRemaining(new TimeSpan(hours, minutes, seconds)));
+        Assert.Equal(expected, BatteryText.FormatRemaining(new TimeSpan(hours, minutes, seconds), Tr));
 
     [Fact]
     public void Accessible_name()
     {
-        Assert.Equal("Pil %76, 3 sa 10 dk kaldı", BatteryText.AccessibleName(Snap(76, BatteryCharge.Discharging, remaining: ThreeTen)));
-        Assert.Equal("Pil %76, şarj oluyor", BatteryText.AccessibleName(Snap(76, BatteryCharge.Charging, plugged: true)));
-        Assert.Equal("Pil %100, tam dolu", BatteryText.AccessibleName(Snap(100, BatteryCharge.Idle, plugged: true)));
-        Assert.Equal("Pil %80, prize takılı", BatteryText.AccessibleName(Snap(80, BatteryCharge.Idle, plugged: true)));
-        Assert.Equal("Pil %76", BatteryText.AccessibleName(Snap(76, BatteryCharge.Discharging)));
+        Assert.Equal("Pil %76, 3 sa 10 dk kaldı", BatteryText.AccessibleName(Snap(76, BatteryCharge.Discharging, remaining: ThreeTen), Tr));
+        Assert.Equal("Pil %76, şarj oluyor", BatteryText.AccessibleName(Snap(76, BatteryCharge.Charging, plugged: true), Tr));
+        Assert.Equal("Pil %100, tam dolu", BatteryText.AccessibleName(Snap(100, BatteryCharge.Idle, plugged: true), Tr));
+        Assert.Equal("Pil %80, prize takılı", BatteryText.AccessibleName(Snap(80, BatteryCharge.Idle, plugged: true), Tr));
+        Assert.Equal("Pil %76", BatteryText.AccessibleName(Snap(76, BatteryCharge.Discharging), Tr));
     }
 
     [Fact]
@@ -71,5 +72,5 @@ public class BatteryTextTests
     }
 
     [Fact]
-    public void CompactText() => Assert.Equal("%18", BatteryText.CompactText(Snap(18, BatteryCharge.Discharging)));
+    public void CompactText() => Assert.Equal("%18", BatteryText.CompactText(Snap(18, BatteryCharge.Discharging), Tr));
 }

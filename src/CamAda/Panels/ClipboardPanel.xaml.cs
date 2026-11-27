@@ -253,7 +253,7 @@ public partial class ClipboardPanel : UserControl
         var copied = item.Id == _copiedId;
         var age = new TextBlock
         {
-            Text = !copied ? ClipAge.Format(item.CopiedAt, now) : _copyFailed ? "Kopyalanamadı" : "Kopyalandı",
+            Text = !copied ? ClipAge.Format(item.CopiedAt, now, System.Globalization.CultureInfo.CurrentUICulture) : _copyFailed ? "Kopyalanamadı" : "Kopyalandı",
             FontSize = 11.5,
             FontWeight = copied ? FontWeights.Bold : FontWeights.SemiBold,
             Foreground = (Brush)FindResource(!copied ? "TextSecondaryBrush" : _copyFailed ? "WarningBrush" : "AccentBrush"),

@@ -1,5 +1,6 @@
 using CamAda.Core.Settings;
 using CamAda.Core.Weather;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Weather;
 
@@ -62,7 +63,7 @@ public class WeatherTests
     [InlineData(96, "Fırtına")]
     [InlineData(4, "")]
     public void Weather_codes_are_described(int code, string expected) =>
-        Assert.Equal(expected, WeatherText.Describe(code));
+        Assert.Equal(expected, WeatherText.Describe(code, Tr));
 
     [Theory]
     [InlineData(12.4, "12°")]

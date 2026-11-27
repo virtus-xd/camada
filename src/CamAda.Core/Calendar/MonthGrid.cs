@@ -1,4 +1,5 @@
 using System.Globalization;
+using CamAda.Core.Text;
 
 namespace CamAda.Core.Calendar;
 
@@ -13,11 +14,9 @@ public static class MonthGrid
 {
     public const int DayCount = 42;
 
-    private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
-
-    /// <summary>Pazartesiden pazara kısa gün adları.</summary>
-    public static IReadOnlyList<string> WeekdayHeaders { get; } =
-        Enumerable.Range(0, 7).Select(i => Turkish.DateTimeFormat.AbbreviatedDayNames[(i + 1) % 7]).ToArray();
+    /// <summary>Pazartesiden pazara kısa gün adları, arayüz dilinde ("Pzt" / "Mon").</summary>
+    public static IReadOnlyList<string> WeekdayHeaders(CultureInfo ui) =>
+        Enumerable.Range(0, 7).Select(i => ui.DateTimeFormat.AbbreviatedDayNames[(i + 1) % 7]).ToArray();
 
     /// <summary>Ayın 1'ini içeren haftanın pazartesisinden başlayan 42 gün.</summary>
     public static IReadOnlyList<CalendarDay> Build(int year, int month, DateOnly today)
@@ -32,8 +31,9 @@ public static class MonthGrid
             .ToArray();
     }
 
-    /// <summary>Başlık, ör. "Kasım 2026".</summary>
-    public static string Title(int year, int month) => new DateOnly(year, month, 1).ToString("MMMM yyyy", Turkish);
+    /// <summary>Başlık, arayüz dilinde: "Kasım 2026" / "November 2026".</summary>
+    public static string Title(int year, int month, CultureInfo ui) =>
+        new DateOnly(year, month, 1).ToString(CoreText.Get(nameof(CoreStrings.Format_MonthTitle), ui), ui);
 
     /// <summary>Ay ileri/geri; yıl sınırını aşar.</summary>
     public static (int Year, int Month) Shift(int year, int month, int delta)

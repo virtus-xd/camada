@@ -1,4 +1,5 @@
 using CamAda.Core.Bluetooth;
+using static CamAda.Core.Tests.Text.Cultures;
 
 namespace CamAda.Core.Tests.Bluetooth;
 
@@ -54,10 +55,10 @@ public class BluetoothKindsTests
     [Fact]
     public void Tile_subtitle()
     {
-        Assert.Equal("Yok", BluetoothKinds.TileSubtitle(false, false, []));
-        Assert.Equal("Kapalı", BluetoothKinds.TileSubtitle(true, false, []));
-        Assert.Equal("Açık", BluetoothKinds.TileSubtitle(true, true, []));
-        Assert.Equal("Buds2 bağlı", BluetoothKinds.TileSubtitle(true, true, ["Buds2"]));
-        Assert.Equal("2 cihaz bağlı", BluetoothKinds.TileSubtitle(true, true, ["Buds2", "R1mouse1"]));
+        Assert.Equal("Yok", BluetoothKinds.TileSubtitle(false, false, [], Tr));
+        Assert.Equal("Kapalı", BluetoothKinds.TileSubtitle(true, false, [], Tr));
+        Assert.Equal("Açık", BluetoothKinds.TileSubtitle(true, true, [], Tr));
+        Assert.Equal("Buds2 bağlı", BluetoothKinds.TileSubtitle(true, true, ["Buds2"], Tr));
+        Assert.Equal("2 cihaz bağlı", BluetoothKinds.TileSubtitle(true, true, ["Buds2", "R1mouse1"], Tr));
     }
 }

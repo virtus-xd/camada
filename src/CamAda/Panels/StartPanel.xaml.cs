@@ -38,7 +38,7 @@ public sealed partial class StartPanel : UserControl
         InitializeComponent();
         _index = index;
 
-        foreach (var tile in pinned.Append(new StartTile("Ayarlar", null, () => Open(SettingsPages.All[^1]))))
+        foreach (var tile in pinned.Append(new StartTile("Ayarlar", null, () => Open(SettingsPages.For(System.Globalization.CultureInfo.CurrentUICulture)[^1]))))
         {
             PinnedGrid.Children.Add(CreateTile(tile));
         }
@@ -124,7 +124,7 @@ public sealed partial class StartPanel : UserControl
             return; // bu arada yeni bir harf yazıldı
         }
 
-        ResultsList.ItemsSource = SearchRanker.Rank(query, items).Select(item => new SearchRow(item, _index)).ToList();
+        ResultsList.ItemsSource = SearchRanker.Rank(query, items, System.Globalization.CultureInfo.CurrentUICulture).Select(item => new SearchRow(item, _index)).ToList();
         ResultsList.SelectedIndex = 0;
         Show(ResultsList);
     }

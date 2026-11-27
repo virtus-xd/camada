@@ -1,3 +1,6 @@
+using System.Globalization;
+using CamAda.Core.Text;
+
 namespace CamAda.Core.Bluetooth;
 
 public enum BluetoothDeviceKind
@@ -65,13 +68,13 @@ public static class BluetoothKinds
     /// <summary>Panelden yalnız ses cihazları bağlanıp ayrılır; diğerleri kendiliğinden bağlanır.</summary>
     public static bool CanConnect(BluetoothDeviceKind kind) => kind == BluetoothDeviceKind.Audio;
 
-    public static string TileSubtitle(bool hasAdapter, bool radioOn, IReadOnlyList<string> connectedNames) =>
-        !hasAdapter ? "Yok"
-        : !radioOn ? "Kapalı"
+    public static string TileSubtitle(bool hasAdapter, bool radioOn, IReadOnlyList<string> connectedNames, CultureInfo ui) =>
+        !hasAdapter ? CoreText.Get(nameof(CoreStrings.Tile_Unavailable), ui)
+        : !radioOn ? CoreText.Get(nameof(CoreStrings.Tile_Off), ui)
         : connectedNames.Count switch
         {
-            0 => "Açık",
-            1 => $"{connectedNames[0]} bağlı",
-            var n => $"{n} cihaz bağlı",
+            0 => CoreText.Get(nameof(CoreStrings.Tile_On), ui),
+            1 => CoreText.Format(ui, nameof(CoreStrings.Bluetooth_OneConnected), connectedNames[0]),
+            var n => CoreText.Format(ui, nameof(CoreStrings.Bluetooth_ManyConnected), n), // n ≥ 2: İngilizcede hep çoğul
         };
 }

@@ -1,25 +1,36 @@
+using System.Globalization;
+using CamAda.Core.Text;
+
 namespace CamAda.Core.Search;
 
-/// <summary>Başlat panelinden aranabilen Windows Ayarlar sayfaları (Türkçe adlarıyla).</summary>
+/// <summary>
+/// Başlat panelinden aranabilen Windows Ayarlar sayfaları. Ad arayüz dilinde görünür; öbür dildeki adı da takma ad olarak
+/// aranır (İngilizce arayüzde "ses", Türkçe arayüzde "sound" yazan da bulur). Son öğe her zaman genel "Ayarlar"dır.
+/// </summary>
 public static class SettingsPages
 {
-    public static IReadOnlyList<SearchItem> All { get; } =
+    private static readonly (string Key, string Target)[] Pages =
     [
-        Page("Ses ayarları", "ms-settings:sound"),
-        Page("Ekran ayarları", "ms-settings:display"),
-        Page("Bluetooth ve cihazlar", "ms-settings:bluetooth"),
-        Page("Wi-Fi", "ms-settings:network-wifi"),
-        Page("Uygulamalar", "ms-settings:appsfeatures"),
-        Page("Kişiselleştirme", "ms-settings:personalization"),
-        Page("Arka plan", "ms-settings:personalization-background"),
-        Page("Güç ve pil", "ms-settings:powersleep"),
-        Page("Windows Update", "ms-settings:windowsupdate"),
-        Page("Bildirimler", "ms-settings:notifications"),
-        Page("Fare", "ms-settings:mousetouchpad"),
-        Page("Klavye", "ms-settings:keyboard"),
-        Page("Depolama", "ms-settings:storagesense"),
-        Page("Ayarlar", "ms-settings:"),
+        (nameof(CoreStrings.SettingsPage_Sound), "ms-settings:sound"),
+        (nameof(CoreStrings.SettingsPage_Display), "ms-settings:display"),
+        (nameof(CoreStrings.SettingsPage_Bluetooth), "ms-settings:bluetooth"),
+        (nameof(CoreStrings.SettingsPage_Wifi), "ms-settings:network-wifi"),
+        (nameof(CoreStrings.SettingsPage_Apps), "ms-settings:appsfeatures"),
+        (nameof(CoreStrings.SettingsPage_Personalization), "ms-settings:personalization"),
+        (nameof(CoreStrings.SettingsPage_Background), "ms-settings:personalization-background"),
+        (nameof(CoreStrings.SettingsPage_Power), "ms-settings:powersleep"),
+        (nameof(CoreStrings.SettingsPage_Update), "ms-settings:windowsupdate"),
+        (nameof(CoreStrings.SettingsPage_Notifications), "ms-settings:notifications"),
+        (nameof(CoreStrings.SettingsPage_Mouse), "ms-settings:mousetouchpad"),
+        (nameof(CoreStrings.SettingsPage_Keyboard), "ms-settings:keyboard"),
+        (nameof(CoreStrings.SettingsPage_Storage), "ms-settings:storagesense"),
+        (nameof(CoreStrings.SettingsPage_Settings), "ms-settings:"),
     ];
 
-    private static SearchItem Page(string name, string target) => new(name, SearchKind.Setting, target);
+    public static IReadOnlyList<SearchItem> For(CultureInfo ui)
+    {
+        var other = UiLanguage.IsTurkish(ui) ? UiLanguage.English : UiLanguage.Turkish;
+        return Pages.Select(p => new SearchItem(CoreText.Get(p.Key, ui), SearchKind.Setting, p.Target, [CoreText.Get(p.Key, other)]))
+            .ToList();
+    }
 }
