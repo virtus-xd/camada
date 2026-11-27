@@ -42,14 +42,11 @@ public partial class NoHardcodedTurkishTests
         "src/CamAda/Assistant/ReminderFile.cs",
         "src/CamAda/Panels/AdaPanel.xaml",
         "src/CamAda/Panels/AdaPanel.xaml.cs",
-        "src/CamAda/Spotify/LoopbackCallback.cs",
-        "src/CamAda/Spotify/SpotifyConnectView.xaml",
-        "src/CamAda/Spotify/SpotifyConnectView.xaml.cs",
     ];
 
     private static readonly HashSet<string> Brands = new(StringComparer.Ordinal)
     {
-        "Wi‑Fi", "Wi-Fi", "Bluetooth", "Spotify", "Camada", "Ada",
+        "Wi‑Fi", "Wi-Fi", "Bluetooth", "Spotify", "Camada", "Ada", "Spotify Client ID",
     };
 
     [Fact]
@@ -214,7 +211,8 @@ public partial class NoHardcodedTurkishTests
     private static bool IsReadableText(string value)
     {
         var plain = Entity().Replace(value, "").Trim();
-        return !Brands.Contains(plain) && plain.Any(char.IsLetter);
+        var isAddress = plain.StartsWith("http://", StringComparison.Ordinal) || plain.StartsWith("https://", StringComparison.Ordinal);
+        return !Brands.Contains(plain) && !isAddress && plain.Any(char.IsLetter);
     }
 
     private static int LineOf(string text, int index) => text.AsSpan(0, index).Count('\n') + 1;

@@ -1,6 +1,7 @@
 <UserControl x:Class="CamAda.Spotify.SpotifyConnectView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:CamAda.Core.Text;assembly=CamAda.Core"
              Foreground="{StaticResource TextBrush}" FontFamily="{StaticResource Manrope}">
     <Border CornerRadius="16" Background="{StaticResource PanelItemBrush}" Padding="14,12">
         <StackPanel>
@@ -15,21 +16,21 @@
             <!-- Client ID yokken açılan üç adım -->
             <StackPanel x:Name="Steps" Visibility="Collapsed" Margin="0,12,0,0">
                 <DockPanel Margin="0,0,0,10" LastChildFill="True">
-                    <Button DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Content="Paneli aç" Margin="10,0,0,0"
+                    <Button DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Spotify_OpenDashboard}" Margin="10,0,0,0"
                             Click="OpenDashboard_Click" />
                     <TextBlock TextWrapping="Wrap" FontSize="12.5" VerticalAlignment="Center"
-                               Text="1. Spotify geliştirici panelinde bir uygulama oluştur (Web API seçili)." />
+                               Text="{x:Static t:UiStrings.Spotify_Step1}" />
                 </DockPanel>
                 <DockPanel Margin="0,0,0,10" LastChildFill="True">
-                    <Button x:Name="CopyButton" DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Content="Kopyala"
+                    <Button x:Name="CopyButton" DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Island_Copy}"
                             Margin="10,0,0,0" Click="CopyRedirect_Click" />
                     <TextBlock TextWrapping="Wrap" FontSize="12.5" VerticalAlignment="Center">
-                        <Run Text="2. Yönlendirme adresi olarak ekle: " /><Run Text="http://127.0.0.1:43821/callback" FontWeight="Bold" />
+                        <Run Text="{x:Static t:UiStrings.Spotify_Step2}" /><Run Text="http://127.0.0.1:43821/callback" FontWeight="Bold" />
                     </TextBlock>
                 </DockPanel>
-                <TextBlock Text="3. Client ID'yi buraya yapıştır:" FontSize="12.5" Margin="0,0,0,6" />
+                <TextBlock Text="{x:Static t:UiStrings.Spotify_Step3}" FontSize="12.5" Margin="0,0,0,6" />
                 <DockPanel LastChildFill="True">
-                    <Button x:Name="ConnectButton" DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Content="Bağlan"
+                    <Button x:Name="ConnectButton" DockPanel.Dock="Right" Style="{StaticResource PanelButton}" Content="{x:Static t:UiStrings.Common_Connect}"
                             Margin="10,0,0,0" Click="ConnectButton_Click" />
                     <Border CornerRadius="10" Background="{StaticResource PanelItemBrush}" Padding="10,0">
                         <TextBox x:Name="ClientIdBox" Height="30" VerticalContentAlignment="Center" FontSize="12.5"

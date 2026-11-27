@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using CamAda.Core.Spotify;
+using CamAda.Core.Text;
 
 namespace CamAda.Spotify;
 
@@ -109,19 +110,19 @@ public static class LoopbackCallback
                 {
                     case CallbackVerdict.Stale:
                         await RespondAsync(stream, "400 Bad Request",
-                            Page("Bu giriş bağlantısı eski. CamAda'daki Bağlan düğmesiyle yeniden dene."), stop);
+                            Page(UiStrings.Callback_StaleLink), stop);
                         return;
 
                     case CallbackVerdict.Denied:
                         await RespondAsync(stream, "200 OK",
-                            Page($"Bağlanılamadı: {WebUtility.HtmlEncode(parsed.Error ?? "yanıt eksik")}"), stop);
+                            Page(string.Format(UiStrings.Callback_Failed, WebUtility.HtmlEncode(parsed.Error ?? UiStrings.Callback_MissingResponse))), stop);
                         session.Result.TrySetResult(null);
                         return;
                 }
 
                 if (!session.TryClaim())
                 {
-                    await RespondAsync(stream, "200 OK", Page("Giriş zaten işleniyor. Bu sekmeyi kapatabilirsin."), stop);
+                    await RespondAsync(stream, "200 OK", Page(UiStrings.Callback_InProgress), stop);
                     return;
                 }
 
@@ -130,8 +131,8 @@ public static class LoopbackCallback
                 {
                     exchanged = await session.Exchange(parsed.Code!);
                     await RespondAsync(stream, "200 OK", Page(exchanged is not null
-                        ? "CamAda Spotify'a bağlandı. Bu sekmeyi kapatabilirsin."
-                        : "Bağlanılamadı: Spotify girişi tamamlanamadı. CamAda'dan yeniden dene."), stop);
+                        ? UiStrings.Callback_Connected
+                        : UiStrings.Callback_NotCompleted), stop);
                 }
                 finally
                 {
@@ -148,7 +149,7 @@ public static class LoopbackCallback
     }
 
     private static string Page(string message) =>
-        "<!doctype html><html lang=\"tr\"><meta charset=\"utf-8\"><title>CamAda</title>" +
+        "<!doctype html><html lang=\"" + System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName + "\"><meta charset=\"utf-8\"><title>CamAda</title>" +
         "<body style=\"font-family:sans-serif;background:#14182A;color:#F4F6FB;display:grid;place-items:center;height:90vh\">" +
         $"<p style=\"font-size:20px\">{message}</p></body></html>";
 

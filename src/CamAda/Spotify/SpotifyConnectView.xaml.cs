@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using CamAda.Core.Spotify;
+using CamAda.Core.Text;
 
 namespace CamAda.Spotify;
 
@@ -39,14 +40,14 @@ public sealed partial class SpotifyConnectView : UserControl
         if (kind == SpotifyFooterKind.RenewForAda)
         {
             // Bağlantı var ama Ada'nın çalma izni eklenmeden önce alınmış: aynı giriş akışı yeni izinle yeniden çalışır.
-            SummaryText.Text = note ?? "Spotify izni yenilenmeli (Ada'nın çalabilmesi için).";
-            StartButton.Content = "İzni yenile";
+            SummaryText.Text = note ?? UiStrings.Spotify_RenewNeeded;
+            StartButton.Content = UiStrings.Spotify_Renew;
             StartButton.IsEnabled = true;
             return;
         }
 
-        SummaryText.Text = note ?? "Beğen ve Sıradaki için Spotify'a bağlan.";
-        StartButton.Content = _client.IsConfigured ? "Spotify'a bağlan" : "Bağla";
+        SummaryText.Text = note ?? UiStrings.Spotify_ConnectSummary;
+        StartButton.Content = _client.IsConfigured ? UiStrings.Spotify_ConnectButton : UiStrings.Spotify_Link;
         StartButton.IsEnabled = true;
     }
 
@@ -78,7 +79,7 @@ public sealed partial class SpotifyConnectView : UserControl
     private async Task ConnectAsync()
     {
         StartButton.IsEnabled = false;
-        SummaryText.Text = "Tarayıcıda Spotify iznini onayla…";
+        SummaryText.Text = UiStrings.Spotify_ApproveInBrowser;
         var ok = await _client.ConnectAsync(CancellationToken.None);
         if (ok)
         {
@@ -88,7 +89,7 @@ public sealed partial class SpotifyConnectView : UserControl
         }
 
         // Yanlış Client ID ya da eksik yönlendirme adresi olabilir: adımlar kayıtlı Client ID ile yeniden açılır.
-        ShowSummary("Bağlanılamadı. Yönlendirme adresini ve Client ID'yi kontrol edip yeniden dene.");
+        ShowSummary(UiStrings.Spotify_ConnectFailedCheck);
         ClientIdBox.Text = _client.ClientId ?? "";
         Steps.Visibility = Visibility.Visible;
     }
@@ -110,7 +111,7 @@ public sealed partial class SpotifyConnectView : UserControl
         try
         {
             Clipboard.SetText(SpotifyAuth.RedirectUri);
-            CopyButton.Content = "Kopyalandı";
+            CopyButton.Content = UiStrings.Island_Copied;
         }
         catch (COMException ex)
         {
