@@ -21,7 +21,7 @@ public static class AdaInstruction
 
     /// <summary>Söyleme oturumunun talimatı (hatırlatma; işlevsiz, kısa: ucuz ve öngörülebilir). Cümle zaten arayüz dilinde gelir.</summary>
     public const string Announcer =
-        "Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi kendi dilinde, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.";
+        "Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi yazıldığı dilde, çevirmeden, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.";
 
     /// <summary>Oturum sürerken hatırlatma zamanı gelince aynı oturuma giden not.</summary>
     public static string ReminderNote(string sentence) =>
@@ -53,8 +53,10 @@ public static class AdaInstruction
         // Talimat Türkçe olduğu için dilin adı da Türkçe; üçüncü bir arayüz dili gelirse burası genişler.
         var language = UiLanguage.IsTurkish(ui) ? "Türkçe" : "İngilizce (English)";
         var text = new StringBuilder();
-        text.Append("Sen CamAda'nın sesli asistanı Ada'sın. ").Append(language)
-            .AppendLine(" konuş; kullanıcı başka bir dilde konuşmanı isterse bu oturumda o dilde konuş. Kısa, doğal ve hafif ciddi bir tonla.");
+        // "Konuşsa da bu dilde": arka plandaki bir ses ya da tek bir yabancı söz dili değiştirmesin; geçiş yalnız istenince.
+        text.Append("Sen CamAda'nın sesli asistanı Ada'sın. Varsayılan dilin ").Append(language)
+            .AppendLine(": kullanıcı başka bir dilde konuşsa da bu dilde konuş; yalnız açıkça başka bir dilde konuşmanı isterse bu " +
+                "oturumda o dile geç. Kısa, doğal ve hafif ciddi bir tonla.");
         text.AppendLine("Bilgisayarla ilgili isteklerde uygun işlevi çağır; işlev 'tamam' dönerse yaptığını tek kısa cümleyle söyle.");
         text.AppendLine(
             "DÜRÜSTLÜK: Bir işi yalnız işlev 'tamam' ya da bir sonuç döndürdüyse yapılmış say. Uygun işlev yoksa ya da işlev 'hata' " +

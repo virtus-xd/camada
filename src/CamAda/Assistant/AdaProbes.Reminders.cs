@@ -62,7 +62,7 @@ internal static partial class AdaProbes
                 scheduler.Due += due =>
                 {
                     fired++;
-                    Log($"doldu ({(DateTime.UtcNow - started).TotalSeconds:F0} sn): {ReminderText.Announcement(due, DateTimeOffset.Now)}");
+                    Log($"doldu ({(DateTime.UtcNow - started).TotalSeconds:F0} sn): {ReminderText.Announcement(due, DateTimeOffset.Now, System.Globalization.CultureInfo.CurrentUICulture)}");
                 };
                 scheduler.Start();
                 await Task.Delay(TimeSpan.FromSeconds(70));
@@ -113,7 +113,7 @@ internal static partial class AdaProbes
             scheduler.Due += async due =>
             {
                 alerts++;
-                var sentence = ReminderText.Announcement(due, DateTimeOffset.Now);
+                var sentence = ReminderText.Announcement(due, DateTimeOffset.Now, System.Globalization.CultureInfo.CurrentUICulture);
                 Log($"uyarı: adada '{sentence}' (8 sn)");
                 Log($"uyarı: Ada söyledi={await ada.AnnounceAsync(sentence)}");
             };

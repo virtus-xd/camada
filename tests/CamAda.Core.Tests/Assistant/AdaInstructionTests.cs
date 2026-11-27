@@ -34,7 +34,7 @@ public class AdaInstructionTests
     {
         Assert.Equal("(Sistem notu, kullanıcı söylemedi: hatırlatma zamanı geldi. Yalnız 'Süre doldu: makarna.' de; başka bir şey söyleme, işlev çağırma.)",
             AdaInstruction.ReminderNote("Süre doldu: makarna."));
-        Assert.Equal("Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi kendi dilinde, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.",
+        Assert.Equal("Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi yazıldığı dilde, çevirmeden, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.",
             AdaInstruction.Announcer);
     }
 
@@ -50,7 +50,7 @@ public class AdaInstructionTests
     public void Turkish_instruction_speaks_turkish_and_switches_on_request()
     {
         var text = AdaInstruction.Build(Now, [], Cultures.Tr);
-        Assert.Contains("Türkçe konuş; kullanıcı başka bir dilde konuşmanı isterse bu oturumda o dilde konuş.", text);
+        Assert.Contains("Varsayılan dilin Türkçe: kullanıcı başka bir dilde konuşsa da bu dilde konuş; yalnız açıkça başka bir dilde konuşmanı isterse bu oturumda o dile geç.", text);
         Assert.DoesNotContain("Her zaman Türkçe", text);
         Assert.Contains("25 Kasım 2026 Çarşamba", text);
     }
@@ -61,7 +61,7 @@ public class AdaInstructionTests
     public void English_instruction_speaks_english(string culture)
     {
         var text = AdaInstruction.Build(Now, [], CultureInfo.GetCultureInfo(culture));
-        Assert.Contains("İngilizce (English) konuş; kullanıcı başka bir dilde konuşmanı isterse bu oturumda o dilde konuş.", text);
+        Assert.Contains("Varsayılan dilin İngilizce (English): kullanıcı başka bir dilde konuşsa da bu dilde konuş; yalnız açıkça başka bir dilde konuşmanı isterse bu oturumda o dile geç.", text);
         Assert.Contains("25 November 2026 Wednesday", text);
         Assert.Contains("Saat şu an 18:30.", text);
     }

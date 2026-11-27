@@ -51,10 +51,12 @@ satırının yazımı değişir. Bugün model istenince zaten başka dile geçiy
 
 ## Kararlar (benim önerim; kullanıcı ayrıntıya girmedi)
 
-- **Dil satırı** (yönerge Türkçe kaldığı için dil adı Türkçe yazılır):
-  - Türkçe arayüz: "Türkçe konuş; kullanıcı başka bir dilde konuşmanı isterse bu oturumda o dilde konuş. Kısa, doğal ve hafif
-    ciddi bir tonla."
-  - İngilizce arayüz: aynı satır, "İngilizce (English) konuş" ile başlar.
+- **Dil satırı** (yönerge Türkçe kaldığı için dil adı Türkçe yazılır): "Varsayılan dilin Türkçe: kullanıcı başka bir dilde
+  konuşsa da bu dilde konuş; yalnız açıkça başka bir dilde konuşmanı isterse bu oturumda o dile geç. Kısa, doğal ve hafif
+  ciddi bir tonla." İngilizce arayüzde "Türkçe" yerine "İngilizce (English)" yazar. Son incelemede güçlendirildi: ilk yazımda
+  ("Türkçe konuş; kullanıcı … isterse") eski "Her zaman" çapası yoktu, Ada duyduğu dile kendiliğinden geçebilirdi.
+- **Söyleme oturumu yönergesi:** "Sana verilen cümleyi yazıldığı dilde, çevirmeden, …". İlk yazımdaki "kendi dilinde" ifadesi
+  "senin dilinde" diye de okunabiliyordu; o zaman İngilizce hatırlatma Türkçeye çevrilebilirdi.
 - **Hazır cümlelerin yeri:** `CoreStrings` (İngilizce temel + `tr`), mevcut `CoreText.Get`/`CoreText.Format` ile. Türkçe değerler
   bugünkü metinle birebir aynıdır. Sistem notu sarmalayıcıları ("(Sistem notu, kullanıcı söylemedi: …)", "tamam: …; yalnız '…'
   de") Türkçe kalır; yalnız tırnak içindeki, Ada'nın söyleyeceği cümle yerelleşir.
@@ -101,7 +103,10 @@ satırının yazımı değişir. Bugün model istenince zaten başka dile geçiy
   3. 1 dakikalık zamanlayıcı kur: "Time's up: …" duyulmalı.
   4. Not al, sonra bitir: "I'm listening" ve "Note taken" duyulmalı.
   5. Misafir kipini aç ve kapat.
-  6. Türkçe arayüzde aynı adımları dene: her şey bugünkü gibi olmalı.
+  6. Ada boştayken (oturum yokken) İngilizce bir zamanlayıcının dolmasını bekle: duyuru çevrilmeden İngilizce söylenmeli.
+  7. Dil geçişi istemeden tek bir Türkçe cümle söyle (İngilizce arayüzde; Türkçe arayüzde de tersi): Ada kendi dilinde kalmalı.
+  8. "Remember that …" de ve Ada'nın yapamadığı bir şey iste: yanıtlar Türkçe kalıp cümleleriyle değil, İngilizce gelmeli.
+  9. Türkçe arayüzde aynı adımları dene: her şey bugünkü gibi olmalı.
 
 ## Kurucuya kalanlar
 
