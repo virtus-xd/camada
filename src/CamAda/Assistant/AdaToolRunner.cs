@@ -668,9 +668,7 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
             return "hata: misafir kipi şu an kullanılamıyor (ses tanıma yüklenemedi)";
         }
 
-        return on
-            ? "tamam: misafir kipi açık; kullanıcıya yalnız 'Misafir kipi açık, bana adımla seslen.' de"
-            : "tamam: misafir kipi kapalı; kullanıcıya yalnız 'Misafir kipi kapandı.' de";
+        return AdaInstruction.GuestModeResult(on, System.Globalization.CultureInfo.CurrentUICulture);
     }
 
     private string EndConversation()
@@ -726,12 +724,12 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
             FinishNote();
             return written.StartsWith("hata", StringComparison.Ordinal) ? written
                 : target.Document is null ? $"tamam: not Belgeler\\{System.IO.Path.GetFileName(NotepadWriter.NotesFolder)}\\{target.FileName} dosyasına yazıldı (Not Defteri görünmedi); bunu kısaca söyle"
-                : "tamam: not yazıldı; yalnız 'Not aldım' de";
+                : AdaInstruction.NoteWrittenResult(System.Globalization.CultureInfo.CurrentUICulture);
         }
 
         return target.Document is null
             ? $"tamam: Not Defteri görünmedi ama not Belgeler\\{System.IO.Path.GetFileName(NotepadWriter.NotesFolder)}\\{target.FileName} dosyasına yazılacak; bunu kısaca söyle ve bekle"
-            : "tamam: not defteri açık; kullanıcıya yalnız 'Dinliyorum' de ve bekle";
+            : AdaInstruction.NoteListeningResult(System.Globalization.CultureInfo.CurrentUICulture);
     }
 
     /// <summary>Parçayı nota ekler ve notun tamamını dosyaya ve Ada'nın sekmesine yazar (aynı anda tek yazma).</summary>
@@ -791,7 +789,7 @@ internal sealed class AdaToolRunner(AdaToolContext ctx, TimeProvider time)
     private Task<string> EndNoteAsync()
     {
         FinishNote();
-        return Done("tamam: not bitti; yalnız 'Not aldım' de");
+        return Done(AdaInstruction.NoteEndedResult(System.Globalization.CultureInfo.CurrentUICulture));
     }
 
     // --- Yardımcılar ---

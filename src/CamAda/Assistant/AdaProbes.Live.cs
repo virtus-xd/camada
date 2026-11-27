@@ -61,7 +61,7 @@ internal static partial class AdaProbes
         }
 
         var setup = LiveSetup.Build(new LiveSetupOptions(settings.Model, settings.Voice,
-            AdaInstruction.Build(DateTime.Now, []), AdaTools.Declarations()));
+            AdaInstruction.Build(DateTime.Now, [], System.Globalization.CultureInfo.CurrentUICulture), AdaTools.Declarations()));
         await using var client = await GeminiLiveClient.ConnectAsync(key, setup, CancellationToken.None);
         var audio = 0;
         var text = new StringBuilder();
@@ -90,7 +90,7 @@ internal static partial class AdaProbes
         await Task.Delay(15000);
         Log($"ada-metin-sina: 15 sn boş bekleme sonrası bağlantı açık={closed is null}");
 
-        await client.SendTextAsync(AdaInstruction.MaxDurationGoodbye);
+        await client.SendTextAsync(AdaInstruction.MaxDurationGoodbye(System.Globalization.CultureInfo.CurrentUICulture));
         var finished = await Task.WhenAny(turnDone.Task, Task.Delay(12000)) == turnDone.Task;
         Log($"metin turu: yanıt bitti={finished}, ses parçası {audio}, yazı \"{text.ToString().Trim()}\", kapanış {closed?.ToString() ?? "yok"}");
         await client.CloseAsync();

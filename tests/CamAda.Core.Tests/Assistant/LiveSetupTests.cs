@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using CamAda.Core.Assistant;
+using CamAda.Core.Tests.Text;
 
 namespace CamAda.Core.Tests.Assistant;
 
@@ -63,9 +64,9 @@ public class LiveSetupTests
     [Fact]
     public void Text_goes_as_realtime_input()
     {
-        var message = LiveMessages.Text(AdaInstruction.MaxDurationGoodbye);
-        Assert.Equal(AdaInstruction.MaxDurationGoodbye, (string?)message["realtimeInput"]!["text"]);
-        Assert.Contains("yeniden çağırabilirsin", AdaInstruction.MaxDurationGoodbye);
+        var message = LiveMessages.Text(AdaInstruction.MaxDurationGoodbye(Cultures.Tr));
+        Assert.Equal(AdaInstruction.MaxDurationGoodbye(Cultures.Tr), (string?)message["realtimeInput"]!["text"]);
+        Assert.Contains("yeniden çağırabilirsin", AdaInstruction.MaxDurationGoodbye(Cultures.Tr));
     }
 
     [Fact]

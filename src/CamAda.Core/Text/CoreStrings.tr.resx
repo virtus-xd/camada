@@ -4,6 +4,11 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AdaSay_GuestOff" xml:space="preserve"><value>Misafir kipi kapandı.</value></data>
+  <data name="AdaSay_GuestOn" xml:space="preserve"><value>Misafir kipi açık, bana adımla seslen.</value></data>
+  <data name="AdaSay_Listening" xml:space="preserve"><value>Dinliyorum</value></data>
+  <data name="AdaSay_MaxDuration" xml:space="preserve"><value>Uzun sürdü, yeniden çağırabilirsin.</value></data>
+  <data name="AdaSay_NoteTaken" xml:space="preserve"><value>Not aldım.</value></data>
   <data name="Ada_Listening" xml:space="preserve"><value>Dinliyorum…</value></data>
   <data name="Ada_ListeningGuest" xml:space="preserve"><value>“Ada” deyin, dinliyorum</value></data>
   <data name="Battery_A11y" xml:space="preserve"><value>Pil {0}</value></data>

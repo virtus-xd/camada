@@ -859,7 +859,7 @@ internal sealed class AdaAssistant : IDisposable
         try
         {
             var setup = LiveSetup.Build(new LiveSetupOptions(settings.Model, settings.Voice,
-                AdaInstruction.Build(DateTime.Now, _deps.Memory.Snapshot()), AdaTools.Declarations()));
+                AdaInstruction.Build(DateTime.Now, _deps.Memory.Snapshot(), System.Globalization.CultureInfo.CurrentUICulture), AdaTools.Declarations()));
             var client = await GeminiLiveClient.ConnectAsync(key, setup, session.Cancel.Token);
             if (session.Closing)
             {
@@ -1228,7 +1228,7 @@ internal sealed class AdaAssistant : IDisposable
             if (_runner.FinishNote() && session == _session && !session.Closing && session.Client is { } client)
             {
                 TraceDebug("not bitti (sessizlik)");
-                await client.SendTextAsync(AdaInstruction.NoteFinished);
+                await client.SendTextAsync(AdaInstruction.NoteFinished(System.Globalization.CultureInfo.CurrentUICulture));
             }
         }
         catch (Exception ex) when (!IsFatal(ex))
@@ -1346,7 +1346,7 @@ internal sealed class AdaAssistant : IDisposable
                 {
                     session.EndRequested = true;
                     session.EndRequestedAt = DateTime.UtcNow;
-                    _ = client.SendTextAsync(AdaInstruction.MaxDurationGoodbye);
+                    _ = client.SendTextAsync(AdaInstruction.MaxDurationGoodbye(System.Globalization.CultureInfo.CurrentUICulture));
                 }
                 else
                 {

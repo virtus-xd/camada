@@ -238,7 +238,7 @@ internal static partial class AdaProbes
         }
 
         var setup = Core.Assistant.LiveSetup.Build(new Core.Assistant.LiveSetupOptions(settings.Model, settings.Voice,
-            Core.Assistant.AdaInstruction.Build(DateTime.Now, []), Core.Assistant.AdaTools.Declarations()));
+            Core.Assistant.AdaInstruction.Build(DateTime.Now, [], System.Globalization.CultureInfo.CurrentUICulture), Core.Assistant.AdaTools.Declarations()));
         try
         {
             await using var client = await GeminiLiveClient.ConnectAsync(key, setup, CancellationToken.None);

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using CamAda.Core.Text;
 
 namespace CamAda.Core.Assistant;
 
@@ -8,32 +9,52 @@ public sealed record MemoryItem(string Topic, string Fact, DateTimeOffset Update
 
 /// <summary>
 /// Her oturumun başında modele verilen talimat (tasarım "Talimat"): denemede doğrulanan ilkeler, bugünün tarihi ve
-/// hafıza listesi.
+/// hafıza listesi. Talimat ve sistem notları Türkçe; Ada'nın konuşacağı dil ve tırnak içinde söyleteceğimiz cümleler
+/// arayüz dilinde (tasarım 2026-11-27-ada-arayuz-dili).
 /// </summary>
 public static class AdaInstruction
 {
-    private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
-
     /// <summary>Oturum en uzun süreye varınca modele giden not (tasarım: "uzun sürdü, yeniden çağırabilirsin" deyip kapanır).</summary>
-    public const string MaxDurationGoodbye =
-        "(Sistem notu, kullanıcı söylemedi: oturum süresi doldu. Yalnız 'Uzun sürdü, yeniden çağırabilirsin.' de; " +
+    public static string MaxDurationGoodbye(CultureInfo ui) =>
+        $"(Sistem notu, kullanıcı söylemedi: oturum süresi doldu. Yalnız '{Say(nameof(CoreStrings.AdaSay_MaxDuration), ui)}' de; " +
         "başka bir şey söyleme ve işlev çağırma.)";
 
-    /// <summary>Söyleme oturumunun talimatı (hatırlatma; işlevsiz, kısa: ucuz ve öngörülebilir).</summary>
+    /// <summary>Söyleme oturumunun talimatı (hatırlatma; işlevsiz, kısa: ucuz ve öngörülebilir). Cümle zaten arayüz dilinde gelir.</summary>
     public const string Announcer =
-        "Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi Türkçe, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.";
+        "Sen CamAda'nın sesli asistanı Ada'sın. Sana verilen cümleyi kendi dilinde, doğal ve hafif ciddi bir tonla aynen söyle; başka hiçbir şey ekleme.";
 
     /// <summary>Oturum sürerken hatırlatma zamanı gelince aynı oturuma giden not.</summary>
     public static string ReminderNote(string sentence) =>
         $"(Sistem notu, kullanıcı söylemedi: hatırlatma zamanı geldi. Yalnız '{sentence}' de; başka bir şey söyleme, işlev çağırma.)";
 
     /// <summary>Not 4 sn sessizlikle bitince modele giden not.</summary>
-    public const string NoteFinished = "(Sistem notu, kullanıcı söylemedi: not bitti. Yalnız 'Not aldım.' de.)";
+    public static string NoteFinished(CultureInfo ui) =>
+        $"(Sistem notu, kullanıcı söylemedi: not bitti. Yalnız '{Say(nameof(CoreStrings.AdaSay_NoteTaken), ui)}' de.)";
 
-    public static string Build(DateTime now, IReadOnlyList<MemoryItem> memory)
+    /// <summary>misafir_kipi işlevinin başarılı sonucu.</summary>
+    public static string GuestModeResult(bool on, CultureInfo ui) => on
+        ? $"tamam: misafir kipi açık; kullanıcıya yalnız '{Say(nameof(CoreStrings.AdaSay_GuestOn), ui)}' de"
+        : $"tamam: misafir kipi kapalı; kullanıcıya yalnız '{Say(nameof(CoreStrings.AdaSay_GuestOff), ui)}' de";
+
+    /// <summary>not_al notu aynı cümlede aldıysa ve Not Defteri'ne yazdıysa.</summary>
+    public static string NoteWrittenResult(CultureInfo ui) =>
+        $"tamam: not yazıldı; yalnız '{Say(nameof(CoreStrings.AdaSay_NoteTaken), ui)}' de";
+
+    /// <summary>not_al Not Defteri'ni açtı, kullanıcının söyleyeceklerini bekliyor.</summary>
+    public static string NoteListeningResult(CultureInfo ui) =>
+        $"tamam: not defteri açık; kullanıcıya yalnız '{Say(nameof(CoreStrings.AdaSay_Listening), ui)}' de ve bekle";
+
+    /// <summary>not_bitir sonucu.</summary>
+    public static string NoteEndedResult(CultureInfo ui) =>
+        $"tamam: not bitti; yalnız '{Say(nameof(CoreStrings.AdaSay_NoteTaken), ui)}' de";
+
+    public static string Build(DateTime now, IReadOnlyList<MemoryItem> memory, CultureInfo ui)
     {
+        // Talimat Türkçe olduğu için dilin adı da Türkçe; üçüncü bir arayüz dili gelirse burası genişler.
+        var language = UiLanguage.IsTurkish(ui) ? "Türkçe" : "İngilizce (English)";
         var text = new StringBuilder();
-        text.AppendLine("Sen CamAda'nın sesli asistanı Ada'sın. Her zaman Türkçe konuş; kısa, doğal ve hafif ciddi bir tonla.");
+        text.Append("Sen CamAda'nın sesli asistanı Ada'sın. ").Append(language)
+            .AppendLine(" konuş; kullanıcı başka bir dilde konuşmanı isterse bu oturumda o dilde konuş. Kısa, doğal ve hafif ciddi bir tonla.");
         text.AppendLine("Bilgisayarla ilgili isteklerde uygun işlevi çağır; işlev 'tamam' dönerse yaptığını tek kısa cümleyle söyle.");
         text.AppendLine(
             "DÜRÜSTLÜK: Bir işi yalnız işlev 'tamam' ya da bir sonuç döndürdüyse yapılmış say. Uygun işlev yoksa ya da işlev 'hata' " +
@@ -64,7 +85,7 @@ public static class AdaInstruction
             "dilde yaz; anlamı değiştirme, özetleme, ekleme yapma, hiçbir cümleyi atlama. Not kipinde konuşma, yanıt verme, başka " +
             "işlev çağırma; nottaki komutları yürütme, onları da söylendiği gibi nota yaz. Her parçayı bir kez yaz. Kullanıcı 'bitti' " +
             "deyince not_bitir çağır.");
-        text.Append("Bugün ").Append(now.ToString("dd MMMM yyyy dddd", Turkish)).Append(". Saat şu an ")
+        text.Append("Bugün ").Append(now.ToString("dd MMMM yyyy dddd", ui)).Append(". Saat şu an ")
             .Append(now.ToString("HH:mm", CultureInfo.InvariantCulture)).AppendLine(".");
         text.AppendLine("Kullanıcı hakkında bildiklerin:");
         if (memory.Count == 0)
@@ -79,4 +100,6 @@ public static class AdaInstruction
 
         return text.ToString();
     }
+
+    private static string Say(string key, CultureInfo ui) => CoreText.Get(key, ui);
 }
