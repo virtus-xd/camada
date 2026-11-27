@@ -88,7 +88,7 @@ Camada hesap açtırmaz, reklam göstermez, kullanım istatistiği toplamaz. İn
 - Katkı vermek için: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Güvenlik açığı bildirmek için: [SECURITY.md](SECURITY.md)
 - Davranış kuralları: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Projeyi desteklemek isterseniz: [GitHub Sponsors](https://github.com/sponsors/virtus-xd)
+- Projeyi desteklemek isterseniz: [GitHub Sponsors](https://github.com/sponsors/virtus-xd) ya da [Buy Me a Coffee](https://buymeacoffee.com/virtusxd)
 
 ## Lisans
 

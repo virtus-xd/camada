@@ -88,7 +88,7 @@ Camada needs no account, shows no ads and collects no usage statistics. Only fea
 - To contribute: [CONTRIBUTING.md](CONTRIBUTING.md)
 - To report a vulnerability: [SECURITY.md](SECURITY.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- To support the project: [GitHub Sponsors](https://github.com/sponsors/virtus-xd)
+- To support the project: [GitHub Sponsors](https://github.com/sponsors/virtus-xd) or [Buy Me a Coffee](https://buymeacoffee.com/virtusxd)
 
 ## License
 
