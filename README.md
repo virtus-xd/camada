@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/virtus-xd/camada/actions/workflows/ci.yml/badge.svg)](https://github.com/virtus-xd/camada/actions/workflows/ci.yml) · Lisans: [Apache 2.0](LICENSE)
 
-Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam ada koyar. Ada normalde küçüktür; saati, çalan müziği ve bildirimleri gösterir. Üzerine gelince genişler: sabitlediğiniz uygulamalar, açık pencereler, sistem tepsisi, Wi‑Fi, Bluetooth, ses, parlaklık, takvim, pano geçmişi ve ekran görüntüleri tek dokunuş uzağınızdadır.
+Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam ada koyar. Ada normalde küçüktür; saati ve çalan müziği gösterir. Üzerine gelince genişler: sabitlediğiniz uygulamalar, açık pencereler, sistem tepsisi, Wi‑Fi, Bluetooth, ses, parlaklık, takvim, pano geçmişi ve ekran görüntüleri tek dokunuş uzağınızdadır.
 
 İsteğe bağlı sesli asistan Ada, "Hey Ada" dediğinizde uyanır: uygulama açar, ses ve parlaklığı ayarlar, web'de arar, not alır, hatırlatma kurar ve hava durumunu söyler. Ada kendi Google Gemini API anahtarınızla çalışır ve varsayılan olarak kapalıdır.
 
@@ -13,7 +13,7 @@ Camada, Windows görev çubuğunun yerine ekranın üstünde duran şık bir cam
 ## Özellikler
 
 - Görev çubuğunun yerine ekranın üstünde duran cam ada
-- Çalan müzik, saat ve bildirimler bir bakışta
+- Çalan müzik ve saat bir bakışta
 - Sabitlenmiş uygulamalar, açık pencereler ve sistem tepsisi
 - Wi‑Fi, Bluetooth, ses ve parlaklık için hızlı ayarlar
 - Pano geçmişi (Win+Alt+V) ve ekran görüntüleri
@@ -26,10 +26,10 @@ Erken sürüm. Arayüz şimdilik yalnız Türkçe; İngilizce arayüz planlanıy
 
 ## Görev çubuğu güvenlik ağı
 
-Camada Windows görev çubuğunu gizleyebilir; bu ayar adaya sağ tıklayınca açılan menüdeki **"Görev çubuğunu gizle"** ile açılıp kapanır. Görev çubuğu her zaman geri getirilebilir:
+Kaynaktan derlenen sürüm **ilk açılışta** Windows görev çubuğunu gizler ve oturum açılışında kendiliğinden başlamak için kendini kaydeder. İkisini de adaya sağ tıklayınca açılan menüden kapatabilirsiniz: **"Görev çubuğunu gizle"** ve **"Windows açılınca başlat"**. Uygulamayı kapatmak için aynı menüde **"Çıkış"** vardır. Görev çubuğu her zaman geri getirilebilir:
 
-- `CamAda.exe --restore-taskbar` adayı kapatır ve Windows görev çubuğunu geri getirir.
-- Bunun için masaüstüne bir kısayol oluşturabilirsiniz: `.\tools\create-restore-shortcut.ps1 -ExePath <CamAda.exe yolu>` ("Görev çubuğunu geri getir").
+- `CamAda.exe --restore-taskbar` adayı kapatır ve Windows görev çubuğunu geri getirir. Ayarı değiştirmez: Camada bir sonraki açılışta görev çubuğunu yine gizler. Kalıcı olarak kapatmak için menüdeki "Görev çubuğunu gizle" işaretini kaldırın.
+- Bunun için masaüstüne bir kısayol oluşturabilirsiniz: `powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath <CamAda.exe yolu>` ("Görev çubuğunu geri getir").
 - Microsoft Store sürümünde Başlat menüsünde ayrıca **"Görev çubuğunu geri getir"** girişi bulunur.
 - Camada beklenmedik şekilde kapanırsa ayrı çalışan bir bekçi görev çubuğunu kendiliğinden geri getirir.
 - Beklenmeyen hatalar `%LOCALAPPDATA%\CamAda\crash.log` dosyasına yazılır; hata bildirirken bu dosyayı paylaşabilirsiniz.
@@ -50,14 +50,24 @@ dotnet build CamAda.slnx
 dotnet test tests/CamAda.Core.Tests
 ```
 
-Çalıştırmadan **önce** kurtarma kısayolunu oluşturun, sonra uygulamayı başlatın:
+Çalıştırmadan **önce** kurtarma kısayolunu oluşturun, sonra uygulamayı başlatın. İlk açılışta görev çubuğu gizlenir ve Camada oturum açılışında başlamak için kendini kaydeder (bkz. [Görev çubuğu güvenlik ağı](#görev-çubuğu-güvenlik-ağı)).
 
 ```powershell
-.\tools\create-restore-shortcut.ps1 -ExePath .\src\CamAda\bin\Debug\net10.0-windows10.0.22621.0\CamAda.exe
+powershell -ExecutionPolicy Bypass -File .\tools\create-restore-shortcut.ps1 -ExePath .\src\CamAda\bin\Debug\net10.0-windows10.0.22621.0\CamAda.exe
 dotnet run --project src/CamAda
 ```
 
 Kalıcı kurulum için `.\tools\install.ps1`: Release sürümünü derler, `%LOCALAPPDATA%\Programs\CamAda` klasörüne kurar, kurtarma kısayolunu oluşturur ve Camada'yı başlatır. Camada bundan sonra oturum açılışında kendiliğinden başlar. PowerShell betik çalıştırmayı engelliyorsa: `powershell -ExecutionPolicy Bypass -File .\tools\install.ps1` (yalnız bu komut için geçerlidir).
+
+## Kaldırma
+
+1. Adaya sağ tıklayın, "Windows açılınca başlat" ve "Görev çubuğunu gizle" işaretlerini kaldırın, sonra "Çıkış"ı seçin.
+2. Oturum açılış kaydı kaldıysa silin (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` altındaki `CamAda` değeri):
+   `Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name CamAda -ErrorAction SilentlyContinue`
+3. Kurulum dosyalarını silin: `%LOCALAPPDATA%\Programs\CamAda` klasörü ve masaüstündeki "Görev çubuğunu geri getir" kısayolu.
+4. Ayarları ve Ada verilerini de silmek isterseniz: `%APPDATA%\CamAda` ve `%LOCALAPPDATA%\CamAda`. Ada'nın notları (Belgeler\Ada Notları) ve ekran görüntüleri (Resimler) yerinde kalır.
+
+Microsoft Store sürümü Windows Ayarlar → Uygulamalar'dan kaldırılır; görev çubuğu kendiliğinden geri gelir.
 
 ## Proje yapısı
 
