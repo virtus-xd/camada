@@ -383,4 +383,76 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal(GlassMode.Solid, s.GlassMode);
         Assert.Equal(56, s.StripHeight);
     }
+
+    // ReadLanguage: uygulama olay döngüsü başlamadan her kipte çağrılır; dosyaya asla yazmaz.
+
+    [Fact]
+    public void ReadLanguage_without_file_is_automatic_and_creates_nothing()
+    {
+        Assert.Null(new SettingsStore(_dir).ReadLanguage());
+        Assert.Empty(Directory.GetFiles(_dir));
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("tr")]
+    public void ReadLanguage_returns_the_saved_language(string language)
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), $$"""{ "SettingsVersion": 2, "Language": "{{language}}" }""");
+        Assert.Equal(language, new SettingsStore(_dir).ReadLanguage());
+    }
+
+    [Theory]
+    [InlineData("""{ "SettingsVersion": 2, "Language": "de" }""")]
+    [InlineData("""{ "SettingsVersion": 2, "Language": 5 }""")]
+    [InlineData("""{ "SettingsVersion": 2 }""")]
+    [InlineData("""[ "en" ]""")]
+    public void ReadLanguage_treats_unknown_values_as_automatic(string json)
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), json);
+        Assert.Null(new SettingsStore(_dir).ReadLanguage());
+    }
+
+    [Fact]
+    public void ReadLanguage_ignores_property_name_case_like_load()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "language": "en" }""");
+        Assert.Equal("en", new SettingsStore(_dir).ReadLanguage());
+    }
+
+    [Fact]
+    public void ReadLanguage_survives_an_unrelated_bad_setting()
+    {
+        File.WriteAllText(Path.Combine(_dir, "settings.json"), """{ "SettingsVersion": 2, "GlassMode": "Yok", "Language": "en" }""");
+        Assert.Equal("en", new SettingsStore(_dir).ReadLanguage());
+    }
+
+    [Fact]
+    public void ReadLanguage_on_corrupt_file_is_automatic_and_leaves_it_alone()
+    {
+        var path = Path.Combine(_dir, "settings.json");
+        File.WriteAllText(path, "{ bozuk");
+        Assert.Null(new SettingsStore(_dir).ReadLanguage());
+        Assert.Equal("{ bozuk", File.ReadAllText(path));
+        Assert.Single(Directory.GetFiles(_dir)); // yedek dosyası da yazılmaz
+    }
+
+    [Fact]
+    public void ReadLanguage_does_not_migrate_an_old_file()
+    {
+        var path = Path.Combine(_dir, "settings.json");
+        const string old = """{ "Language": "en" }""";
+        File.WriteAllText(path, old);
+        Assert.Equal("en", new SettingsStore(_dir).ReadLanguage());
+        Assert.Equal(old, File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void ReadLanguage_on_locked_file_is_automatic()
+    {
+        var path = Path.Combine(_dir, "settings.json");
+        File.WriteAllText(path, """{ "SettingsVersion": 2, "Language": "en" }""");
+        using var locked = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        Assert.Null(new SettingsStore(_dir).ReadLanguage());
+    }
 }

@@ -29,6 +29,43 @@ public sealed class SettingsStore
     private string CorruptBackupPath => Path.Combine(_directory, "settings.corrupt.json");
 
     /// <summary>
+    /// Yalnız arayüz dilini okur ("tr", "en" ya da Otomatik için null); dosyaya hiç yazmaz, dönüştürmez, yedeklemez.
+    /// Uygulama her kipte (bekçi, kurtarma dahil) olay döngüsü başlamadan çağırır; tam yükleme normal başlangıçta kalır.
+    /// Öbür ayarlardan biri bozuk olsa da dil okunur.
+    /// </summary>
+    public string? ReadLanguage()
+    {
+        try
+        {
+            if (!File.Exists(FilePath))
+            {
+                return null;
+            }
+
+            using var doc = JsonDocument.Parse(File.ReadAllText(FilePath));
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            foreach (var property in doc.RootElement.EnumerateObject())
+            {
+                if (string.Equals(property.Name, nameof(AppSettings.Language), StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = property.Value.ValueKind == JsonValueKind.String ? property.Value.GetString() : null;
+                    return value is "tr" or "en" ? value : null;
+                }
+            }
+
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Ayarları yükler. Dosya yoksa ya da bozuksa varsayılanları yazar ve döner. Dosya okunamıyorsa (kilitli, izin yok)
     /// varsayılanlarla çalışılır ama dosyaya bu oturumda dokunulmaz.
     /// </summary>

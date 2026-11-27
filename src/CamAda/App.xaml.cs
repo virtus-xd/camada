@@ -84,6 +84,14 @@ public partial class App : Application
     private bool _exiting;
     private bool _hostsTray;
 
+    public App()
+    {
+        // Arayüz dili olay döngüsü başlamadan, eşzamanlı uygulanır. Async başlangıçta ayarlanınca dil ilk await'te geri
+        // alınıyor ve WPF olay döngüsü Windows dilinde kalıyordu: yalnız başlangıçta kurulan pencereler çevriliyor,
+        // tıklamayla açılan paneller ve zamanlayıcıyla yenilenen metinler Windows dilinde kalıyordu.
+        ApplyUiLanguage(new SettingsStore(RoamingDir).ReadLanguage());
+    }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -137,8 +145,7 @@ public partial class App : Application
         StartWatchdog();
 
         _settingsStore = new SettingsStore(RoamingDir);
-        _settings = _settingsStore.Load();
-        ApplyUiLanguage(_settings.Language); // ilk pencereden önce
+        _settings = _settingsStore.Load(); // arayüz dili App kurucusunda uygulandı
         EnsurePinnedApps();
         _autostart = new AutostartService(PackageContext.IsPackaged, LogCrash);
         _ = _autostart.ApplyAsync(_settings.StartWithWindows);
@@ -1126,7 +1133,10 @@ public partial class App : Application
         Restart();
     }
 
-    /// <summary>Arayüz dilini bir kez uygular: metinler CurrentUICulture'dan, saat/sayı biçimi Windows'un bölge ayarından.</summary>
+    /// <summary>
+    /// Arayüz dilini bir kez uygular: metinler CurrentUICulture'dan, saat/sayı biçimi Windows'un bölge ayarından.
+    /// Yalnız App kurucusundan çağrılır: CurrentUICulture async akışla taşınır, async metotta ayarlanırsa ilk await'te geri alınır.
+    /// </summary>
     private static void ApplyUiLanguage(string? setting)
     {
         var ui = UiLanguage.Resolve(setting, WindowsUiCulture);

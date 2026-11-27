@@ -55,7 +55,7 @@ Kullanıcı "nasıl" kısmını bana bıraktı; A'yı seçtim. Dil değişince *
 ### Dil seçimi
 - `AppSettings.Language : string?` — `null` (otomatik), `"tr"`, `"en"`. Sürüm göçü gerekmez (yeni alan, varsayılan `null`); tanınmayan değer `null` sayılır.
 - Core'da saf fonksiyon: `UiLanguage.Resolve(string? setting, CultureInfo windowsUiCulture) -> CultureInfo` — `"tr"` → `tr-TR`, `"en"` → `en-US`, `null`: Windows görüntü dili Türkçe ise `tr-TR`, değilse `en-US`.
-- `App` başlangıcında, ilk pencere oluşmadan: `CultureInfo.DefaultThreadCurrentUICulture` ve `CurrentUICulture` = sonuç; `CurrentCulture` (bölge biçimi) Windows'ta bırakılır.
+- `App` kurucusunda, olay döngüsü başlamadan ve eşzamanlı: `CultureInfo.DefaultThreadCurrentUICulture` ve `CurrentUICulture` = sonuç; `CurrentCulture` (bölge biçimi) Windows'ta bırakılır. Dil `SettingsStore.ReadLanguage()` ile okunur (dosyaya yazmaz; bekçi ve kurtarma kiplerinde de çalışır). Async başlangıçta ayarlanmaz: `CurrentUICulture` async akışla taşınır, ilk `await`'te geri alınır ve WPF olay döngüsü Windows dilinde kalır (canlı denemede yaşandı: yalnız başlangıçta kurulan menü çevrildi, paneller Türkçe kaldı).
 - Sağ tık menüsüne alt menü: başlığı her zaman iki dilli **"Dil / Language"** (yanlış dil seçen geri dönebilsin), içinde "Otomatik (Windows)" / "Automatic (Windows)", "Türkçe", "English"; seçili olan işaretli. Seçince ayar kaydedilir ve `Restart()`.
 
 ### Kaynak dosyaları
